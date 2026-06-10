@@ -226,6 +226,10 @@ interface StoreState {
   resetStamp: number
   canUndo: boolean
   canRedo: boolean
+  /** free-fly の移動速度 (m/s)。操作設定なので Undo / Scene JSON の対象外 */
+  moveSpeed: number
+  /** 視点ドラッグの感度倍率 */
+  lookSensitivity: number
 
   setSceneName: (name: string) => void
   setMode: (mode: Mode) => void
@@ -233,6 +237,8 @@ interface StoreState {
   select: (sel: Selection | null) => void
   cycleSelection: () => void
   setTransformMode: (m: 'translate' | 'rotate' | 'scale') => void
+  setMoveSpeed: (v: number) => void
+  setLookSensitivity: (v: number) => void
   setTransformDragging: (v: boolean) => void
   setFocusTarget: (p: Vec3 | null) => void
   toggleHelp: () => void
@@ -366,6 +372,27 @@ function detectViewerSlug(): string | null {
 
 const viewerSlug = detectViewerSlug()
 
+const CONTROL_PREFS_KEY = 'pse:control'
+
+function loadControlPrefs(): { moveSpeed?: number; lookSensitivity?: number } {
+  try {
+    const raw = localStorage.getItem(CONTROL_PREFS_KEY)
+    return raw ? (JSON.parse(raw) as { moveSpeed?: number; lookSensitivity?: number }) : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveControlPrefs(moveSpeed: number, lookSensitivity: number) {
+  try {
+    localStorage.setItem(CONTROL_PREFS_KEY, JSON.stringify({ moveSpeed, lookSensitivity }))
+  } catch {
+    /* 保存できなくても操作には影響しない */
+  }
+}
+
+const controlPrefs = loadControlPrefs()
+
 let flashTimer: ReturnType<typeof setTimeout> | undefined
 
 declare global {
@@ -399,6 +426,8 @@ export const useStore = create<StoreState>()((set, get) => ({
   resetStamp: 0,
   canUndo: false,
   canRedo: false,
+  moveSpeed: controlPrefs.moveSpeed ?? 4,
+  lookSensitivity: controlPrefs.lookSensitivity ?? 1,
   // Viewer 起動時は IndexedDB から非同期に読み込むまでロック状態で待つ
   ...(viewerSlug ? { viewerLocked: true, mode: 'preview' as Mode } : {}),
 
@@ -453,6 +482,16 @@ export const useStore = create<StoreState>()((set, get) => ({
   },
 
   setTransformMode: (transformMode) => set({ transformMode }),
+
+  setMoveSpeed: (moveSpeed) => {
+    set({ moveSpeed })
+    saveControlPrefs(moveSpeed, get().lookSensitivity)
+  },
+
+  setLookSensitivity: (lookSensitivity) => {
+    set({ lookSensitivity })
+    saveControlPrefs(get().moveSpeed, lookSensitivity)
+  },
   setTransformDragging: (transformDragging) => set({ transformDragging }),
   setFocusTarget: (focusTarget) => set({ focusTarget }),
   toggleHelp: () => set((s) => ({ helpVisible: !s.helpVisible })),

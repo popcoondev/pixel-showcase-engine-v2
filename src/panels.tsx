@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { fileToDataUrl, imageAspect, pickFile } from './io'
+import { resetCameraRoll } from './scene/FlyControls'
 import { EFFECT_LABELS, focalToFov, fovToFocal, useStore } from './store'
 import type { AspectRatio, EffectKind, FocusMode, LightKind, Vec3 } from './types'
 
@@ -219,6 +220,10 @@ export function CameraPanel() {
   const shots = useStore((s) => s.shots)
   const activeShotId = useStore((s) => s.activeShotId)
   const setCamera = useStore((s) => s.setCamera)
+  const moveSpeed = useStore((s) => s.moveSpeed)
+  const lookSensitivity = useStore((s) => s.lookSensitivity)
+  const setMoveSpeed = useStore((s) => s.setMoveSpeed)
+  const setLookSensitivity = useStore((s) => s.setLookSensitivity)
   const s = useStore.getState
 
   return (
@@ -260,6 +265,30 @@ export function CameraPanel() {
             <option value="1:1">1:1</option>
           </select>
         </Row>
+      </Section>
+      <Section title="カメラワーク">
+        <SliderRow
+          label="移動速度"
+          value={moveSpeed}
+          min={0.5}
+          max={20}
+          step={0.5}
+          format={(v) => `${v.toFixed(1)}m/s`}
+          onChange={setMoveSpeed}
+        />
+        <SliderRow
+          label="視点感度"
+          value={lookSensitivity}
+          min={0.2}
+          max={3}
+          step={0.05}
+          format={(v) => `x${v.toFixed(2)}`}
+          onChange={setLookSensitivity}
+        />
+        <button className="wide" onClick={resetCameraRoll}>
+          ロールを水平に戻す
+        </button>
+        <Empty text="右ドラッグ: パン / チルト、Q / E: ロール、ホイール・W / S: ドリー、中ドラッグ: トラック / ペデスタル、Shift: 3倍速。" />
       </Section>
       <Section title="ボケ (DOF)">
         <ToggleRow label="有効" value={cam.dofEnabled} onChange={(v) => setCamera({ dofEnabled: v })} />

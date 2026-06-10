@@ -174,8 +174,9 @@ function HelpOverlay() {
         <ul>
           <li><b>ESC</b> Edit / Camera 切替、<b>F</b> Camera へ</li>
           <li><b>R</b> Save Shot、<b>P</b> Preview 切替</li>
-          <li><b>右ドラッグ</b> 視点、<b>中ドラッグ</b> 平行移動、<b>ホイール</b> 前後</li>
+          <li><b>右ドラッグ</b> パン / チルト、<b>中ドラッグ</b> トラック / ペデスタル、<b>ホイール</b> ドリー</li>
           <li><b>WASD</b> 移動、<b>Space</b> 上昇、<b>Z / X / Ctrl</b> 下降、<b>Shift</b> 高速</li>
+          <li><b>Q / E</b> ロール (Camera)、速度・感度は Camera タブで調整</li>
           <li><b>1 / 2 / 3</b> Move / Rotate / Scale、<b>C</b> 次を選択</li>
           <li><b>矢印キー</b> 左右: FOV、上下: 露出</li>
           <li><b>Home</b> 視点リセット、<b>Delete</b> 削除</li>

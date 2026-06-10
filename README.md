@@ -30,8 +30,9 @@ npm run build   # tsc -b && vite build
 
 - `ESC`: Edit / Camera 切替、`F`: Camera へ
 - `R`: Save Shot、`P`: Preview 切替
-- 右ドラッグ / 何もない場所の左ドラッグ: 視点、中ドラッグ: 平行移動、ホイール: 前後
-- `WASD`: 移動、`Space`: 上昇、`Z / X / Ctrl`: 下降、`Shift`: 高速
+- 右ドラッグ / 何もない場所の左ドラッグ: パン / チルト、中ドラッグ: トラック / ペデスタル、ホイール: ドリー
+- `WASD`: 移動、`Space`: 上昇、`Z / X / Ctrl`: 下降、`Shift`: 高速 (3倍)
+- `Q / E`: ロール (Camera モード)。移動速度・視点感度は Camera タブで調整
 - `1 / 2 / 3`: Move / Rotate / Scale、`C`: 次を選択、`Delete`: 削除
 - 矢印キー: 左右 = FOV、上下 = 露出
 - `Home`: Edit で視点リセット、`I`: 操作ガイド

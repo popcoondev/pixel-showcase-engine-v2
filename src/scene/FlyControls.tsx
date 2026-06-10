@@ -12,10 +12,20 @@ function isTyping() {
   )
 }
 
+/** カメラのロールを水平に戻す (Camera タブのボタンから使用) */
+export function resetCameraRoll() {
+  const cam = runtime.camera
+  if (!cam) return
+  const e = new THREE.Euler().setFromQuaternion(cam.quaternion, 'YXZ')
+  e.z = 0
+  cam.quaternion.setFromEuler(e)
+}
+
 /**
  * Edit / Camera 共通の free-fly 操作。
- * 右ドラッグ / 何もない場所の左ドラッグ: 視点回転 / 中ドラッグ: 平行移動 /
- * ホイール: 前後 / WASD: 移動 / Space: 上昇 / Z,X,Ctrl: 下降 / Shift: 高速
+ * 右ドラッグ / 何もない場所の左ドラッグ: パン・チルト / 中ドラッグ: トラック・ペデスタル /
+ * ホイール: ドリー / WASD: 移動 / Space: 上昇 / Z,X,Ctrl: 下降 / Shift: 高速 /
+ * Q,E: ロール (Camera モードのみ)。速度・感度は store の moveSpeed / lookSensitivity に従う
  */
 export function FlyControls() {
   const { camera, gl } = useThree()
@@ -107,15 +117,15 @@ export function FlyControls() {
       drag.current.x = e.clientX
       drag.current.y = e.clientY
       if (drag.current.button === 2 || drag.current.button === 0) {
+        // パン・チルト。euler.z はそのまま保持するのでロールが崩れない
+        const sens = 0.0045 * useStore.getState().lookSensitivity
         euler.current.setFromQuaternion(camera.quaternion)
-        euler.current.y -= dx * 0.0045
-        euler.current.x = THREE.MathUtils.clamp(euler.current.x - dy * 0.0045, -1.55, 1.55)
-        euler.current.z = 0
+        euler.current.y -= dx * sens
+        euler.current.x = THREE.MathUtils.clamp(euler.current.x - dy * sens, -1.55, 1.55)
         camera.quaternion.setFromEuler(euler.current)
       } else {
-        const pan = new THREE.Vector3(-dx * 0.012, dy * 0.012, 0).applyQuaternion(
-          camera.quaternion,
-        )
+        const k = 0.012 * (useStore.getState().moveSpeed / 4)
+        const pan = new THREE.Vector3(-dx * k, dy * k, 0).applyQuaternion(camera.quaternion)
         camera.position.add(pan)
       }
     }
@@ -132,7 +142,10 @@ export function FlyControls() {
       e.preventDefault()
       const dir = new THREE.Vector3()
       camera.getWorldDirection(dir)
-      camera.position.addScaledVector(dir, -e.deltaY * 0.012)
+      camera.position.addScaledVector(
+        dir,
+        -e.deltaY * 0.012 * (useStore.getState().moveSpeed / 4),
+      )
     }
     const onContextMenu = (e: MouseEvent) => e.preventDefault()
 
@@ -175,7 +188,9 @@ export function FlyControls() {
     if (s.mode === 'preview' || s.transformDragging) return
     const k = keys.current
     if (!k.size) return
-    const speed = (k.has('ShiftLeft') || k.has('ShiftRight') ? 12 : 4) * Math.min(dt, 0.05)
+    const d = Math.min(dt, 0.05)
+    const fast = k.has('ShiftLeft') || k.has('ShiftRight') ? 3 : 1
+    const speed = s.moveSpeed * fast * d
     const forward = new THREE.Vector3()
     camera.getWorldDirection(forward)
     const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize()
@@ -186,6 +201,11 @@ export function FlyControls() {
     if (k.has('Space')) camera.position.y += speed
     if (k.has('KeyZ') || k.has('KeyX') || k.has('ControlLeft') || k.has('ControlRight'))
       camera.position.y -= speed
+    // ロールは構図ツールなので Camera モード限定
+    if (s.mode === 'camera') {
+      const roll = (k.has('KeyQ') ? 1 : 0) - (k.has('KeyE') ? 1 : 0)
+      if (roll) camera.rotateZ(roll * 0.8 * fast * d)
+    }
   })
 
   return null
