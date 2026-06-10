@@ -1,0 +1,11 @@
+actor_id: builder-01
+display_name: Builder
+kind: ai
+roles:
+  - Builder
+lens: feasibility / execution / 実装コスト・依存・順序
+capabilities:
+  - concept-design
+  - delivery-planning
+  - cost-estimation
+policy_profile: default-generic-policy

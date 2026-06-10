@@ -1,0 +1,15 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-005",
+  "title": "ONBOARD 初回サンプルシーン + 最小ガイド",
+  "status": "open",
+  "phase": "fast-follow",
+  "priority_rank": 5,
+  "owner_role": "Builder",
+  "estimate": "S",
+  "council_scores": { "visionary": 4, "builder": 5, "guardian": 5 },
+  "rationale": "ゼロリスクで初回体験の最大欠落を解消。starterObjects を public のサンプル scene.json に一本化し、IndexedDB が空のときだけ読み込む。GLB非同梱(ドット絵Plane + Cube + Light)で軽量。",
+  "guardian_gate": "サンプルは外部GLB非同梱。ガイドは初回のみ表示の最小オーバーレイ(3ステップ以内)で陳腐化を抑える。starterObjects と二重管理にしない。",
+  "dependencies": [],
+  "acceptance": "初回起動でドット絵+光の作例が出て、最小ガイドが1度だけ出る。空起動の不親切さが解消。"
+}

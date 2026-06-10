@@ -1,0 +1,22 @@
+model: council-of-three
+decision_rules:
+  default: majority-with-guardian-veto
+escalation:
+  target: human-maintainer
+  owner: popcoondev
+  max_retries: 2
+routing:
+  fast_track:
+    allowed_when:
+      - low-blast-radius
+      - reversible
+      - low-safety-impact
+assignment_authority:
+  mode: parent-orchestrator
+  owner: runtime
+  override_allowed: human-maintainer
+non_requirements_guarded:
+  - no-gameplay
+  - no-free-move-in-viewer
+  - not-a-heavy-blender-like-dcc
+  - prioritize-operation-naturalness-and-presentation-quality-over-feature-count

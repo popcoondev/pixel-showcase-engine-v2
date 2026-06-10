@@ -1,0 +1,15 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-008",
+  "title": "FXMORE FX種追加(雪/煙/葉)+ 方向制御",
+  "status": "open",
+  "phase": "backlog",
+  "priority_rank": 8,
+  "owner_role": "Builder",
+  "estimate": "M",
+  "council_scores": { "visionary": 2, "builder": 4, "guardian": 2 },
+  "rationale": "構造は明快(EffectKind union + spawn/useFrame の switch 追加)だが優先度低。雪/煙は sparkle/dust 派生。",
+  "guardian_gate": "EffectDef の新フィールドは必ず optional にして既存 Scene JSON の後方互換を維持。TASK-002 着手後に実装。",
+  "visionary_caution": "種を増やすより配置/制御の品質。FX過多は『ゲーム化しない』非要件に最も近い候補。",
+  "dependencies": ["TASK-002"]
+}

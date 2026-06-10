@@ -1,0 +1,11 @@
+actor_id: visionary-01
+display_name: Visionary
+kind: ai
+roles:
+  - Visionary
+lens: value / intent / 製品ビジョンとユーザーへの整合
+capabilities:
+  - need-framing
+  - scope-definition
+  - non-requirement-guarding
+policy_profile: default-generic-policy

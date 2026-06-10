@@ -1,0 +1,21 @@
+{
+  "session_format_version": 1,
+  "session_id": "SESS-2026-0611-COUNCIL",
+  "at": "2026-06-11",
+  "type": "council-of-three",
+  "parent": "claude-code (orchestrator)",
+  "request": "次の改善優先順位を決め、組織を立ち上げる",
+  "mode": "parallel-roles-then-parent-aggregate",
+  "workers": [
+    { "role": "Visionary", "top5": ["SHARE", "DRACO", "ONBOARD", "THUMB", "MULTISHOT"], "next": "SHARE を先に出す" },
+    { "role": "Builder", "top5": ["DRACO", "THUMB", "ONBOARD", "SHARE", "MULTISHOT"], "next": "DRACO を今日入れる", "read_code": true },
+    { "role": "Guardian", "top5": ["TESTCI", "ONBOARD", "DRACO", "PRESETS", "THUMB"], "next": "純粋関数の最小Vitestを今週", "read_code": true, "veto": ["SHARE-backend"], "gates": ["SHARE-static", "MULTISHOT", "MOBILE", "FXMORE"] }
+  ],
+  "agreement": ["DRACO", "ONBOARD", "THUMB", "SHARE-static-approach", "reject-SHARE-backend", "deprioritize-PERF-MOBILE"],
+  "conflict": [
+    { "topic": "TESTCI priority", "resolution": "最小スモーク+CIに縮約し価値スライスと並走" },
+    { "topic": "SHARE sequencing", "resolution": "DRACO→最小テスト→SHARE をスライス内に集約" }
+  ],
+  "decision_ref": ".aof/decisions/DR-2026-001-next-priorities.md",
+  "outcome": "Operating Goal と Next Value Slice を確定、TASK-001..010 を open 化"
+}

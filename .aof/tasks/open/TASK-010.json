@@ -1,0 +1,13 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-010",
+  "title": "PERF 多数GLB性能・堅牢性",
+  "status": "open",
+  "phase": "backlog-later",
+  "priority_rank": 10,
+  "owner_role": "Builder",
+  "estimate": "L",
+  "council_scores": { "visionary": 2, "builder": 2, "guardian": 3 },
+  "rationale": "現ユーザー像と乖離。GLB は heterogeneous mesh でインスタンシング相性が悪く設計変更が大きい。重くなってから、かつ TASK-002 のテスト土台の上で。",
+  "dependencies": ["TASK-002"]
+}

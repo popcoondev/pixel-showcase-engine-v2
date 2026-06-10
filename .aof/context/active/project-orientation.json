@@ -1,0 +1,36 @@
+{
+  "orientation_format_version": 1,
+  "project_type": "web-app (authoring tool)",
+  "product_summary": "ドット絵・GLB/GLTF・画像プレートを3D空間に配置し、固定画角の展示ビューとして見せる Web オーサリングツール。ゲームではない。",
+  "stack": "React + TypeScript + Vite + three.js (R3F + drei + postprocessing + zustand)",
+  "repo_boundaries": {
+    "app": "src/",
+    "scene": "src/scene/",
+    "state": "src/store.ts",
+    "io": "src/io.ts / src/db.ts",
+    "docs": "docs/",
+    "aof_state": ".aof/"
+  },
+  "protected_areas": [
+    "src/store.ts の Doc スナップショット/Undo 履歴ロジック",
+    "Scene JSON v2 アセット重複排除 (hashDataUrl/serialize/migrateSceneFile)",
+    "固定画角 Viewer (viewerLocked) の編集不可前提"
+  ],
+  "required_commands": {
+    "dev": "npm run dev",
+    "verify": "npm run build (tsc -b && vite build)"
+  },
+  "verification_entrypoints": [
+    "npm run build による型チェック",
+    "preview ツールでの目視確認 (自動テストは v0.1.0 時点で皆無)"
+  ],
+  "release_constraints": "public repo popcoondev/pixel-showcase-engine-v2、SemVer タグ + GitHub Release。現在 v0.1.0。",
+  "non_requirements": [
+    "ゲーム化しない",
+    "Viewer で自由移動させない",
+    "Blender 的な重い総合DCCにしない",
+    "機能追加より操作の自然さと見せ方の品質を優先"
+  ],
+  "human_owner": "popcoondev",
+  "approval_boundary": "slice scope / release / publish hosting は human maintainer 承認"
+}

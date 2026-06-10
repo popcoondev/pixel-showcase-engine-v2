@@ -1,0 +1,15 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-001",
+  "title": "DRACO 圧縮GLBローダー対応",
+  "status": "open",
+  "phase": "slice-1",
+  "priority_rank": 1,
+  "owner_role": "Builder",
+  "estimate": "S",
+  "council_scores": { "visionary": 4, "builder": 5, "guardian": 4 },
+  "rationale": "3者最高合意の土台。Blender/Sketchfab の既定エクスポートが Draco 圧縮GLBで、現状 GLTFLoader にローダー未登録のため読めない。SHARE のアセット縮小前提にもなる。",
+  "implementation_hint": "src/scene/Viewport.tsx の GlbContent: GLTFLoader に DRACOLoader を登録。dataURL は atob で ArrayBuffer 化し loader.parse() も検討。WASM decoder は public/draco/ に配置。",
+  "dependencies": [],
+  "acceptance": "実物の圧縮(Draco)GLB が配置でき、影/質感上書きも従来どおり動く。"
+}

@@ -1,0 +1,22 @@
+{
+  "goal_format_version": 1,
+  "type": "next-value-slice",
+  "set_at": "2026-06-11",
+  "name": "Shareable showcase (v0.2.0 candidate)",
+  "statement": "圧縮GLBを含むシーンを、自己完結HTMLとして書き出し、他者がブラウザで開いて固定画角Shotを閲覧できる。最小テスト/CIで守る。",
+  "in_slice": [
+    "TASK-001 DRACO 圧縮GLBローダー対応",
+    "TASK-002 最小スモークテスト + CI (Vitest 純粋関数 + GitHub Actions typecheck/build)",
+    "TASK-003 静的自己完結HTMLエクスポート + 誤Publishメッセージ是正"
+  ],
+  "fast_follow": [
+    "TASK-004 THUMB サムネ/OG画像自動生成",
+    "TASK-005 ONBOARD 初回サンプルシーン + 最小ガイド"
+  ],
+  "guardian_gates": [
+    "SHARE backend 型は veto (スコープ外)",
+    "SHARE static は埋め込みサイズ上限 + 事前サイズ表示、DRACO先行",
+    "THUMB はサムネを Scene JSON / Undo履歴に入れず IndexedDB に id 参照で保存"
+  ],
+  "exit_criteria": "サンプル(またはユーザー提供)の圧縮GLBシーンを書き出した単一HTMLを別タブ/別環境で開き、Shotの固定画角が再生される。CIが green。"
+}

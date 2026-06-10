@@ -1,0 +1,14 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-007",
+  "title": "MULTISHOT 複数Shot管理 (固定画角の範囲で)",
+  "status": "open",
+  "phase": "backlog",
+  "priority_rank": 7,
+  "owner_role": "Builder",
+  "estimate": "M",
+  "council_scores": { "visionary": 3, "builder": 4, "guardian": 3 },
+  "rationale": "Shot配列と applyShot は既存。THUMB 後にサムネ付き一覧/順序変更/リネームまで強化。",
+  "guardian_gate": "Shot 管理強化(リネーム/並べ替え/1Shot=1PNG連番)までは許可。自動スライドショー/トランジション演出は『Viewer自由移動させない』に準じる非要件侵食として差し戻し。",
+  "dependencies": ["TASK-004"]
+}

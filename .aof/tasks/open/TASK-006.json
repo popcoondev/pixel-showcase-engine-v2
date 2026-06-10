@@ -1,0 +1,13 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-006",
+  "title": "PRESETS 展示台/背景/ライトリグ プリセットライブラリ",
+  "status": "open",
+  "phase": "backlog",
+  "priority_rank": 6,
+  "owner_role": "Builder",
+  "estimate": "M",
+  "council_scores": { "visionary": 3, "builder": 4, "guardian": 4 },
+  "rationale": "見せ方の品質に直接寄与。applyHd2dLook と同じパターンで本体コードに触れず追加可能。ONBOARD のサンプルと兼用できる。共有ループ確立後に着手。技術より『どんなプリセットを作るか』の判断が主コスト。",
+  "dependencies": ["TASK-005"]
+}

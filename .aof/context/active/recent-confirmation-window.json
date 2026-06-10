@@ -1,0 +1,22 @@
+{
+  "window_format_version": 1,
+  "updated_at": "2026-06-11",
+  "confirmations": [
+    {
+      "at": "2026-06-11",
+      "by": "popcoondev",
+      "decision": "本リポジトリを AOF v2.0 (managed-project) として扱う",
+      "source": "human instruction"
+    },
+    {
+      "at": "2026-06-11",
+      "by": "popcoondev",
+      "decision": "GitHub は public リポジトリ pixel-showcase-engine-v2、初版タグ v0.1.0",
+      "source": "human instruction"
+    }
+  ],
+  "open_questions_for_human": [
+    "SHARE の公開ホスティング先 (GitHub Pages か、ローカルHTML配布のみか)",
+    "DRACO 受け入れ確認用に実物の圧縮 GLB を1つ提供できるか"
+  ]
+}

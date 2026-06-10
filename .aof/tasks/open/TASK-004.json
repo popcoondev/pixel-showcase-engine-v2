@@ -1,0 +1,15 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-004",
+  "title": "THUMB サムネ/OG画像 自動生成",
+  "status": "open",
+  "phase": "fast-follow",
+  "priority_rank": 4,
+  "owner_role": "Builder",
+  "estimate": "S",
+  "council_scores": { "visionary": 4, "builder": 5, "guardian": 4 },
+  "rationale": "高合意・低コスト。savePng で実証済みの runtime.canvas.toBlob を saveShot にフック。SHARE の OG画像 と MULTISHOT のサムネ一覧を底上げ。",
+  "guardian_gate": "サムネは Scene JSON / Undo履歴(DocSnapshot)に入れず、IndexedDB に slug:shot:id で別保存し Shot は id 参照。toBlob は requestAnimationFrame を1フレーム挟んで確定フレームを取得。",
+  "dependencies": [],
+  "acceptance": "Shot 保存時にサムネが生成され、一覧表示と OG画像出力に使える。Scene JSON / Undo メモリを肥大させない。"
+}

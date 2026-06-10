@@ -1,0 +1,12 @@
+actor_id: guardian-01
+display_name: Guardian
+kind: ai
+roles:
+  - Guardian
+lens: risk / quality / safety / 可逆性 / 技術的負債 / プロダクト完全性
+capabilities:
+  - safety-review
+  - quality-review
+  - regression-risk-review
+veto_authority: true
+policy_profile: default-generic-policy

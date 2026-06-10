@@ -1,0 +1,18 @@
+organization_id: pixel-showcase-studio
+name: Pixel Showcase Studio
+language: ja
+mission: ドット絵・GLB・画像プレートの展示作品を「置く・照らす・撮る・固定画角で見せる」で気持ちよく成立させ、本人以外にも見せられる状態まで届ける
+governance_scopes:
+  - slice-scope-approval
+  - release-approval
+  - publish-hosting-decision
+clarification:
+  question_policy:
+    initial_question_budget: 2
+    followup_budget: 1
+    max_rounds: 2
+    priority_order:
+      - non-requirement-violation
+      - missing-constraint
+      - missing-success-criteria
+human_maintainer: popcoondev

@@ -1,0 +1,20 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-003",
+  "title": "静的自己完結HTMLエクスポート + 誤Publishメッセージ是正",
+  "status": "open",
+  "phase": "slice-1",
+  "priority_rank": 3,
+  "owner_role": "Builder",
+  "estimate": "M",
+  "council_scores": { "visionary": 5, "builder": 4, "guardian": 3 },
+  "rationale": "ビジョン最大の穴(Visionary #1)。serialize() が純JSONを返すため、viewer を1つのHTMLに焼き込み scene JSON を inline すれば自己完結。Guardian gate により backend 型は veto、static のみ。",
+  "guardian_gates": [
+    "アセット埋め込みサイズ上限 (例: 圧縮後20MB)",
+    "書き出し前に出力サイズを表示してユーザー確認",
+    "DRACO (TASK-001) 先行でアセットを小さくしてから"
+  ],
+  "scope_out": "公開URLバックエンド(他者GLB再配布・権利・PII・運用リスクにより Guardian veto)",
+  "dependencies": ["TASK-001", "TASK-002"],
+  "acceptance": "書き出した単一HTMLを別タブ/別環境で開くと固定画角Shotが再生される。Publish系の文言が実態(ローカル/書き出し)に一致。"
+}
