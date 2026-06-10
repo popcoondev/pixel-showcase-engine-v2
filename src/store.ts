@@ -109,6 +109,9 @@ const defaultEnv = (): EnvSettings => ({
   gridVisible: true,
   groundVisible: true,
   groundColor: '#1c2026',
+  sparkleEnabled: false,
+  lightMotesEnabled: false,
+  dustEnabled: false,
 })
 
 const defaultCamera = (): CameraSettings => ({
@@ -625,7 +628,8 @@ export const useStore = create<StoreState>()((set, get) => ({
       assets: f.assets,
       objects: f.objects,
       lights: f.lights,
-      env: f.env,
+      // 古い Scene JSON に無い設定はデフォルト値で補完する
+      env: { ...defaultEnv(), ...f.env },
       camera: f.camera,
       shots: f.shots,
       activeShotId: f.activeShotId,
@@ -720,7 +724,7 @@ if (viewerSlug) {
       assets: f.assets,
       objects: f.objects,
       lights: f.lights,
-      env: f.env,
+      env: { ...defaultEnv(), ...f.env },
       shots: f.shots,
       activeShotId: shot?.id ?? null,
       camera: shot ? { ...shot.settings } : f.camera,

@@ -204,6 +204,11 @@ export function ScenePanel() {
         <SliderRow label="開始" value={env.fogNear} min={1} max={100} step={1} format={(v) => `${v}m`} onChange={(v) => setEnv({ fogNear: v })} />
         <SliderRow label="終了" value={env.fogFar} min={5} max={200} step={1} format={(v) => `${v}m`} onChange={(v) => setEnv({ fogFar: v })} />
       </Section>
+      <Section title="演出パーティクル">
+        <ToggleRow label="キラキラの霧" value={env.sparkleEnabled} onChange={(v) => setEnv({ sparkleEnabled: v })} />
+        <ToggleRow label="光の粒" value={env.lightMotesEnabled} onChange={(v) => setEnv({ lightMotesEnabled: v })} />
+        <ToggleRow label="ダスト" value={env.dustEnabled} onChange={(v) => setEnv({ dustEnabled: v })} />
+      </Section>
       <Section title="Bloom / Vignette">
         <ToggleRow label="Bloom" value={env.bloomEnabled} onChange={(v) => setEnv({ bloomEnabled: v })} />
         <SliderRow label="強さ" value={env.bloomIntensity} min={0} max={3} onChange={(v) => setEnv({ bloomIntensity: v })} />

@@ -14,6 +14,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { focalToFov, runtime, useStore } from '../store'
 import type { LightDef, MaterialSettings, SceneObjectDef, Selection, Vec3 } from '../types'
 import { FlyControls } from './FlyControls'
+import { ParticleField } from './Particles'
 
 /** クリック共通処理: Camera モードの Screen Point フォーカス、Edit モードの選択 */
 function handleScenePointerDown(e: ThreeEvent<PointerEvent>, sel: Selection | null) {
@@ -489,6 +490,9 @@ function SceneContent() {
         <ObjectNode key={o.id} def={o} />
       ))}
       <Ground />
+      {env.sparkleEnabled && <ParticleField variant="sparkle" />}
+      {env.lightMotesEnabled && <ParticleField variant="mote" />}
+      {env.dustEnabled && <ParticleField variant="dust" />}
       <FocusMarker />
       <SelectionGizmo />
       <CameraRig />

@@ -55,6 +55,12 @@ export interface EnvSettings {
   gridVisible: boolean
   groundVisible: boolean
   groundColor: string
+  /** キラキラの霧(明滅する微細粒子) */
+  sparkleEnabled: boolean
+  /** 光の粒(蛍のような浮遊光) */
+  lightMotesEnabled: boolean
+  /** 空気中のダスト */
+  dustEnabled: boolean
 }
 
 export type FocusMode = 'subject' | 'manual' | 'screenPoint'
