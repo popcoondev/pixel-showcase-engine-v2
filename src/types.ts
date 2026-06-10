@@ -55,12 +55,24 @@ export interface EnvSettings {
   gridVisible: boolean
   groundVisible: boolean
   groundColor: string
-  /** キラキラの霧(明滅する微細粒子) */
-  sparkleEnabled: boolean
-  /** 光の粒(蛍のような浮遊光) */
-  lightMotesEnabled: boolean
-  /** 空気中のダスト */
-  dustEnabled: boolean
+}
+
+export type EffectKind = 'sparkle' | 'mote' | 'dust' | 'flame' | 'splash' | 'electric'
+
+export interface EffectDef {
+  id: string
+  name: string
+  kind: EffectKind
+  position: Vec3
+  color: string
+  /** 粒の数 */
+  count: number
+  /** 動きの速さ倍率 */
+  speed: number
+  /** 粒の大きさ倍率 */
+  size: number
+  /** 広がり半径 (m) */
+  radius: number
 }
 
 export type FocusMode = 'subject' | 'manual' | 'screenPoint'
@@ -96,6 +108,7 @@ export interface SceneFile {
   assets: Record<string, string>
   objects: SceneObjectDef[]
   lights: LightDef[]
+  effects: EffectDef[]
   env: EnvSettings
   camera: CameraSettings
   shots: Shot[]
@@ -103,9 +116,9 @@ export interface SceneFile {
 }
 
 export type Mode = 'edit' | 'camera' | 'preview'
-export type Tab = 'edit' | 'scene' | 'camera' | 'object' | 'light'
+export type Tab = 'edit' | 'scene' | 'camera' | 'object' | 'light' | 'fx'
 
 export interface Selection {
-  type: 'object' | 'light'
+  type: 'object' | 'light' | 'effect'
   id: string
 }

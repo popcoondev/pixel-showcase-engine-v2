@@ -4,6 +4,8 @@ import { loadShow } from './db'
 import type {
   AspectRatio,
   CameraSettings,
+  EffectDef,
+  EffectKind,
   EnvSettings,
   LightDef,
   LightKind,
@@ -109,10 +111,50 @@ const defaultEnv = (): EnvSettings => ({
   gridVisible: true,
   groundVisible: true,
   groundColor: '#1c2026',
-  sparkleEnabled: false,
-  lightMotesEnabled: false,
-  dustEnabled: false,
 })
+
+export const EFFECT_LABELS: Record<EffectKind, string> = {
+  sparkle: 'キラキラの霧',
+  mote: '光の粒',
+  dust: 'ダスト',
+  flame: '炎',
+  splash: '飛沫',
+  electric: '電気',
+}
+
+const EFFECT_DEFAULTS: Record<EffectKind, Omit<EffectDef, 'id' | 'name' | 'kind'>> = {
+  sparkle: { position: [0, 2.5, 0], color: '#cfe4ff', count: 260, speed: 1, size: 1, radius: 14 },
+  mote: { position: [0, 2, 0], color: '#ffd9a0', count: 48, speed: 1, size: 1, radius: 12 },
+  dust: { position: [0, 3, 0], color: '#d8d4c8', count: 320, speed: 1, size: 1, radius: 12 },
+  flame: { position: [0, 0.2, 0], color: '#ff9a3c', count: 120, speed: 1, size: 1, radius: 0.35 },
+  splash: { position: [0, 0.3, 0], color: '#bfe8ff', count: 160, speed: 1, size: 1, radius: 0.25 },
+  electric: { position: [0, 1, 0], color: '#9be8ff', count: 80, speed: 1, size: 1, radius: 0.5 },
+}
+
+function makeEffect(kind: EffectKind, n?: number): EffectDef {
+  const d = EFFECT_DEFAULTS[kind]
+  return {
+    id: newId(),
+    name: n ? `${EFFECT_LABELS[kind]} ${n}` : EFFECT_LABELS[kind],
+    kind,
+    ...d,
+    position: [...d.position],
+  }
+}
+
+/** 旧形式 (env のトグル) で保存されたパーティクル設定をエフェクトに変換する */
+function legacyEnvEffects(env: EnvSettings): EffectDef[] {
+  const legacy = env as EnvSettings & {
+    sparkleEnabled?: boolean
+    lightMotesEnabled?: boolean
+    dustEnabled?: boolean
+  }
+  const out: EffectDef[] = []
+  if (legacy.sparkleEnabled) out.push(makeEffect('sparkle', 1))
+  if (legacy.lightMotesEnabled) out.push(makeEffect('mote', 1))
+  if (legacy.dustEnabled) out.push(makeEffect('dust', 1))
+  return out
+}
 
 const defaultCamera = (): CameraSettings => ({
   focalLength: 35,
@@ -158,6 +200,7 @@ interface StoreState {
   assets: Record<string, string>
   objects: SceneObjectDef[]
   lights: LightDef[]
+  effects: EffectDef[]
   env: EnvSettings
   camera: CameraSettings
   shots: Shot[]
@@ -209,6 +252,10 @@ interface StoreState {
   updateLight: (id: string, patch: Partial<LightDef>) => void
   removeLight: (id: string) => void
 
+  addEffect: (kind: EffectKind) => void
+  updateEffect: (id: string, patch: Partial<EffectDef>) => void
+  removeEffect: (id: string) => void
+
   setEnv: (patch: Partial<EnvSettings>) => void
   setCamera: (patch: Partial<CameraSettings>) => void
   /** HD-2D 風の look プリセットを適用する (docs/hd2d-look.md 参照) */
@@ -229,7 +276,15 @@ interface StoreState {
 /** Undo / Redo の対象になる「ドキュメント」部分 */
 type DocSnapshot = Pick<
   StoreState,
-  'sceneName' | 'assets' | 'objects' | 'lights' | 'env' | 'camera' | 'shots' | 'activeShotId'
+  | 'sceneName'
+  | 'assets'
+  | 'objects'
+  | 'lights'
+  | 'effects'
+  | 'env'
+  | 'camera'
+  | 'shots'
+  | 'activeShotId'
 >
 
 const DOC_KEYS = [
@@ -237,6 +292,7 @@ const DOC_KEYS = [
   'assets',
   'objects',
   'lights',
+  'effects',
   'env',
   'camera',
   'shots',
@@ -249,6 +305,7 @@ function pickDoc(s: StoreState): DocSnapshot {
     assets: s.assets,
     objects: s.objects,
     lights: s.lights,
+    effects: s.effects,
     env: s.env,
     camera: s.camera,
     shots: s.shots,
@@ -271,7 +328,9 @@ function keepSelection(snapshot: DocSnapshot, selected: Selection | null): Selec
   const exists =
     selected.type === 'object'
       ? snapshot.objects.some((o) => o.id === selected.id)
-      : snapshot.lights.some((l) => l.id === selected.id)
+      : selected.type === 'light'
+        ? snapshot.lights.some((l) => l.id === selected.id)
+        : snapshot.effects.some((e) => e.id === selected.id)
   return exists ? selected : null
 }
 
@@ -317,6 +376,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   assets: {},
   objects: starterObjects(),
   lights: starterLights(),
+  effects: [],
   env: defaultEnv(),
   camera: defaultCamera(),
   shots: [],
@@ -371,7 +431,9 @@ export const useStore = create<StoreState>()((set, get) => ({
 
   select: (sel) => {
     set({ selected: sel })
-    if (sel) set({ tab: sel.type === 'object' ? 'object' : 'light' })
+    if (sel) {
+      set({ tab: sel.type === 'object' ? 'object' : sel.type === 'light' ? 'light' : 'fx' })
+    }
   },
 
   cycleSelection: () => {
@@ -379,6 +441,7 @@ export const useStore = create<StoreState>()((set, get) => ({
     const all: Selection[] = [
       ...s.objects.map((o): Selection => ({ type: 'object', id: o.id })),
       ...s.lights.map((l): Selection => ({ type: 'light', id: l.id })),
+      ...s.effects.map((e): Selection => ({ type: 'effect', id: e.id })),
     ]
     if (!all.length) return
     const idx = s.selected ? all.findIndex((x) => x.id === s.selected!.id) : -1
@@ -524,6 +587,22 @@ export const useStore = create<StoreState>()((set, get) => ({
       selected: s.selected?.id === id ? null : s.selected,
     })),
 
+  addEffect: (kind) => {
+    const n = get().effects.filter((e) => e.kind === kind).length
+    const eff = makeEffect(kind, n + 1)
+    set((s) => ({ effects: [...s.effects, eff] }))
+    get().select({ type: 'effect', id: eff.id })
+  },
+
+  updateEffect: (id, patch) =>
+    set((s) => ({ effects: s.effects.map((e) => (e.id === id ? { ...e, ...patch } : e)) })),
+
+  removeEffect: (id) =>
+    set((s) => ({
+      effects: s.effects.filter((e) => e.id !== id),
+      selected: s.selected?.id === id ? null : s.selected,
+    })),
+
   setEnv: (patch) => set((s) => ({ env: { ...s.env, ...patch } })),
   setCamera: (patch) => set((s) => ({ camera: { ...s.camera, ...patch } })),
 
@@ -603,7 +682,8 @@ export const useStore = create<StoreState>()((set, get) => ({
     const s = get()
     if (!s.selected) return
     if (s.selected.type === 'object') s.removeObject(s.selected.id)
-    else s.removeLight(s.selected.id)
+    else if (s.selected.type === 'light') s.removeLight(s.selected.id)
+    else s.removeEffect(s.selected.id)
   },
 
   serialize: () => {
@@ -614,6 +694,7 @@ export const useStore = create<StoreState>()((set, get) => ({
       assets: s.assets,
       objects: s.objects,
       lights: s.lights,
+      effects: s.effects,
       env: s.env,
       camera: s.camera,
       shots: s.shots,
@@ -628,6 +709,7 @@ export const useStore = create<StoreState>()((set, get) => ({
       assets: f.assets,
       objects: f.objects,
       lights: f.lights,
+      effects: f.effects ?? legacyEnvEffects(f.env),
       // 古い Scene JSON に無い設定はデフォルト値で補完する
       env: { ...defaultEnv(), ...f.env },
       camera: f.camera,
@@ -724,6 +806,7 @@ if (viewerSlug) {
       assets: f.assets,
       objects: f.objects,
       lights: f.lights,
+      effects: f.effects ?? legacyEnvEffects(f.env),
       env: { ...defaultEnv(), ...f.env },
       shots: f.shots,
       activeShotId: shot?.id ?? null,

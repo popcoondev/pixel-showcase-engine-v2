@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { fileToDataUrl, imageAspect, pickFile } from './io'
-import { focalToFov, fovToFocal, useStore } from './store'
-import type { AspectRatio, FocusMode, LightKind, Vec3 } from './types'
+import { EFFECT_LABELS, focalToFov, fovToFocal, useStore } from './store'
+import type { AspectRatio, EffectKind, FocusMode, LightKind, Vec3 } from './types'
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -203,11 +203,6 @@ export function ScenePanel() {
         <ColorRow label="色" value={env.fogColor} onChange={(v) => setEnv({ fogColor: v })} />
         <SliderRow label="開始" value={env.fogNear} min={1} max={100} step={1} format={(v) => `${v}m`} onChange={(v) => setEnv({ fogNear: v })} />
         <SliderRow label="終了" value={env.fogFar} min={5} max={200} step={1} format={(v) => `${v}m`} onChange={(v) => setEnv({ fogFar: v })} />
-      </Section>
-      <Section title="演出パーティクル">
-        <ToggleRow label="キラキラの霧" value={env.sparkleEnabled} onChange={(v) => setEnv({ sparkleEnabled: v })} />
-        <ToggleRow label="光の粒" value={env.lightMotesEnabled} onChange={(v) => setEnv({ lightMotesEnabled: v })} />
-        <ToggleRow label="ダスト" value={env.dustEnabled} onChange={(v) => setEnv({ dustEnabled: v })} />
       </Section>
       <Section title="Bloom / Vignette">
         <ToggleRow label="Bloom" value={env.bloomEnabled} onChange={(v) => setEnv({ bloomEnabled: v })} />
@@ -480,6 +475,68 @@ export function LightPanel() {
         </Section>
       ) : (
         <Empty text="ライト未選択。一覧かキャンバスのワイヤー球をクリックしてください。" />
+      )}
+    </>
+  )
+}
+
+const FX_KINDS: EffectKind[] = ['sparkle', 'mote', 'dust', 'flame', 'splash', 'electric']
+
+export function FxPanel() {
+  const effects = useStore((s) => s.effects)
+  const selected = useStore((s) => s.selected)
+  const s = useStore.getState
+  const eff = selected?.type === 'effect' ? effects.find((e) => e.id === selected.id) : undefined
+
+  return (
+    <>
+      <Section title="Add Effect">
+        <div className="btn-grid">
+          {FX_KINDS.map((k) => (
+            <button key={k} onClick={() => s().addEffect(k)}>
+              + {EFFECT_LABELS[k]}
+            </button>
+          ))}
+        </div>
+      </Section>
+      <Section title={`Effects (${effects.length})`}>
+        {effects.length === 0 && (
+          <Empty text="エフェクトがありません。Add から追加すると原点付近に置かれ、ギズモで動かせます。" />
+        )}
+        <ul className="item-list">
+          {effects.map((e) => (
+            <li
+              key={e.id}
+              className={selected?.id === e.id ? 'active' : ''}
+              onClick={() => s().select({ type: 'effect', id: e.id })}
+            >
+              <span>{e.name}</span>
+              <span className="kind">{EFFECT_LABELS[e.kind]}</span>
+            </li>
+          ))}
+        </ul>
+      </Section>
+      {eff ? (
+        <Section title="Effect Inspector">
+          <Row label="Name">
+            <input
+              className="text"
+              value={eff.name}
+              onChange={(e) => s().updateEffect(eff.id, { name: e.target.value })}
+            />
+          </Row>
+          <Vec3Row label="位置" value={eff.position} onChange={(v) => s().updateEffect(eff.id, { position: v })} />
+          <ColorRow label="色" value={eff.color} onChange={(v) => s().updateEffect(eff.id, { color: v })} />
+          <SliderRow label="粒の量" value={eff.count} min={10} max={600} step={10} format={(v) => `${v}`} onChange={(v) => s().updateEffect(eff.id, { count: v })} />
+          <SliderRow label="速さ" value={eff.speed} min={0.1} max={3} step={0.05} format={(v) => `x${v.toFixed(2)}`} onChange={(v) => s().updateEffect(eff.id, { speed: v })} />
+          <SliderRow label="大きさ" value={eff.size} min={0.2} max={3} step={0.05} format={(v) => `x${v.toFixed(2)}`} onChange={(v) => s().updateEffect(eff.id, { size: v })} />
+          <SliderRow label="広がり" value={eff.radius} min={0.1} max={30} step={0.1} format={(v) => `${v.toFixed(1)}m`} onChange={(v) => s().updateEffect(eff.id, { radius: v })} />
+          <button className="wide danger" onClick={() => s().removeEffect(eff.id)}>
+            Delete Effect
+          </button>
+        </Section>
+      ) : (
+        <Empty text="エフェクト未選択。一覧かキャンバスのワイヤーマーカーをクリックしてください。" />
       )}
     </>
   )

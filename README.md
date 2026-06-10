@@ -49,7 +49,7 @@ npm run build   # tsc -b && vite build
 - `src/types.ts`: Scene / Shot / Camera のデータ型
 - `src/store.ts`: zustand によるアプリ状態と操作
 - `src/io.ts`: Scene JSON / PNG / WebM / Publish 入出力
-- `src/scene/`: three.js シーン(オブジェクト、ライト、DOF/Bloom/Vignette、free-fly 操作)
+- `src/scene/`: three.js シーン(オブジェクト、ライト、FX パーティクル、DOF/Bloom/Vignette、free-fly 操作)
 - `src/panels.tsx`: Edit / Scene / Camera / Object / Light タブの UI
 - `src/App.tsx`: レイアウト、ホットキー、フッター、Viewer 表示
 

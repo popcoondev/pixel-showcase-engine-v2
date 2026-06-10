@@ -6,7 +6,7 @@ import {
   saveSceneJson,
   toggleRecording,
 } from './io'
-import { CameraPanel, EditPanel, LightPanel, ObjectPanel, ScenePanel } from './panels'
+import { CameraPanel, EditPanel, FxPanel, LightPanel, ObjectPanel, ScenePanel } from './panels'
 import { Viewport } from './scene/Viewport'
 import { aspectToNumber, focalToFov, fovToFocal, useStore } from './store'
 import type { Mode, Tab } from './types'
@@ -17,6 +17,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'camera', label: 'Camera' },
   { id: 'object', label: 'Object' },
   { id: 'light', label: 'Light' },
+  { id: 'fx', label: 'FX' },
 ]
 
 const MODE_LABEL: Record<Mode, string> = {
@@ -311,6 +312,7 @@ export default function App() {
           {tab === 'camera' && <CameraPanel />}
           {tab === 'object' && <ObjectPanel />}
           {tab === 'light' && <LightPanel />}
+          {tab === 'fx' && <FxPanel />}
         </aside>
       </div>
       <Footer />

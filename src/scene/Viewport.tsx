@@ -13,8 +13,8 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { focalToFov, runtime, useStore } from '../store'
 import type { LightDef, MaterialSettings, SceneObjectDef, Selection, Vec3 } from '../types'
+import { EffectNode } from './EffectNode'
 import { FlyControls } from './FlyControls'
-import { ParticleField } from './Particles'
 
 /** クリック共通処理: Camera モードの Screen Point フォーカス、Edit モードの選択 */
 function handleScenePointerDown(e: ThreeEvent<PointerEvent>, sel: Selection | null) {
@@ -294,11 +294,12 @@ function SelectionGizmo() {
   const transformMode = useStore((s) => s.transformMode)
   const objects = useStore((s) => s.objects)
   const lights = useStore((s) => s.lights)
+  const effects = useStore((s) => s.effects)
   const [target, setTarget] = useState<THREE.Object3D | null>(null)
 
   useEffect(() => {
     setTarget(selected ? (runtime.objects.get(selected.id) ?? null) : null)
-  }, [selected, objects, lights])
+  }, [selected, objects, lights, effects])
 
   if (!target || mode !== 'edit' || !selected) return null
 
@@ -311,8 +312,12 @@ function SelectionGizmo() {
         rotation: [target.rotation.x, target.rotation.y, target.rotation.z],
         scale: [target.scale.x, target.scale.y, target.scale.z],
       })
-    } else {
+    } else if (s.selected.type === 'light') {
       s.updateLight(s.selected.id, {
+        position: [target.position.x, target.position.y, target.position.z],
+      })
+    } else {
+      s.updateEffect(s.selected.id, {
         position: [target.position.x, target.position.y, target.position.z],
       })
     }
@@ -324,7 +329,7 @@ function SelectionGizmo() {
         runtime.gizmo = c as unknown as { axis: string | null } | null
       }}
       object={target}
-      mode={selected.type === 'light' ? 'translate' : transformMode}
+      mode={selected.type === 'object' ? transformMode : 'translate'}
       onMouseDown={() => useStore.getState().setTransformDragging(true)}
       onMouseUp={() => {
         commit()
@@ -477,6 +482,7 @@ function SceneContent() {
   const env = useStore((s) => s.env)
   const objects = useStore((s) => s.objects)
   const lights = useStore((s) => s.lights)
+  const effects = useStore((s) => s.effects)
 
   return (
     <>
@@ -490,9 +496,9 @@ function SceneContent() {
         <ObjectNode key={o.id} def={o} />
       ))}
       <Ground />
-      {env.sparkleEnabled && <ParticleField variant="sparkle" />}
-      {env.lightMotesEnabled && <ParticleField variant="mote" />}
-      {env.dustEnabled && <ParticleField variant="dust" />}
+      {effects.map((e) => (
+        <EffectNode key={e.id} def={e} />
+      ))}
       <FocusMarker />
       <SelectionGizmo />
       <CameraRig />
