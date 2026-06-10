@@ -230,7 +230,7 @@ function Footer() {
         <button onClick={openSceneJson}>Load Scene</button>
         <button onClick={savePng}>PNG</button>
         <button className={recording ? 'recording' : ''} onClick={toggleRecording}>
-          {recording ? '■ 停止' : '● WebM'}
+          {recording ? '■ 停止' : '● 録画'}
         </button>
         <button onClick={publishToLocalViewer}>Publish</button>
       </div>

@@ -75,6 +75,21 @@ export function savePng() {
 let recorder: MediaRecorder | null = null
 let chunks: Blob[] = []
 
+/**
+ * SNS (X / Instagram 等) にそのまま上げられるよう MP4 (H.264) を優先し、
+ * 非対応ブラウザでは WebM にフォールバックする
+ */
+function pickRecordingFormat(): { mime: string; ext: string } {
+  const candidates = [
+    'video/mp4;codecs=avc1.42E01E',
+    'video/mp4',
+    'video/webm;codecs=vp9',
+    'video/webm',
+  ]
+  const mime = candidates.find((m) => MediaRecorder.isTypeSupported(m)) ?? 'video/webm'
+  return { mime, ext: mime.startsWith('video/mp4') ? 'mp4' : 'webm' }
+}
+
 export function toggleRecording() {
   const state = useStore.getState()
   if (recorder) {
@@ -84,23 +99,24 @@ export function toggleRecording() {
   const canvas = runtime.canvas
   if (!canvas) return
   const stream = canvas.captureStream(60)
-  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-    ? 'video/webm;codecs=vp9'
-    : 'video/webm'
+  const { mime, ext } = pickRecordingFormat()
   chunks = []
   recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12_000_000 })
   recorder.ondataavailable = (e) => {
     if (e.data.size) chunks.push(e.data)
   }
   recorder.onstop = () => {
-    downloadBlob(new Blob(chunks, { type: 'video/webm' }), `${useStore.getState().sceneName}.webm`)
+    downloadBlob(
+      new Blob(chunks, { type: mime.split(';')[0] }),
+      `${useStore.getState().sceneName}.${ext}`,
+    )
     recorder = null
     useStore.getState().setRecording(false)
-    useStore.getState().flash('WebM を保存しました')
+    useStore.getState().flash(`${ext.toUpperCase()} を保存しました`)
   }
   recorder.start()
   state.setRecording(true)
-  state.flash('録画中… もう一度押すと停止します')
+  state.flash(`録画中 (${ext.toUpperCase()})… もう一度押すと停止します`)
 }
 
 export function publishToLocalViewer() {
