@@ -122,14 +122,16 @@ export function EditPanel() {
   const importGlb = () =>
     pickFile('.glb,.gltf,model/gltf-binary', async (f) => {
       const url = await fileToDataUrl(f)
-      s().addGlb(url, f.name.replace(/\.(glb|gltf)$/i, ''))
+      const assetId = await s().registerAsset(url)
+      s().addGlb(assetId, f.name.replace(/\.(glb|gltf)$/i, ''))
     })
 
   const importImagePlane = () =>
     pickFile('image/*', async (f) => {
       const url = await fileToDataUrl(f)
       const aspect = await imageAspect(url)
-      s().addPlane(url, aspect, f.name.replace(/\.\w+$/, ''))
+      const assetId = await s().registerAsset(url)
+      s().addPlane(assetId, aspect, f.name.replace(/\.\w+$/, ''))
     })
 
   return (
@@ -324,7 +326,8 @@ export function ObjectPanel() {
   const setImage = () =>
     pickFile('image/*', async (f) => {
       const url = await fileToDataUrl(f)
-      s().updateMaterial(obj.id, { textureDataUrl: url })
+      const assetId = await s().registerAsset(url)
+      s().updateMaterial(obj.id, { textureAssetId: assetId })
     })
 
   return (
@@ -390,8 +393,13 @@ export function ObjectPanel() {
           <ToggleRow label="ドット維持" value={obj.material.pixelated} onChange={(v) => s().updateMaterial(obj.id, { pixelated: v })} />
           <div className="btn-grid">
             <button onClick={setImage}>画像を貼る…</button>
-            {obj.material.textureDataUrl && (
-              <button onClick={() => s().updateMaterial(obj.id, { textureDataUrl: undefined })}>
+            {obj.material.textureAssetId && (
+              <button
+                onClick={() => {
+                  s().updateMaterial(obj.id, { textureAssetId: undefined })
+                  s().pruneAssets()
+                }}
+              >
                 画像を外す
               </button>
             )}

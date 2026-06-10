@@ -8,7 +8,8 @@ export interface MaterialSettings {
   emissive: string
   emissiveIntensity: number
   pixelated: boolean
-  textureDataUrl?: string
+  /** assets テーブルのキー。テクスチャ実体は SceneFile.assets に一本化する */
+  textureAssetId?: string
 }
 
 export type ObjectKind = 'cube' | 'plane' | 'glb'
@@ -23,7 +24,8 @@ export interface SceneObjectDef {
   material: MaterialSettings
   /** glb のみ: true のとき material の質感設定で GLB 本来のマテリアルを上書きする */
   materialOverride?: boolean
-  glbDataUrl?: string
+  /** assets テーブルのキー。同じ GLB を複数置いても実体はひとつ */
+  glbAssetId?: string
 }
 
 export type LightKind = 'directional' | 'point' | 'spot'
@@ -81,8 +83,11 @@ export interface Shot {
 }
 
 export interface SceneFile {
-  version: 1
+  /** v1: dataURL をオブジェクトに直接埋め込み / v2: assets テーブル参照 */
+  version: 1 | 2
   name: string
+  /** content hash -> dataURL。GLB / 画像の実体 */
+  assets: Record<string, string>
   objects: SceneObjectDef[]
   lights: LightDef[]
   env: EnvSettings

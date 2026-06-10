@@ -32,12 +32,15 @@ function handleScenePointerDown(e: ThreeEvent<PointerEvent>, sel: Selection | nu
 }
 
 function StdMaterial({ m, side }: { m: MaterialSettings; side?: THREE.Side }) {
+  const textureUrl = useStore((s) =>
+    m.textureAssetId ? s.assets[m.textureAssetId] : undefined,
+  )
   const tex = useMemo(() => {
-    if (!m.textureDataUrl) return null
-    const t = new THREE.TextureLoader().load(m.textureDataUrl)
+    if (!textureUrl) return null
+    const t = new THREE.TextureLoader().load(textureUrl)
     t.colorSpace = THREE.SRGBColorSpace
     return t
-  }, [m.textureDataUrl])
+  }, [textureUrl])
 
   useEffect(() => {
     if (!tex) return
@@ -119,14 +122,16 @@ function applyGlbMaterials(
 }
 
 function GlbContent({ def }: { def: SceneObjectDef }) {
+  const url = useStore((s) => (def.glbAssetId ? s.assets[def.glbAssetId] : undefined))
   const [obj, setObj] = useState<THREE.Group | null>(null)
   const originals = useRef(new Map<string, OrigMat>())
 
   useEffect(() => {
+    if (!url) return
     let alive = true
     originals.current.clear()
     new GLTFLoader().load(
-      def.glbDataUrl!,
+      url,
       (gltf) => {
         if (!alive) return
         gltf.scene.traverse((o) => {
@@ -143,7 +148,7 @@ function GlbContent({ def }: { def: SceneObjectDef }) {
     return () => {
       alive = false
     }
-  }, [def.glbDataUrl])
+  }, [url])
 
   useEffect(() => {
     if (obj) applyGlbMaterials(obj, originals.current, def.material, def.materialOverride ?? false)
@@ -181,7 +186,7 @@ function ObjectNode({ def }: { def: SceneObjectDef }) {
           <StdMaterial m={def.material} side={THREE.DoubleSide} />
         </mesh>
       )}
-      {def.kind === 'glb' && def.glbDataUrl && <GlbContent def={def} />}
+      {def.kind === 'glb' && def.glbAssetId && <GlbContent def={def} />}
     </group>
   )
 }

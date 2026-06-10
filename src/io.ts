@@ -1,3 +1,4 @@
+import { saveShow } from './db'
 import { runtime, useStore } from './store'
 import type { SceneFile } from './types'
 
@@ -53,7 +54,7 @@ export function openSceneJson() {
   pickFile('.json,application/json', async (f) => {
     try {
       const file = JSON.parse(await f.text()) as SceneFile
-      if (file.version !== 1) throw new Error('unsupported version')
+      if (file.version !== 1 && file.version !== 2) throw new Error('unsupported version')
       useStore.getState().loadScene(file)
     } catch {
       useStore.getState().flash('Scene JSON の読み込みに失敗しました')
@@ -111,8 +112,13 @@ export function publishToLocalViewer() {
   const suggested = s.sceneName.replace(/[^\w-]/g, '-').toLowerCase()
   const slug = window.prompt('公開 slug を入力してください', suggested)
   if (!slug) return
-  localStorage.setItem(`pse:show:${slug}`, JSON.stringify(s.serialize()))
-  const url = `${window.location.origin}${window.location.pathname}?showcase=${encodeURIComponent(slug)}`
-  navigator.clipboard?.writeText(url).catch(() => {})
-  s.flash(`Viewer URL をコピーしました: ${url}`)
+  saveShow(slug, s.serialize())
+    .then(() => {
+      const url = `${window.location.origin}${window.location.pathname}?showcase=${encodeURIComponent(slug)}`
+      navigator.clipboard?.writeText(url).catch(() => {})
+      useStore.getState().flash(`Viewer URL をコピーしました: ${url}`)
+    })
+    .catch(() => {
+      useStore.getState().flash('Publish に失敗しました (ストレージ書き込みエラー)')
+    })
 }

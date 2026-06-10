@@ -24,7 +24,7 @@ npm run build   # tsc -b && vite build
 - **Edit**: オブジェクト・ライト・地面・背景の調整
 - **Camera**: 構図・露出・被写界深度(実カメラ寄りの 焦点距離 / 絞り UI)
 - **Preview**: 保存した Shot の固定表示。PNG 保存・WebM 録画
-- **Viewer**: `?showcase=<slug>` で編集不可の固定画角表示(Publish で発行)
+- **Viewer**: `?showcase=<slug>` で編集不可の固定画角表示(Publish で発行。保存先は IndexedDB なので GLB 複数でも容量に余裕があります)
 
 ## 基本操作
 
@@ -53,8 +53,12 @@ npm run build   # tsc -b && vite build
 - `src/panels.tsx`: Edit / Scene / Camera / Object / Light タブの UI
 - `src/App.tsx`: レイアウト、ホットキー、フッター、Viewer 表示
 
+## データ形式
+
+Scene JSON は v2 形式で、GLB / 画像の実体は内容ハッシュをキーにした `assets` テーブルに一本化しています。同じモデルを Duplicate しても実体はひとつしか保存されません。v1 形式(dataURL 直接埋め込み)の JSON も読み込み時に自動変換されます。
+
 ## 今後の優先拡張
 
-1. 公開URL発行バックエンド(現状はローカル localStorage への Publish)
+1. 公開URL発行バックエンド(現状はローカル IndexedDB への Publish)
 2. 展示台 / 背景 / ライトリグのプリセット
 3. サムネイル自動生成

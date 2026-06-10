@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type * as THREE from 'three'
+import { loadShow } from './db'
 import type {
   AspectRatio,
   CameraSettings,
@@ -45,6 +46,44 @@ export function aspectToNumber(a: AspectRatio): number {
 }
 
 const newId = () => crypto.randomUUID().slice(0, 8)
+
+/** dataURL の内容ハッシュ。同じファイルを何度読み込んでも同じ asset id になる */
+export async function hashDataUrl(dataUrl: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(dataUrl))
+  return Array.from(new Uint8Array(digest).slice(0, 12))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+/** v1 (dataURL 直接埋め込み) の SceneFile を v2 (assets テーブル) に変換する */
+export function migrateSceneFile(file: SceneFile): SceneFile {
+  if (file.version === 2 && file.assets) return file
+  type LegacyObject = SceneObjectDef & {
+    glbDataUrl?: string
+    material: MaterialSettings & { textureDataUrl?: string }
+  }
+  const assets: Record<string, string> = {}
+  let n = 0
+  const intern = (dataUrl: string): string => {
+    for (const [k, v] of Object.entries(assets)) if (v === dataUrl) return k
+    const id = `legacy-${++n}`
+    assets[id] = dataUrl
+    return id
+  }
+  const objects = (file.objects as LegacyObject[]).map((o) => {
+    const { glbDataUrl, ...rest } = o
+    const { textureDataUrl, ...material } = o.material
+    return {
+      ...rest,
+      material: {
+        ...material,
+        textureAssetId: textureDataUrl ? intern(textureDataUrl) : material.textureAssetId,
+      },
+      glbAssetId: glbDataUrl ? intern(glbDataUrl) : o.glbAssetId,
+    }
+  })
+  return { ...file, version: 2, assets, objects }
+}
 
 const defaultMaterial = (): MaterialSettings => ({
   color: '#9aa4b8',
@@ -112,6 +151,8 @@ function starterLights(): LightDef[] {
 
 interface StoreState {
   sceneName: string
+  /** content hash -> dataURL。GLB / 画像テクスチャの実体 */
+  assets: Record<string, string>
   objects: SceneObjectDef[]
   lights: LightDef[]
   env: EnvSettings
@@ -149,9 +190,13 @@ interface StoreState {
   setRecording: (v: boolean) => void
   resetView: () => void
 
+  /** dataURL を assets に登録して id を返す(内容が同じなら既存 id を再利用) */
+  registerAsset: (dataUrl: string) => Promise<string>
+  /** どのオブジェクトからも参照されなくなった asset を削除する */
+  pruneAssets: () => void
   addCube: () => void
-  addPlane: (textureDataUrl?: string, aspect?: number, name?: string) => void
-  addGlb: (dataUrl: string, name: string) => void
+  addPlane: (textureAssetId?: string, aspect?: number, name?: string) => void
+  addGlb: (assetId: string, name: string) => void
   updateObject: (id: string, patch: Partial<SceneObjectDef>) => void
   updateMaterial: (id: string, patch: Partial<MaterialSettings>) => void
   removeObject: (id: string) => void
@@ -179,11 +224,12 @@ interface StoreState {
 /** Undo / Redo の対象になる「ドキュメント」部分 */
 type DocSnapshot = Pick<
   StoreState,
-  'sceneName' | 'objects' | 'lights' | 'env' | 'camera' | 'shots' | 'activeShotId'
+  'sceneName' | 'assets' | 'objects' | 'lights' | 'env' | 'camera' | 'shots' | 'activeShotId'
 >
 
 const DOC_KEYS = [
   'sceneName',
+  'assets',
   'objects',
   'lights',
   'env',
@@ -195,6 +241,7 @@ const DOC_KEYS = [
 function pickDoc(s: StoreState): DocSnapshot {
   return {
     sceneName: s.sceneName,
+    assets: s.assets,
     objects: s.objects,
     lights: s.lights,
     env: s.env,
@@ -243,33 +290,13 @@ function makeShotFromCamera(name: string, state: StoreState): Shot | null {
   }
 }
 
-function viewerInit(): Partial<StoreState> | null {
+function detectViewerSlug(): string | null {
   const params = new URLSearchParams(window.location.search)
   const pathMatch = window.location.pathname.match(/\/showcase\/([\w-]+)/)
-  const slug = params.get('showcase') ?? pathMatch?.[1] ?? null
-  if (!slug) return null
-  const raw = localStorage.getItem(`pse:show:${slug}`)
-  if (!raw) return null
-  try {
-    const file = JSON.parse(raw) as SceneFile
-    const shot = file.shots.find((s) => s.id === file.activeShotId) ?? file.shots[0]
-    return {
-      sceneName: file.name,
-      objects: file.objects,
-      lights: file.lights,
-      env: file.env,
-      camera: shot ? { ...shot.settings } : file.camera,
-      shots: file.shots,
-      activeShotId: shot?.id ?? null,
-      focusTarget: shot?.focusTarget ?? null,
-      mode: 'preview',
-      viewerLocked: true,
-      poseStamp: 1,
-    }
-  } catch {
-    return null
-  }
+  return params.get('showcase') ?? pathMatch?.[1] ?? null
 }
+
+const viewerSlug = detectViewerSlug()
 
 let flashTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -282,6 +309,7 @@ declare global {
 
 export const useStore = create<StoreState>()((set, get) => ({
   sceneName: 'untitled-showcase',
+  assets: {},
   objects: starterObjects(),
   lights: starterLights(),
   env: defaultEnv(),
@@ -302,7 +330,8 @@ export const useStore = create<StoreState>()((set, get) => ({
   resetStamp: 0,
   canUndo: false,
   canRedo: false,
-  ...viewerInit(),
+  // Viewer 起動時は IndexedDB から非同期に読み込むまでロック状態で待つ
+  ...(viewerSlug ? { viewerLocked: true, mode: 'preview' as Mode } : {}),
 
   setSceneName: (name) => set({ sceneName: name }),
 
@@ -365,6 +394,28 @@ export const useStore = create<StoreState>()((set, get) => ({
   setRecording: (recording) => set({ recording }),
   resetView: () => set((s) => ({ resetStamp: s.resetStamp + 1 })),
 
+  registerAsset: async (dataUrl) => {
+    const id = await hashDataUrl(dataUrl)
+    if (!get().assets[id]) {
+      set((s) => ({ assets: { ...s.assets, [id]: dataUrl } }))
+    }
+    return id
+  },
+
+  pruneAssets: () => {
+    const s = get()
+    const used = new Set<string>()
+    for (const o of s.objects) {
+      if (o.glbAssetId) used.add(o.glbAssetId)
+      if (o.material.textureAssetId) used.add(o.material.textureAssetId)
+    }
+    const keys = Object.keys(s.assets)
+    if (keys.every((k) => used.has(k))) return
+    const assets: Record<string, string> = {}
+    for (const k of keys) if (used.has(k)) assets[k] = s.assets[k]
+    set({ assets })
+  },
+
   addCube: () => {
     const obj: SceneObjectDef = {
       id: newId(),
@@ -379,7 +430,7 @@ export const useStore = create<StoreState>()((set, get) => ({
     get().select({ type: 'object', id: obj.id })
   },
 
-  addPlane: (textureDataUrl, aspect = 1, name) => {
+  addPlane: (textureAssetId, aspect = 1, name) => {
     const obj: SceneObjectDef = {
       id: newId(),
       name: name ?? `Plane ${get().objects.length + 1}`,
@@ -387,13 +438,13 @@ export const useStore = create<StoreState>()((set, get) => ({
       position: [0, 1, 0],
       rotation: [0, 0, 0],
       scale: [2 * aspect, 2, 1],
-      material: { ...defaultMaterial(), color: '#ffffff', textureDataUrl },
+      material: { ...defaultMaterial(), color: '#ffffff', textureAssetId },
     }
     set((s) => ({ objects: [...s.objects, obj] }))
     get().select({ type: 'object', id: obj.id })
   },
 
-  addGlb: (dataUrl, name) => {
+  addGlb: (assetId, name) => {
     const obj: SceneObjectDef = {
       id: newId(),
       name,
@@ -402,7 +453,7 @@ export const useStore = create<StoreState>()((set, get) => ({
       rotation: [0, 0, 0],
       scale: [1, 1, 1],
       material: defaultMaterial(),
-      glbDataUrl: dataUrl,
+      glbAssetId: assetId,
     }
     set((s) => ({ objects: [...s.objects, obj] }))
     get().select({ type: 'object', id: obj.id })
@@ -418,11 +469,13 @@ export const useStore = create<StoreState>()((set, get) => ({
       ),
     })),
 
-  removeObject: (id) =>
+  removeObject: (id) => {
     set((s) => ({
       objects: s.objects.filter((o) => o.id !== id),
       selected: s.selected?.id === id ? null : s.selected,
-    })),
+    }))
+    get().pruneAssets()
+  },
 
   duplicateObject: (id) => {
     const src = get().objects.find((o) => o.id === id)
@@ -506,8 +559,9 @@ export const useStore = create<StoreState>()((set, get) => ({
   serialize: () => {
     const s = get()
     return {
-      version: 1,
+      version: 2 as const,
       name: s.sceneName,
+      assets: s.assets,
       objects: s.objects,
       lights: s.lights,
       env: s.env,
@@ -518,19 +572,21 @@ export const useStore = create<StoreState>()((set, get) => ({
   },
 
   loadScene: (file) => {
+    const f = migrateSceneFile(file)
     set({
-      sceneName: file.name,
-      objects: file.objects,
-      lights: file.lights,
-      env: file.env,
-      camera: file.camera,
-      shots: file.shots,
-      activeShotId: file.activeShotId,
+      sceneName: f.name,
+      assets: f.assets,
+      objects: f.objects,
+      lights: f.lights,
+      env: f.env,
+      camera: f.camera,
+      shots: f.shots,
+      activeShotId: f.activeShotId,
       selected: null,
       mode: 'edit',
       focusTarget: null,
     })
-    get().flash(`Scene "${file.name}" を読み込みました`)
+    get().flash(`Scene "${f.name}" を読み込みました`)
   },
 
   undo: () => {
@@ -585,6 +641,48 @@ useStore.subscribe((state, prev) => {
     useStore.setState({ canUndo: true, canRedo: false })
   }
 })
+
+// Viewer 起動: IndexedDB から公開データを読み込む(旧 localStorage 形式もフォールバック)
+if (viewerSlug) {
+  void (async () => {
+    let file: SceneFile | null = null
+    try {
+      file = await loadShow(viewerSlug)
+    } catch {
+      /* IndexedDB が使えない環境では localStorage フォールバックへ */
+    }
+    if (!file) {
+      const raw = localStorage.getItem(`pse:show:${viewerSlug}`)
+      if (raw) {
+        try {
+          file = JSON.parse(raw) as SceneFile
+        } catch {
+          file = null
+        }
+      }
+    }
+    if (!file) {
+      useStore.setState({ sceneName: `"${viewerSlug}" が見つかりません` })
+      return
+    }
+    const f = migrateSceneFile(file)
+    const shot = f.shots.find((s) => s.id === f.activeShotId) ?? f.shots[0]
+    restoringHistory = true
+    useStore.setState({
+      sceneName: f.name,
+      assets: f.assets,
+      objects: f.objects,
+      lights: f.lights,
+      env: f.env,
+      shots: f.shots,
+      activeShotId: shot?.id ?? null,
+      camera: shot ? { ...shot.settings } : f.camera,
+      focusTarget: shot?.focusTarget ?? null,
+      poseStamp: useStore.getState().poseStamp + 1,
+    })
+    restoringHistory = false
+  })()
+}
 
 if (import.meta.env.DEV) {
   window.__pse = useStore
