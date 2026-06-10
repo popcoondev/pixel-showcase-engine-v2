@@ -1,0 +1,516 @@
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
+import { Billboard, Grid, TransformControls } from '@react-three/drei'
+import {
+  Bloom,
+  DepthOfField,
+  EffectComposer,
+  ToneMapping,
+  Vignette,
+} from '@react-three/postprocessing'
+import { Effect, ToneMappingMode, type DepthOfFieldEffect } from 'postprocessing'
+import * as THREE from 'three'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { focalToFov, runtime, useStore } from '../store'
+import type { LightDef, MaterialSettings, SceneObjectDef, Selection, Vec3 } from '../types'
+import { FlyControls } from './FlyControls'
+
+/** クリック共通処理: Camera モードの Screen Point フォーカス、Edit モードの選択 */
+function handleScenePointerDown(e: ThreeEvent<PointerEvent>, sel: Selection | null) {
+  if (e.button !== 0) return
+  const s = useStore.getState()
+  if (s.mode === 'camera' && s.camera.dofEnabled && s.camera.focusMode === 'screenPoint') {
+    e.stopPropagation()
+    s.setFocusTarget([e.point.x, e.point.y, e.point.z])
+    s.flash('フォーカス位置を設定しました')
+    return
+  }
+  if (s.mode === 'edit' && sel && !s.viewerLocked) {
+    e.stopPropagation()
+    s.select(sel)
+  }
+}
+
+function StdMaterial({ m, side }: { m: MaterialSettings; side?: THREE.Side }) {
+  const tex = useMemo(() => {
+    if (!m.textureDataUrl) return null
+    const t = new THREE.TextureLoader().load(m.textureDataUrl)
+    t.colorSpace = THREE.SRGBColorSpace
+    return t
+  }, [m.textureDataUrl])
+
+  useEffect(() => {
+    if (!tex) return
+    tex.magFilter = m.pixelated ? THREE.NearestFilter : THREE.LinearFilter
+    tex.needsUpdate = true
+  }, [tex, m.pixelated])
+
+  useEffect(() => () => tex?.dispose(), [tex])
+
+  return (
+    <meshStandardMaterial
+      color={m.color}
+      metalness={m.metalness}
+      roughness={m.roughness}
+      emissive={m.emissive}
+      emissiveIntensity={m.emissiveIntensity}
+      map={tex}
+      side={side}
+      transparent={!!tex}
+      alphaTest={0.01}
+    />
+  )
+}
+
+interface OrigMat {
+  metalness: number
+  roughness: number
+  emissive: THREE.Color | null
+  emissiveIntensity: number
+  magFilter: THREE.MagnificationTextureFilter | null
+}
+
+/** override=true なら質感設定を適用、false なら読み込み時の質感に戻す */
+function applyGlbMaterials(
+  root: THREE.Object3D,
+  originals: Map<string, OrigMat>,
+  m: MaterialSettings,
+  override: boolean,
+) {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh
+    if (!mesh.isMesh) return
+    const mats = (
+      Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    ) as THREE.MeshStandardMaterial[]
+    for (const mat of mats) {
+      if (!mat) continue
+      let orig = originals.get(mat.uuid)
+      if (!orig) {
+        orig = {
+          metalness: 'metalness' in mat ? mat.metalness : 0,
+          roughness: 'roughness' in mat ? mat.roughness : 1,
+          emissive: mat.emissive ? mat.emissive.clone() : null,
+          emissiveIntensity: mat.emissiveIntensity ?? 1,
+          magFilter: mat.map ? mat.map.magFilter : null,
+        }
+        originals.set(mat.uuid, orig)
+      }
+      if ('metalness' in mat) mat.metalness = override ? m.metalness : orig.metalness
+      if ('roughness' in mat) mat.roughness = override ? m.roughness : orig.roughness
+      if (mat.emissive && orig.emissive) {
+        if (override) {
+          mat.emissive.set(m.emissive)
+          mat.emissiveIntensity = m.emissiveIntensity
+        } else {
+          mat.emissive.copy(orig.emissive)
+          mat.emissiveIntensity = orig.emissiveIntensity
+        }
+      }
+      if (mat.map && orig.magFilter !== null) {
+        const filter = override && m.pixelated ? THREE.NearestFilter : orig.magFilter
+        if (mat.map.magFilter !== filter) {
+          mat.map.magFilter = filter
+          mat.map.needsUpdate = true
+        }
+      }
+    }
+  })
+}
+
+function GlbContent({ def }: { def: SceneObjectDef }) {
+  const [obj, setObj] = useState<THREE.Group | null>(null)
+  const originals = useRef(new Map<string, OrigMat>())
+
+  useEffect(() => {
+    let alive = true
+    originals.current.clear()
+    new GLTFLoader().load(
+      def.glbDataUrl!,
+      (gltf) => {
+        if (!alive) return
+        gltf.scene.traverse((o) => {
+          if ((o as THREE.Mesh).isMesh) {
+            o.castShadow = true
+            o.receiveShadow = true
+          }
+        })
+        setObj(gltf.scene)
+      },
+      undefined,
+      () => useStore.getState().flash('GLB の読み込みに失敗しました'),
+    )
+    return () => {
+      alive = false
+    }
+  }, [def.glbDataUrl])
+
+  useEffect(() => {
+    if (obj) applyGlbMaterials(obj, originals.current, def.material, def.materialOverride ?? false)
+  }, [obj, def.material, def.materialOverride])
+
+  return obj ? <primitive object={obj} /> : null
+}
+
+function ObjectNode({ def }: { def: SceneObjectDef }) {
+  const ref = useRef<THREE.Group>(null)
+  useEffect(() => {
+    if (ref.current) runtime.objects.set(def.id, ref.current)
+    return () => {
+      runtime.objects.delete(def.id)
+    }
+  }, [def.id])
+
+  return (
+    <group
+      ref={ref}
+      position={def.position}
+      rotation={def.rotation}
+      scale={def.scale}
+      onPointerDown={(e) => handleScenePointerDown(e, { type: 'object', id: def.id })}
+    >
+      {def.kind === 'cube' && (
+        <mesh castShadow receiveShadow>
+          <boxGeometry />
+          <StdMaterial m={def.material} />
+        </mesh>
+      )}
+      {def.kind === 'plane' && (
+        <mesh castShadow>
+          <planeGeometry />
+          <StdMaterial m={def.material} side={THREE.DoubleSide} />
+        </mesh>
+      )}
+      {def.kind === 'glb' && def.glbDataUrl && <GlbContent def={def} />}
+    </group>
+  )
+}
+
+function LightNode({ def }: { def: LightDef }) {
+  const proxyRef = useRef<THREE.Group>(null)
+  const mode = useStore((s) => s.mode)
+  const viewerLocked = useStore((s) => s.viewerLocked)
+  const showProxy = mode === 'edit' && !viewerLocked
+
+  useEffect(() => {
+    if (proxyRef.current) runtime.objects.set(def.id, proxyRef.current)
+    return () => {
+      runtime.objects.delete(def.id)
+    }
+  }, [def.id])
+
+  return (
+    <>
+      {def.kind === 'directional' && (
+        <directionalLight
+          position={def.position}
+          color={def.color}
+          intensity={def.intensity}
+          castShadow={def.castShadow}
+          shadow-mapSize={[2048, 2048]}
+          shadow-bias={-0.0004}
+          shadow-camera-left={-15}
+          shadow-camera-right={15}
+          shadow-camera-top={15}
+          shadow-camera-bottom={-15}
+          shadow-camera-far={60}
+        />
+      )}
+      {def.kind === 'point' && (
+        <pointLight
+          position={def.position}
+          color={def.color}
+          intensity={def.intensity}
+          castShadow={def.castShadow}
+          shadow-bias={-0.0004}
+        />
+      )}
+      {def.kind === 'spot' && (
+        <spotLight
+          position={def.position}
+          color={def.color}
+          intensity={def.intensity}
+          angle={0.6}
+          penumbra={0.5}
+          castShadow={def.castShadow}
+          shadow-bias={-0.0004}
+        />
+      )}
+      <group
+        ref={proxyRef}
+        position={def.position}
+        visible={showProxy}
+        onPointerDown={(e) => {
+          if (showProxy) handleScenePointerDown(e, { type: 'light', id: def.id })
+        }}
+      >
+        <mesh>
+          <sphereGeometry args={[0.18, 12, 12]} />
+          <meshBasicMaterial color={def.color} wireframe />
+        </mesh>
+      </group>
+    </>
+  )
+}
+
+function Ground() {
+  const env = useStore((s) => s.env)
+  return (
+    <>
+      {env.groundVisible && (
+        <mesh
+          rotation-x={-Math.PI / 2}
+          position={[0, -0.001, 0]}
+          receiveShadow
+          onPointerDown={(e) => handleScenePointerDown(e, null)}
+        >
+          <planeGeometry args={[300, 300]} />
+          <meshStandardMaterial color={env.groundColor} roughness={0.95} metalness={0} />
+        </mesh>
+      )}
+      {env.gridVisible && (
+        <Grid
+          position={[0, 0.001, 0]}
+          args={[40, 40]}
+          cellColor="#33394a"
+          sectionColor="#4a5775"
+          fadeDistance={50}
+          infiniteGrid
+        />
+      )}
+    </>
+  )
+}
+
+function SelectionGizmo() {
+  const selected = useStore((s) => s.selected)
+  const mode = useStore((s) => s.mode)
+  const transformMode = useStore((s) => s.transformMode)
+  const objects = useStore((s) => s.objects)
+  const lights = useStore((s) => s.lights)
+  const [target, setTarget] = useState<THREE.Object3D | null>(null)
+
+  useEffect(() => {
+    setTarget(selected ? (runtime.objects.get(selected.id) ?? null) : null)
+  }, [selected, objects, lights])
+
+  if (!target || mode !== 'edit' || !selected) return null
+
+  const commit = () => {
+    const s = useStore.getState()
+    if (!s.selected) return
+    if (s.selected.type === 'object') {
+      s.updateObject(s.selected.id, {
+        position: [target.position.x, target.position.y, target.position.z],
+        rotation: [target.rotation.x, target.rotation.y, target.rotation.z],
+        scale: [target.scale.x, target.scale.y, target.scale.z],
+      })
+    } else {
+      s.updateLight(s.selected.id, {
+        position: [target.position.x, target.position.y, target.position.z],
+      })
+    }
+  }
+
+  return (
+    <TransformControls
+      ref={(c) => {
+        runtime.gizmo = c as unknown as { axis: string | null } | null
+      }}
+      object={target}
+      mode={selected.type === 'light' ? 'translate' : transformMode}
+      onMouseDown={() => useStore.getState().setTransformDragging(true)}
+      onMouseUp={() => {
+        commit()
+        useStore.getState().setTransformDragging(false)
+      }}
+      onObjectChange={commit}
+    />
+  )
+}
+
+function CameraRig() {
+  const { camera, gl } = useThree()
+  const focalLength = useStore((s) => s.camera.focalLength)
+  const poseStamp = useStore((s) => s.poseStamp)
+
+  useEffect(() => {
+    runtime.camera = camera as THREE.PerspectiveCamera
+    runtime.canvas = gl.domElement
+  }, [camera, gl])
+
+  useEffect(() => {
+    const c = camera as THREE.PerspectiveCamera
+    c.fov = focalToFov(focalLength)
+    c.updateProjectionMatrix()
+  }, [focalLength, camera])
+
+  useEffect(() => {
+    if (poseStamp === 0) return
+    const s = useStore.getState()
+    const shot = s.shots.find((x) => x.id === s.activeShotId)
+    if (!shot) return
+    camera.position.set(...shot.position)
+    camera.quaternion.set(...shot.quaternion)
+  }, [poseStamp, camera])
+
+  return null
+}
+
+const exposureFrag =
+  'uniform float exposure; void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) { outputColor = vec4(inputColor.rgb * exposure, inputColor.a); }'
+
+/** トーンマッピング前に線形空間で露出を掛けるエフェクト */
+class ExposureEffectImpl extends Effect {
+  constructor() {
+    super('ExposureEffect', exposureFrag, {
+      uniforms: new Map<string, THREE.Uniform>([['exposure', new THREE.Uniform(1)]]),
+    })
+  }
+
+  setExposure(v: number) {
+    this.uniforms.get('exposure')!.value = v
+  }
+}
+
+/** 現在のフォーカス対象点を返す。manual のときは null */
+function resolveFocusPoint(): Vec3 | null {
+  const s = useStore.getState()
+  const c = s.camera
+  if (c.focusMode === 'manual') return null
+  if (c.focusMode === 'screenPoint') return s.focusTarget
+  const obj =
+    s.selected?.type === 'object' ? s.objects.find((o) => o.id === s.selected!.id) : undefined
+  return obj?.position ?? s.focusTarget ?? s.objects[0]?.position ?? null
+}
+
+function Effects() {
+  const env = useStore((s) => s.env)
+  const cam = useStore((s) => s.camera)
+  const dofRef = useRef<DepthOfFieldEffect>(null)
+  const exposureEffect = useMemo(() => new ExposureEffectImpl(), [])
+  const focusVec = useMemo(() => new THREE.Vector3(), [])
+  const dirVec = useMemo(() => new THREE.Vector3(), [])
+
+  useEffect(() => {
+    exposureEffect.setExposure(cam.exposure)
+  }, [cam.exposure, exposureEffect])
+
+  // フォーカス距離と被写界深度を毎フレーム実カメラ近似で更新する
+  useFrame(() => {
+    const eff = dofRef.current
+    const camera = runtime.camera
+    if (!eff || !camera) return
+    const c = useStore.getState().camera
+    const point = resolveFocusPoint()
+    let dist = c.manualFocusDistance
+    if (point) {
+      focusVec.set(point[0], point[1], point[2])
+      dist = camera.position.distanceTo(focusVec)
+    } else {
+      camera.getWorldDirection(dirVec)
+      focusVec.copy(camera.position).addScaledVector(dirVec, dist)
+    }
+    eff.target = focusVec
+    // 被写界深度 ≈ 2 * N * c * D^2 / f^2 (許容錯乱円 c = 30µm)
+    const f = c.focalLength / 1000
+    eff.cocMaterial.worldFocusRange = THREE.MathUtils.clamp(
+      (2 * c.aperture * 0.00003 * dist * dist) / (f * f),
+      0.05,
+      600,
+    )
+    eff.bokehScale = THREE.MathUtils.clamp((c.focalLength / 35) * (8 / c.aperture), 0.3, 16)
+  })
+
+  const items: ReactElement[] = []
+  if (cam.dofEnabled) {
+    items.push(<DepthOfField key="dof" ref={dofRef} bokehScale={4} />)
+  }
+  items.push(<primitive key="exposure" object={exposureEffect} />)
+  if (env.bloomEnabled) {
+    items.push(
+      <Bloom key="bloom" mipmapBlur intensity={env.bloomIntensity} luminanceThreshold={0.9} />,
+    )
+  }
+  items.push(<ToneMapping key="tonemap" mode={ToneMappingMode.ACES_FILMIC} />)
+  if (env.vignetteEnabled) {
+    items.push(<Vignette key="vignette" darkness={env.vignetteDarkness} offset={0.25} />)
+  }
+  return <EffectComposer multisampling={4}>{items}</EffectComposer>
+}
+
+/** Screen Point フォーカスの現在位置マーカー */
+function FocusMarker() {
+  const cam = useStore((s) => s.camera)
+  const mode = useStore((s) => s.mode)
+  const focusTarget = useStore((s) => s.focusTarget)
+  if (!(mode === 'camera' && cam.dofEnabled && cam.focusMode === 'screenPoint' && focusTarget)) {
+    return null
+  }
+  return (
+    <Billboard position={focusTarget}>
+      <mesh raycast={() => null} renderOrder={998}>
+        <ringGeometry args={[0.1, 0.14, 32]} />
+        <meshBasicMaterial
+          color="#ffd84a"
+          transparent
+          opacity={0.9}
+          depthTest={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh raycast={() => null} renderOrder={999}>
+        <circleGeometry args={[0.03, 16]} />
+        <meshBasicMaterial color="#ffd84a" depthTest={false} />
+      </mesh>
+    </Billboard>
+  )
+}
+
+function SceneContent() {
+  const env = useStore((s) => s.env)
+  const objects = useStore((s) => s.objects)
+  const lights = useStore((s) => s.lights)
+
+  return (
+    <>
+      <color attach="background" args={[env.backgroundColor]} />
+      {env.fogEnabled && <fog attach="fog" args={[env.fogColor, env.fogNear, env.fogFar]} />}
+      <ambientLight color={env.ambientColor} intensity={env.ambientIntensity} />
+      {lights.map((l) => (
+        <LightNode key={l.id} def={l} />
+      ))}
+      {objects.map((o) => (
+        <ObjectNode key={o.id} def={o} />
+      ))}
+      <Ground />
+      <FocusMarker />
+      <SelectionGizmo />
+      <CameraRig />
+      <FlyControls />
+      <Effects />
+    </>
+  )
+}
+
+export function Viewport() {
+  return (
+    <Canvas
+      shadows="percentage"
+      dpr={[1, 2]}
+      gl={{ preserveDrawingBuffer: true, antialias: true }}
+      camera={{ position: [7, 5, 9], fov: 38, near: 0.1, far: 300 }}
+      onCreated={({ gl }) => {
+        // トーンマッピングは EffectComposer 側 (ToneMapping effect) で行う
+        gl.toneMapping = THREE.NoToneMapping
+      }}
+      onPointerMissed={() => {
+        if (runtime.suppressMissed) return
+        const s = useStore.getState()
+        if (s.mode === 'edit') s.select(null)
+      }}
+    >
+      <SceneContent />
+    </Canvas>
+  )
+}
