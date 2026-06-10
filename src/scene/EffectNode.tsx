@@ -23,6 +23,27 @@ function particleTexture(): THREE.Texture {
   return sharedTexture
 }
 
+let sharedStreakTexture: THREE.Texture | null = null
+
+/** 雨用の縦ストリーク(細長い線状)テクスチャ */
+function streakTexture(): THREE.Texture {
+  if (sharedStreakTexture) return sharedStreakTexture
+  const size = 64
+  const cv = document.createElement('canvas')
+  cv.width = cv.height = size
+  const ctx = cv.getContext('2d')!
+  ctx.translate(size / 2, size / 2)
+  ctx.scale(0.1, 1)
+  const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, size / 2)
+  grad.addColorStop(0, 'rgba(255,255,255,0.95)')
+  grad.addColorStop(0.5, 'rgba(255,255,255,0.5)')
+  grad.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = grad
+  ctx.fillRect(-size * 4, -size / 2, size * 8, size)
+  sharedStreakTexture = new THREE.CanvasTexture(cv)
+  return sharedStreakTexture
+}
+
 /** 粒の基本サイズ (m)。EffectDef.size を乗算して使う */
 const BASE_SIZE: Record<EffectKind, number> = {
   sparkle: 0.12,
@@ -31,6 +52,8 @@ const BASE_SIZE: Record<EffectKind, number> = {
   flame: 0.3,
   splash: 0.09,
   electric: 0.1,
+  rain: 0.26,
+  wind: 0.09,
 }
 
 const ADDITIVE: Record<EffectKind, boolean> = {
@@ -40,12 +63,26 @@ const ADDITIVE: Record<EffectKind, boolean> = {
   flame: true,
   splash: false,
   electric: true,
+  rain: false,
+  wind: false,
 }
 
-function makeMaterial(additive: boolean): THREE.ShaderMaterial {
+/** 縦ストリークのテクスチャを使う種類 */
+const STREAK: Record<EffectKind, boolean> = {
+  sparkle: false,
+  mote: false,
+  dust: false,
+  flame: false,
+  splash: false,
+  electric: false,
+  rain: true,
+  wind: false,
+}
+
+function makeMaterial(additive: boolean, streak: boolean): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
     uniforms: {
-      uMap: { value: particleTexture() },
+      uMap: { value: streak ? streakTexture() : particleTexture() },
       uScale: { value: 1000 },
     },
     vertexShader: /* glsl */ `
@@ -132,6 +169,20 @@ function spawn(kind: EffectKind, i: number, s: Sim, radius: number, scatter: boo
       s.pos[i * 3 + 2] = Math.sin(a) * Math.cos(b) * rr
       break
     }
+    case 'rain': {
+      const ySpan = Math.max(3, radius * 0.35)
+      s.pos[i * 3] = (Math.random() * 2 - 1) * radius
+      s.pos[i * 3 + 1] = scatter ? (Math.random() * 2 - 1) * ySpan : ySpan
+      s.pos[i * 3 + 2] = (Math.random() * 2 - 1) * radius
+      break
+    }
+    case 'wind': {
+      const ySpan = Math.max(1, radius * 0.2)
+      s.pos[i * 3] = (Math.random() * 2 - 1) * radius
+      s.pos[i * 3 + 1] = (Math.random() * 2 - 1) * ySpan
+      s.pos[i * 3 + 2] = (Math.random() * 2 - 1) * radius
+      break
+    }
   }
 }
 
@@ -180,7 +231,7 @@ export function EffectNode({ def }: { def: EffectDef }) {
     return g
   }, [sim])
 
-  const mat = useMemo(() => makeMaterial(ADDITIVE[def.kind]), [def.kind])
+  const mat = useMemo(() => makeMaterial(ADDITIVE[def.kind], STREAK[def.kind]), [def.kind])
 
   useEffect(() => () => geom.dispose(), [geom])
   useEffect(() => () => mat.dispose(), [mat])
@@ -259,6 +310,33 @@ export function EffectNode({ def }: { def: EffectDef }) {
           // 時々ランダムに飛び移り、高速で明滅する
           if (Math.random() < 0.25) spawn('electric', i, sim, def.radius, false)
           alpha[i] = Math.sin(t * 40 * def.speed + phase[i] * 7) > 0.2 ? 1 : 0.05
+          break
+        }
+        case 'rain': {
+          const ySpan = Math.max(3, def.radius * 0.35)
+          let y = pos[i * 3 + 1] - (8 + 4 * vary[i]) * d
+          pos[i * 3] += 0.6 * d // わずかに流される
+          if (y < -ySpan) {
+            spawn('rain', i, sim, def.radius, false)
+            y = ySpan
+          }
+          pos[i * 3 + 1] = y
+          alpha[i] = 0.5
+          // 落下速度に合わせてストリークを縦に見せるため少し大きめに
+          sizeK = 0.8 + 0.4 * vary[i]
+          break
+        }
+        case 'wind': {
+          const ySpan = Math.max(1, def.radius * 0.2)
+          let x = pos[i * 3] + (2.5 + 2 * vary[i]) * d
+          if (x > def.radius) x = -def.radius
+          pos[i * 3] = x
+          pos[i * 3 + 1] += Math.sin(t * 1.4 + phase[i]) * 0.5 * d
+          if (pos[i * 3 + 1] > ySpan) pos[i * 3 + 1] = -ySpan
+          if (pos[i * 3 + 1] < -ySpan) pos[i * 3 + 1] = ySpan
+          pos[i * 3 + 2] += Math.cos(t * 0.9 + phase[i]) * 0.3 * d
+          // 突風のように波打つ濃淡
+          alpha[i] = 0.1 + 0.25 * (0.5 + 0.5 * Math.sin(t * 0.9 * def.speed + phase[i] * 2))
           break
         }
       }

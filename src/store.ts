@@ -120,6 +120,8 @@ export const EFFECT_LABELS: Record<EffectKind, string> = {
   flame: '炎',
   splash: '飛沫',
   electric: '電気',
+  rain: '雨',
+  wind: '風',
 }
 
 const EFFECT_DEFAULTS: Record<EffectKind, Omit<EffectDef, 'id' | 'name' | 'kind'>> = {
@@ -129,6 +131,8 @@ const EFFECT_DEFAULTS: Record<EffectKind, Omit<EffectDef, 'id' | 'name' | 'kind'
   flame: { position: [0, 0.2, 0], color: '#ff9a3c', count: 120, speed: 1, size: 1, radius: 0.35 },
   splash: { position: [0, 0.3, 0], color: '#bfe8ff', count: 160, speed: 1, size: 1, radius: 0.25 },
   electric: { position: [0, 1, 0], color: '#9be8ff', count: 80, speed: 1, size: 1, radius: 0.5 },
+  rain: { position: [0, 4, 0], color: '#a8c8e8', count: 400, speed: 1, size: 1, radius: 12 },
+  wind: { position: [0, 1.5, 0], color: '#d8e2ea', count: 140, speed: 1, size: 1, radius: 12 },
 }
 
 function makeEffect(kind: EffectKind, n?: number): EffectDef {

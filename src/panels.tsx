@@ -480,7 +480,16 @@ export function LightPanel() {
   )
 }
 
-const FX_KINDS: EffectKind[] = ['sparkle', 'mote', 'dust', 'flame', 'splash', 'electric']
+const FX_KINDS: EffectKind[] = [
+  'sparkle',
+  'mote',
+  'dust',
+  'flame',
+  'splash',
+  'electric',
+  'rain',
+  'wind',
+]
 
 export function FxPanel() {
   const effects = useStore((s) => s.effects)

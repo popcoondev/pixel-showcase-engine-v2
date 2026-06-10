@@ -57,7 +57,15 @@ export interface EnvSettings {
   groundColor: string
 }
 
-export type EffectKind = 'sparkle' | 'mote' | 'dust' | 'flame' | 'splash' | 'electric'
+export type EffectKind =
+  | 'sparkle'
+  | 'mote'
+  | 'dust'
+  | 'flame'
+  | 'splash'
+  | 'electric'
+  | 'rain'
+  | 'wind'
 
 export interface EffectDef {
   id: string
