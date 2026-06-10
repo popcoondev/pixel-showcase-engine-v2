@@ -171,9 +171,16 @@ export function ScenePanel() {
   const sceneName = useStore((s) => s.sceneName)
   const setEnv = useStore((s) => s.setEnv)
   const setSceneName = useStore((s) => s.setSceneName)
+  const applyHd2dLook = useStore((s) => s.applyHd2dLook)
 
   return (
     <>
+      <Section title="Look Preset">
+        <button className="wide" onClick={applyHd2dLook}>
+          HD-2D風に調整
+        </button>
+        <Empty text="浅いDOF・ブルーム・フォグ・周辺減光・暖色キーライトをまとめて適用します。Cmd/Ctrl+Z で元に戻せます。" />
+      </Section>
       <Section title="Scene">
         <Row label="Name">
           <input

@@ -208,6 +208,8 @@ interface StoreState {
 
   setEnv: (patch: Partial<EnvSettings>) => void
   setCamera: (patch: Partial<CameraSettings>) => void
+  /** HD-2D 風の look プリセットを適用する (docs/hd2d-look.md 参照) */
+  applyHd2dLook: () => void
 
   saveShot: () => void
   applyShot: (id: string) => void
@@ -521,6 +523,51 @@ export const useStore = create<StoreState>()((set, get) => ({
 
   setEnv: (patch) => set((s) => ({ env: { ...s.env, ...patch } })),
   setCamera: (patch) => set((s) => ({ camera: { ...s.camera, ...patch } })),
+
+  applyHd2dLook: () => {
+    const s = get()
+    set({
+      env: {
+        ...s.env,
+        backgroundColor: '#0c0f1a',
+        ambientColor: '#7c8ec4',
+        ambientIntensity: 0.35,
+        fogEnabled: true,
+        fogColor: '#141c33',
+        fogNear: 12,
+        fogFar: 50,
+        bloomEnabled: true,
+        bloomIntensity: 1.3,
+        vignetteEnabled: true,
+        vignetteDarkness: 0.8,
+        groundColor: '#171b26',
+      },
+      camera: {
+        ...s.camera,
+        dofEnabled: true,
+        aperture: 1.8,
+        focalLength: 50,
+        exposure: 1.15,
+      },
+    })
+    // キーライト: 先頭の Directional を暖色 + 影ありに。無ければ追加する
+    const key = get().lights.find((l) => l.kind === 'directional')
+    if (key) {
+      get().updateLight(key.id, { color: '#ffd9a8', intensity: 3.5, castShadow: true })
+    } else {
+      const light: LightDef = {
+        id: newId(),
+        name: 'Key Light',
+        kind: 'directional',
+        color: '#ffd9a8',
+        intensity: 3.5,
+        position: [6, 10, 4],
+        castShadow: true,
+      }
+      set((s2) => ({ lights: [...s2.lights, light] }))
+    }
+    get().flash('HD-2D look を適用しました (Cmd/Ctrl+Z で元に戻せます)')
+  },
 
   saveShot: () => {
     const s = get()
