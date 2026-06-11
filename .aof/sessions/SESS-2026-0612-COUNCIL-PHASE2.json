@@ -1,0 +1,22 @@
+{
+  "session_format_version": 1,
+  "session_id": "SESS-2026-0612-COUNCIL-PHASE2",
+  "at": "2026-06-12",
+  "type": "council-of-three",
+  "parent": "claude-code (orchestrator)",
+  "request": "Phase 2 Firebase バックエンドのアーキテクチャ設計",
+  "mode": "parallel-roles-then-parent-aggregate",
+  "workers": [
+    { "role": "Visionary", "key": "体験の核=公開URL共有 / Shot を顔に / /s/{短ID} / SNS化機能は全切り / 匿名→昇格を推す" },
+    { "role": "Builder", "key": "Firestore 1MB 制約→assets は Storage、serialize 非破壊の cloud 層、dynamic import、Blaze 必須、スライス A/B/C", "read_code": true },
+    { "role": "Guardian", "key": "veto: uid露出/匿名書き込み/App Check無し/無制限Storage/Budget無しBlaze。gate: 全アセット公開割り切り/規約+権利確認/退会後送り/GC方式", "read_code": false }
+  ],
+  "conflicts_resolved": [
+    { "topic": "匿名認証", "resolution": "Guardian veto 採択。書き込みは Google サインイン必須、閲覧と編集はサインイン不要で摩擦を抑える" },
+    { "topic": "Cloud Functions 累積容量制御", "resolution": "Phase2.0 は Rules(25MB+型+シーン数20)+App Check+Budgetアラートで代替、厳密制御は Phase2.1" },
+    { "topic": "Budget 自動停止", "resolution": "二段アラート=必須、自動停止=Phase2.1 推奨 (誤発火との均衡)" },
+    { "topic": "ファイルサイズ上限", "resolution": "50MB→25MB に強化" }
+  ],
+  "decision_ref": ".aof/decisions/DR-2026-004-phase2-backend-architecture.md",
+  "outcome": "アーキテクチャ確定、TASK-012/014/013 に再編、human console 作業 6 項目を提示"
+}

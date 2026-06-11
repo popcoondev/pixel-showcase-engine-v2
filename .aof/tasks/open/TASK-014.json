@@ -1,0 +1,22 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-014",
+  "title": "Phase2B: 安全土台 (Security Rules / App Check / 規約・権利確認 / 通報窓口)",
+  "status": "open",
+  "phase": "phase2-slice-B",
+  "priority_rank": 2,
+  "owner_role": "Guardian",
+  "estimate": "M",
+  "decision_ref": ".aof/decisions/DR-2026-004-phase2-backend-architecture.md",
+  "scope": [
+    "Firestore Rules: owner のみ write / ownerUid 不変 / 未公開シーンは owner 以外 read 不可 / ユーザーあたりシーン数上限 20",
+    "Storage Rules: 25MB 上限 + content-type 制限 (glb/png/jpeg/webp) + create-only (改竄防止) + サインイン必須",
+    "App Check (reCAPTCHA v3) をクライアントに組み込み",
+    "利用規約ページ + 公開時の権利確認チェック UI (termsAgreedAt 記録)",
+    "通報窓口 (GitHub Issues リンクをフッターに)",
+    "uid 非露出の確認 (URL/HTML/OG)"
+  ],
+  "gate_note": "本タスク完了が公開機能 (TASK-013) リリースの gate (DR-2026-004 ローンチ条件)",
+  "dependencies": ["TASK-012"],
+  "acceptance": "Rules がデプロイされ、未認証書き込み・サイズ超過・型違反・他人のシーン改変・未公開シーンの他人読取が全て拒否されることを確認。規約と権利確認 UI が公開フローに組み込まれている。"
+}

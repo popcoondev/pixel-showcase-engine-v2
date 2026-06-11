@@ -1,23 +1,29 @@
 {
   "goal_format_version": 1,
   "type": "next-value-slice",
-  "set_at": "2026-06-11",
-  "phase": "Phase 1",
-  "name": "Hosted editor (v0.2.0 candidate)",
-  "statement": "Firebase Hosting に本番ビルドをデプロイし、公開URLでエディタが動き、Preview から PNG/mp4 を書き出せる。最小テスト/CIで守る。",
-  "live_url": "https://pixelshowcase-7bc44.web.app",
-  "slice_status": "complete (2026-06-11)",
+  "set_at": "2026-06-12",
+  "phase": "Phase 2",
+  "name": "Cloud save + shareable preview URL (v0.3.0 candidate)",
+  "statement": "Google サインインでシーンをクラウド保存し、権利確認付きで公開すると /s/{id} が発行され、誰でもブラウザで固定画角プレビューを見られる。",
   "in_slice": [
-    "TASK-011 Firebase Hosting デプロイ + CI (完了)",
-    "TASK-002 最小スモークテスト + CI (完了)"
+    "TASK-012 Phase2A: Firebase 基盤 + Google Auth + クラウド保存",
+    "TASK-014 Phase2B: 安全土台 (Rules / App Check / 規約・権利確認 / 通報窓口) ← 公開リリースの gate",
+    "TASK-013 Phase2C: 公開 + /s/{id} プレビューページ"
   ],
-  "fast_follow": [
-    "TASK-005 ONBOARD 初回サンプルシーン + 最小ガイド (完了 2026-06-11)",
-    "TASK-004 THUMB サムネ/OG画像 (完了 2026-06-11)"
+  "prerequisites_human": [
+    "Blaze プラン + Budget 二段アラート (同時設定)",
+    "Auth: Google プロバイダ有効化",
+    "Firestore 作成 (asia-northeast1) / Storage 開始",
+    "App Check (reCAPTCHA v3) 有効化 + site key 共有",
+    "firebaseConfig の共有"
   ],
-  "phase1_status": "全タスク完了。Phase1 クローズ可 (v0.2.0 タグ候補)。",
-  "done_in_phase1": ["TASK-001 DRACO 圧縮GLB対応 (完了)"],
-  "prerequisites": ["human が Firebase プロジェクト作成 + project id 共有"],
-  "exit_criteria": "公開URLでエディタが動き、Draco GLB 配置→Preview→PNG/mp4 書き出しができる。CI が build green でデプロイ。",
-  "next_phase": "Phase 2 (Firebase backend: TASK-012 / TASK-013) — 着手時に Council で DR 化"
+  "phase2_1_deferred": [
+    "累積容量の厳密制御 (Cloud Functions)",
+    "Orphan アセット GC",
+    "退会フロー (それまで UI に案内文)",
+    "Budget 自動停止",
+    "SNS bot 向け動的 OG"
+  ],
+  "exit_criteria": "別環境・未サインインのブラウザで /s/{id} を開き、Draco GLB 含む固定画角 Shot が再現される。Guardian ローンチ条件 5 項目を満たす。",
+  "decision_ref": ".aof/decisions/DR-2026-004-phase2-backend-architecture.md"
 }

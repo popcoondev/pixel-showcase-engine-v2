@@ -1,25 +1,21 @@
 {
   "task_format_version": 1,
   "id": "TASK-012",
-  "title": "Firebase バックエンド (Firestore + Storage + Auth)",
+  "title": "Phase2A: Firebase 基盤 + Google Auth + クラウド保存",
   "status": "open",
-  "phase": "phase2",
-  "priority_rank": 20,
+  "phase": "phase2-slice-A",
+  "priority_rank": 1,
   "owner_role": "Builder",
-  "estimate": "L",
-  "rationale": "Phase2 の中核。DB にシーン、オブジェクトストレージに GLB/画像、認証でアカウント管理。Scene v2 のアセット参照分離を活かす。",
+  "estimate": "M",
+  "decision_ref": ".aof/decisions/DR-2026-004-phase2-backend-architecture.md",
   "design": {
-    "firestore": "scenes/{id}: Scene JSON v2 のメタ + assets 参照 (owner uid, slug, updatedAt)。1ドキュメント1MB上限のため実体は入れない。",
-    "storage": "assets/{hash}.glb / .png: GLB・画像の実体。Scene の assets ハッシュIDをパスに使い重複排除を継承。",
-    "auth": "Firebase Auth でアカウント。自分のシーン/アセットのみ書き込み可 (security rules)。"
+    "sdk": "firebase modular SDK を dynamic import (クラウド機能使用時のみロード、バンドル本体を太らせない)",
+    "auth": "Google サインインのみ (匿名認証は Guardian veto)。サインインを求めるのはクラウド保存/公開操作の瞬間だけ",
+    "firestore": "users/{uid}/showcases/{id}: name, updatedAt, scene(assets除く純JSON), assetRefs{hash→Storageパス}",
+    "storage": "assets/{hash} に dataURL→Blob でアップロード。getMetadata で存在確認し重複スキップ",
+    "layer": "serialize()/ローカル保存/Undo は無変更。変換層は src/cloud/ に新設"
   },
-  "guardian_requirements_from_DR_2026_001": [
-    "アセット容量上限 (ユーザー/シーンごと)",
-    "アセット権利・利用規約 (他者GLB再配布への対処)",
-    "認証 (Firebase Auth)",
-    "PII の扱い (最小収集・公開範囲の明示)"
-  ],
-  "council_required": true,
-  "council_note": "着手時に Council of Three でデータモデル・security rules・容量/権利・認証フローを判断し DR 化 (DR-2026-001 の backend veto を条件付きで上書き)。",
-  "dependencies": ["TASK-011"]
+  "prerequisites": ["human: Blaze + Budget アラート / Auth 有効化 / Firestore 作成 / Storage 開始 / firebaseConfig 共有"],
+  "dependencies": [],
+  "acceptance": "Google サインイン → クラウドに保存 → 別ブラウザ/PC で自分のシーン一覧から読み込めて Draco GLB 含め再現される。"
 }

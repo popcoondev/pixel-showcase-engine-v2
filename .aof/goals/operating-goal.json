@@ -1,16 +1,16 @@
 {
   "goal_format_version": 1,
   "type": "current-operating-goal",
-  "set_at": "2026-06-11",
-  "phase": "Phase 1",
-  "statement": "静的エディタアプリを公開ホスト(Firebase Hosting)に載せ、誰でもブラウザで使えて、Preview から PNG/mp4 を書き出して成果を持ち出せる状態にする。",
-  "rationale": "human maintainer の2フェーズ方針 (DR-2026-003)。Phase1 は『軽く公開 + 書き出しファイルで共有』。PNG/mp4 は実装済みのため新規はデプロイ+CIが中心。サーバー保存は Phase2。",
+  "set_at": "2026-06-12",
+  "phase": "Phase 2",
+  "statement": "シーンとアセットを Firebase に保存し、/s/{id} の公開URLで誰でも(未サインインでも)固定画角プレビューを見られる状態にする。Guardian のローンチ条件(Rules/App Check/規約/Budget)を満たした上で出す。",
+  "rationale": "DR-2026-003 の Phase2 を DR-2026-004 でアーキテクチャ確定。体験の核は『作品がURLとして存在する』(Visionary)、実装は serialize 非破壊の cloud 変換層 (Builder)、安全はアーキテクチャで強制 (Guardian)。",
   "success_criteria": [
-    "公開URLでエディタがブラウザで動作する (Firebase Hosting)",
-    "GLB(Draco含む)配置・Preview・PNG/mp4 書き出しが公開環境で成立",
-    "main push で CI が build green を確認しデプロイされる",
-    "純粋関数の最小スモークテストが回り回帰を止められる"
+    "Google サインインでクラウド保存、別環境から自分のシーンを開ける (2A)",
+    "Security Rules / App Check / 規約・権利確認 / 通報窓口が機能 (2B)",
+    "/s/{id} を未サインインで開くと固定画角 Shot が再現される (2C)",
+    "email/uid が URL・画面・データに露出しない"
   ],
-  "supersedes": "DR-2026-001 の Operating Goal (SHARE自己完結HTML) は DR-2026-003 で Phase2 backend に再編",
-  "decision_ref": ".aof/decisions/DR-2026-003-phased-roadmap.md"
+  "supersedes": "Phase 1 operating goal (達成、v0.2.0)",
+  "decision_ref": ".aof/decisions/DR-2026-004-phase2-backend-architecture.md"
 }
