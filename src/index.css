@@ -429,6 +429,24 @@ input.text {
   line-height: 2;
 }
 
+.welcome-card {
+  max-width: 440px;
+}
+
+.welcome-lead {
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin: 8px 0;
+}
+
+.welcome-card .wide {
+  margin-top: 14px;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  padding: 8px;
+}
+
 /* ---- viewer ---- */
 
 .viewer-bar {

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   openSceneJson,
   publishToLocalViewer,
@@ -6,6 +6,7 @@ import {
   saveSceneJson,
   toggleRecording,
 } from './io'
+import { buildSampleScene, isFirstRun, markOnboarded } from './onboarding'
 import { CameraPanel, EditPanel, FxPanel, LightPanel, ObjectPanel, ScenePanel } from './panels'
 import { Viewport } from './scene/Viewport'
 import { aspectToNumber, focalToFov, fovToFocal, useStore } from './store'
@@ -188,6 +189,29 @@ function HelpOverlay() {
   )
 }
 
+function WelcomeOverlay({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="help-overlay">
+      <div className="help-card welcome-card">
+        <h3>Pixel Showcase Engine へようこそ</h3>
+        <p className="welcome-lead">
+          ドット絵・GLB・画像プレートを置いて、照らして、撮って、固定画角で見せるツールです。
+        </p>
+        <ul>
+          <li>制作フロー: <b>Edit → Camera → Save Shot → Preview</b></li>
+          <li><b>Edit</b> 左クリックで選択 / <b>1·2·3</b> 移動·回転·拡縮 / 右ドラッグで視点</li>
+          <li><b>ESC</b> Edit↔Camera、<b>R</b> Shot保存、<b>P</b> Preview</li>
+          <li>出力: <b>PNG</b> / <b>WebM·MP4 録画</b>、<b>I</b> で操作ガイド</li>
+        </ul>
+        <p className="welcome-lead">サンプルの展示を読み込みました。自由に触ってみてください。</p>
+        <button className="wide" onClick={onStart}>
+          はじめる
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function Footer() {
   const mode = useStore((s) => s.mode)
   const selected = useStore((s) => s.selected)
@@ -266,6 +290,15 @@ export default function App() {
   const viewerLocked = useStore((s) => s.viewerLocked)
   const aspect = useStore((s) => s.camera.aspect)
   const setTab = useStore((s) => s.setTab)
+  // 初回起動 (Viewer 以外) はサンプルシーン + 歓迎ガイドを1度だけ出す
+  const [showWelcome, setShowWelcome] = useState(() => !viewerLocked && isFirstRun())
+
+  useEffect(() => {
+    if (!viewerLocked && isFirstRun()) {
+      buildSampleScene()
+      markOnboarded()
+    }
+  }, [viewerLocked])
 
   const framed = mode !== 'edit'
 
@@ -318,6 +351,7 @@ export default function App() {
       </div>
       <Footer />
       <HelpOverlay />
+      {showWelcome && <WelcomeOverlay onStart={() => setShowWelcome(false)} />}
     </div>
   )
 }
