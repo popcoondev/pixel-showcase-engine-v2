@@ -22,3 +22,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets (public repo — 混入は致命的)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*_secret*
+*_credentials*
+
+# 検証用・一時アセット (DR-2026-002: 専用ディレクトリに限定し rm で個別削除)
+/.tmp/
+public/tmp/
+*.tmp.glb
+*.tmp.png
+
+# 注: public/draco/ 等の正規アセットは意図的にコミットする。
+# GLB/画像/録画などユーザーデータは public/tmp/ か作業ディレクトリ外に置き、本リポジトリにコミットしない。
