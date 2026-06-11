@@ -209,6 +209,8 @@ interface StoreState {
   camera: CameraSettings
   shots: Shot[]
   activeShotId: string | null
+  /** shot id -> サムネ dataURL。Scene JSON / Undo には含めない (別管理) */
+  shotThumbnails: Record<string, string>
   mode: Mode
   tab: Tab
   selected: Selection | null
@@ -274,6 +276,8 @@ interface StoreState {
   saveShot: () => void
   applyShot: (id: string) => void
   deleteShot: (id: string) => void
+  /** 現在のキャンバスフレームから shot のサムネを生成 (rAF で確定フレーム取得) */
+  captureShotThumbnail: (id: string) => void
   deleteSelected: () => void
 
   serialize: () => SceneFile
@@ -411,6 +415,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   env: defaultEnv(),
   camera: defaultCamera(),
   shots: [],
+  shotThumbnails: {},
   activeShotId: null,
   mode: 'edit',
   tab: 'edit',
@@ -700,7 +705,30 @@ export const useStore = create<StoreState>()((set, get) => ({
     const shot = makeShotFromCamera(`Shot ${s.shots.length + 1}`, s)
     if (!shot) return
     set({ shots: [...s.shots, shot], activeShotId: shot.id })
+    get().captureShotThumbnail(shot.id)
     get().flash(`${shot.name} を保存しました (P で Preview)`)
+  },
+
+  captureShotThumbnail: (id) => {
+    const canvas = runtime.canvas
+    if (!canvas || typeof requestAnimationFrame === 'undefined') return
+    // 確定フレームを得るため次の描画後にキャプチャする
+    requestAnimationFrame(() => {
+      try {
+        const w = 256
+        const h = Math.max(1, Math.round((canvas.height / canvas.width) * w)) || 144
+        const off = document.createElement('canvas')
+        off.width = w
+        off.height = h
+        const ctx = off.getContext('2d')
+        if (!ctx) return
+        ctx.drawImage(canvas, 0, 0, w, h)
+        const url = off.toDataURL('image/jpeg', 0.72)
+        set((s) => ({ shotThumbnails: { ...s.shotThumbnails, [id]: url } }))
+      } catch {
+        /* 描画バッファ未保持などでは無視 */
+      }
+    })
   },
 
   applyShot: (id) => {
@@ -716,10 +744,14 @@ export const useStore = create<StoreState>()((set, get) => ({
   },
 
   deleteShot: (id) =>
-    set((s) => ({
-      shots: s.shots.filter((x) => x.id !== id),
-      activeShotId: s.activeShotId === id ? null : s.activeShotId,
-    })),
+    set((s) => {
+      const { [id]: _removed, ...shotThumbnails } = s.shotThumbnails
+      return {
+        shots: s.shots.filter((x) => x.id !== id),
+        activeShotId: s.activeShotId === id ? null : s.activeShotId,
+        shotThumbnails,
+      }
+    }),
 
   deleteSelected: () => {
     const s = get()

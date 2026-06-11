@@ -219,6 +219,7 @@ export function CameraPanel() {
   const cam = useStore((s) => s.camera)
   const shots = useStore((s) => s.shots)
   const activeShotId = useStore((s) => s.activeShotId)
+  const thumbnails = useStore((s) => s.shotThumbnails)
   const setCamera = useStore((s) => s.setCamera)
   const moveSpeed = useStore((s) => s.moveSpeed)
   const lookSensitivity = useStore((s) => s.lookSensitivity)
@@ -322,14 +323,19 @@ export function CameraPanel() {
           Save Shot (R)
         </button>
         {shots.length === 0 && <Empty text="まだ Shot がありません。構図を決めて R で保存します。" />}
-        <ul className="item-list">
+        <ul className="item-list shot-list">
           {shots.map((shot) => (
             <li
               key={shot.id}
               className={activeShotId === shot.id ? 'active' : ''}
               onClick={() => s().applyShot(shot.id)}
             >
-              <span>{shot.name}</span>
+              {thumbnails[shot.id] ? (
+                <img className="shot-thumb" src={thumbnails[shot.id]} alt="" />
+              ) : (
+                <span className="shot-thumb placeholder" />
+              )}
+              <span className="shot-name">{shot.name}</span>
               <button
                 className="mini"
                 onClick={(e) => {

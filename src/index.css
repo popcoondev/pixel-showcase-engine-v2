@@ -362,6 +362,34 @@ input.text {
   color: var(--text-dim);
 }
 
+.shot-thumb {
+  width: 52px;
+  height: 30px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: #000;
+}
+
+.shot-thumb.placeholder {
+  background: repeating-linear-gradient(
+    45deg,
+    #1b1f2a,
+    #1b1f2a 4px,
+    #20242f 4px,
+    #20242f 8px
+  );
+}
+
+.shot-list .shot-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .empty {
   font-size: 11px;
   color: var(--text-dim);
