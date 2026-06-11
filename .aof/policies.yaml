@@ -1,0 +1,78 @@
+policies_format_version: 1
+updated_at: "2026-06-11"
+decision_ref: ".aof/decisions/DR-2026-002-git-management.md"
+
+git:
+  branching:
+    default_branch: main
+    model: trunk-based
+    main_direct_push: allowed   # ソロ + AI 協調。PR必須にはしない(過剰統制)
+    feature_branch_when:
+      - 破壊的変更 (BREAKING)
+      - 実験的・大規模リファクタ
+      - main を壊しうる作業
+    feature_branch_naming: "feat/<slug> / fix/<slug>"
+
+  commit:
+    convention: conventional-commits
+    types: [feat, fix, chore, refactor, test, ci, docs]
+    aof_scope: "chore(aof): で .aof/ 変更を明示し product コードと分離"
+    require_task_id: true        # 例: 末尾 [TASK-003]
+    breaking_marker: "BREAKING: を body に明記"
+    trailer: "Co-Authored-By: <作業した実モデル> <noreply@anthropic.com>"
+    granularity: "1意図=1コミット。WIP細切れ・複数意図混在を避ける"
+    separate_aof_commits: true   # .aof/ と product コードは別コミット
+
+  gates:
+    build_before_commit: "npm run build (tsc -b && vite build) が green"
+    tests_before_commit: "vitest run が green (TASK-002 導入後)"
+    ci: "GitHub Actions で push 時に build + test (TASK-002 導入後)。red のまま main に push しない"
+    pre_commit_review: "git status + git diff --stat で変更範囲を確認・報告してから add"
+
+  add:
+    prefer_scoped: true          # git add <paths> を優先
+    add_all_allowed_after_status_review: true  # git add -A は status 確認後のみ
+    rationale: ".gitignore で秘密/一時アセットを遮断 + status レビューで誤混入を防ぐ"
+
+  push:
+    target: main
+    ai_push_condition: "human の明示指示 + build green。AI は自律 push しない"
+    after_commit: "コミット直後に push し、未コミット/未push 時間を最小化"
+
+  tagging:
+    scheme: semver
+    interpretation: "Minor = ユーザーが体験できる価値の節目 (value slice 完結)"
+    rules:
+      - "value slice 完結 → vX.Y.0 + GitHub Release (What's New を1段落)"
+      - "バグ修正・微調整のみ → vX.Y.Z"
+      - ".aof/ / CI / 内部リファクタのみ → タグなし"
+    tag_author: human   # タグ打鍵は human の判断
+
+  destructive_commands:
+    # DR-2026-002 / 今回の事故 (git checkout -- . によるコミット前編集の消失) を受けた中核ルール
+    ai_forbidden_without_human_approval:
+      - "git checkout -- <path> / git checkout -- ."
+      - "git reset --hard"
+      - "git clean -fd / git clean -fdx"
+      - "git push --force / --force-with-lease (main)"
+      - "git rebase / git commit --amend (公開済み履歴)"
+      - "git filter-branch / filter-repo"
+      - "git stash drop / stash clear"
+    ai_allowed:
+      - "git status / diff / log"
+      - "git add <指定パス>"
+      - "git commit / git push (指示時)"
+      - "git rm <指定ファイル> / git mv"
+    cleanup_rule: "片付けは対象ファイルの rm に限定。checkout/reset/clean で一括破棄しない"
+    conflict_resolution: "マージコンフリクトの単独解決は AI 禁止 → human に escalate"
+
+  secrets_and_assets:
+    gitignore_must_block: [".env*", "*.pem", "*.key", "*_secret*", "*_credentials*", "/.tmp/", "public/tmp/"]
+    committed_assets_ok: ["public/draco/ (Draco デコーダ)", "public/samples/ (将来のサンプル)"]
+    no_commit: ["ユーザー由来 GLB/画像", "録画 (mp4/webm)", "dataURL 展開物", "大容量バイナリ"]
+    github: "public repo の secret scanning / push protection を有効化"
+
+  aof_boundary:
+    topology: managed-project
+    rule: "product main は human-governed。.aof/ 編集は human 指示のある session 内のみ"
+    veto: "cadence 自動化 (cron/scheduled) が .aof/ を main に直接 commit/push することは禁止"
