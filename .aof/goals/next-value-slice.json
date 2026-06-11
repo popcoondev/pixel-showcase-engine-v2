@@ -5,9 +5,10 @@
   "phase": "Phase 1",
   "name": "Hosted editor (v0.2.0 candidate)",
   "statement": "Firebase Hosting に本番ビルドをデプロイし、公開URLでエディタが動き、Preview から PNG/mp4 を書き出せる。最小テスト/CIで守る。",
+  "live_url": "https://pixelshowcase-7bc44.web.app",
   "in_slice": [
-    "TASK-011 Firebase Hosting デプロイ + CI",
-    "TASK-002 最小スモークテスト + CI (Vitest 純粋関数 + GitHub Actions build/test green)"
+    "TASK-011 Firebase Hosting デプロイ + CI (完了 2026-06-11)",
+    "TASK-002 最小スモークテスト + CI (Vitest 純粋関数 + GitHub Actions build/test green) ← 次"
   ],
   "fast_follow": [
     "TASK-004 THUMB サムネ/OG画像 (共有素材・OG)",
