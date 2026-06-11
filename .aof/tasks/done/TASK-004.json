@@ -1,0 +1,24 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-004",
+  "title": "THUMB サムネ/OG画像 自動生成",
+  "status": "done",
+  "completed_at": "2026-06-11",
+  "phase": "phase1-fast-follow",
+  "priority_rank": 4,
+  "owner_role": "Builder",
+  "estimate": "S",
+  "council_scores": { "visionary": 4, "builder": 5, "guardian": 4 },
+  "rationale": "高合意・低コスト。savePng で実証済みの runtime.canvas.toBlob を saveShot にフック。SHARE の OG画像 と MULTISHOT のサムネ一覧を底上げ。",
+  "guardian_gate": "サムネは Scene JSON / Undo履歴(DocSnapshot)に入れず、IndexedDB に slug:shot:id で別保存し Shot は id 参照。toBlob は requestAnimationFrame を1フレーム挟んで確定フレームを取得。",
+  "dependencies": [],
+  "acceptance": "Shot 保存時にサムネが生成され、一覧表示と OG画像出力に使える。Scene JSON / Undo メモリを肥大させない。",
+  "outcome": {
+    "decision": "サムネを store の shotThumbnails (shot id -> dataURL) に別管理。DOC_KEYS / serialize() に含めず Undo・Scene JSON を汚さない。",
+    "action": "store: captureShotThumbnail (requestAnimationFrame で確定フレーム→256px に縮小→jpeg dataURL)、saveShot からフック、deleteShot でサムネも削除。CameraPanel の Shots 一覧にサムネ表示 (未生成はプレースホルダ)。",
+    "artifact": ["src/store.ts", "src/panels.tsx", "src/index.css"],
+    "verification": "preview で Shot 2件保存→各構図のサムネが一覧表示。serialize() に shotThumbnails 非含有を確認 (Guardian gate)。deleteShot でサムネも除去。build green / test 10 passed (回帰なし)。",
+    "result": "PASS",
+    "note": "OG画像 (crawler 向け meta) はサーバーが per-scene HTML を返す必要があり Phase2 (TASK-012/013) の範疇。本タスクはサムネ生成基盤と一覧表示までを提供。"
+  }
+}

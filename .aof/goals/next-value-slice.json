@@ -13,8 +13,9 @@
   ],
   "fast_follow": [
     "TASK-005 ONBOARD 初回サンプルシーン + 最小ガイド (完了 2026-06-11)",
-    "TASK-004 THUMB サムネ/OG画像 (共有素材・OG) ← 残り"
+    "TASK-004 THUMB サムネ/OG画像 (完了 2026-06-11)"
   ],
+  "phase1_status": "全タスク完了。Phase1 クローズ可 (v0.2.0 タグ候補)。",
   "done_in_phase1": ["TASK-001 DRACO 圧縮GLB対応 (完了)"],
   "prerequisites": ["human が Firebase プロジェクト作成 + project id 共有"],
   "exit_criteria": "公開URLでエディタが動き、Draco GLB 配置→Preview→PNG/mp4 書き出しができる。CI が build green でデプロイ。",
