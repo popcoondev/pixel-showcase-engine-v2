@@ -12,8 +12,8 @@
     "TASK-002 最小スモークテスト + CI (完了)"
   ],
   "fast_follow": [
-    "TASK-004 THUMB サムネ/OG画像 (共有素材・OG)",
-    "TASK-005 ONBOARD 初回サンプルシーン + 最小ガイド (公開時の初回体験)"
+    "TASK-005 ONBOARD 初回サンプルシーン + 最小ガイド (完了 2026-06-11)",
+    "TASK-004 THUMB サムネ/OG画像 (共有素材・OG) ← 残り"
   ],
   "done_in_phase1": ["TASK-001 DRACO 圧縮GLB対応 (完了)"],
   "prerequisites": ["human が Firebase プロジェクト作成 + project id 共有"],
