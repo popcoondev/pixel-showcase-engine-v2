@@ -1,0 +1,29 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-002",
+  "title": "最小スモークテスト + CI",
+  "status": "done",
+  "completed_at": "2026-06-11",
+  "phase": "phase1-slice",
+  "priority_rank": 2,
+  "owner_role": "Guardian",
+  "estimate": "S",
+  "council_scores": { "visionary": 1, "builder": 3, "guardian": 5 },
+  "rationale": "最大の衝突点。Guardian は veto 級(テストなしで積み増し禁止)、Visionary は価値直結なしで低評価。集約: 大掛かりなテスト計画ではなく、純粋関数の最小スモーク + CI に絞り、価値スライスと並走させる形で Guardian gate を安価に満たす。",
+  "implementation_hint": "Vitest で store.ts の純粋関数: migrateSceneFile / legacyEnvEffects / hashDataUrl / focalToFov・fovToFocal / serialize→loadScene 往復。GitHub Actions で typecheck + build。Canvas/WebGL を含むE2Eは後回し。",
+  "guardian_findings_to_cover": [
+    "publishToLocalViewer の『URLをコピーしました』は localhost専用なのに他者共有を期待させる体験バグ",
+    "hashDataUrl が dataURL の MIME prefix 差で同一画像を別アセット化しうる重複排除漏れ",
+    "migrateSceneFile + legacyEnvEffects の二段マイグレーションが型変更で無音破壊しうる"
+  ],
+  "dependencies": [],
+  "acceptance": "上記純粋関数のテストが green、CI が PR/Push で typecheck+build を回す。",
+  "outcome": {
+    "decision": "Vitest + jsdom を導入し store.ts の純粋関数を最小スモークテスト。CI は本番デプロイを test green でゲート + PR 用 ci.yml。",
+    "action": "vite.config.ts に test 設定 (jsdom, setup, include)、src/test/setup.ts で crypto.subtle polyfill。src/store.test.ts 10件: focalToFov/fovToFocal 逆関数・aspectToNumber・hashDataUrl 決定性/差異・migrateSceneFile v1→v2/重複排除/v2 passthrough・loadScene⇄serialize 往復・旧 env トグル→effects 移行。package.json に test script、tsconfig.app は *.test.ts を exclude。merge.yml を npm run test && build に、ci.yml 追加 (PR/push で test+build)。",
+    "artifact": ["vite.config.ts", "src/test/setup.ts", "src/store.test.ts", "package.json", "tsconfig.app.json", ".github/workflows/firebase-hosting-merge.yml", ".github/workflows/ci.yml"],
+    "verification": "npx vitest run → 10 passed。npm run build green。CI で本番デプロイが test 通過時のみ実行されることを確認。",
+    "result": "PASS",
+    "note": "Guardian 指摘のうち hashDataUrl 決定性と migrate 二段マイグレーションはテストで回帰固定。誤Publishメッセージ是正は振る舞い修正のため TASK-003 quickfix に残置。"
+  }
+}
