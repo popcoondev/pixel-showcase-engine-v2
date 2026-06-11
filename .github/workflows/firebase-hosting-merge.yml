@@ -6,6 +6,11 @@ on:
   push:
     branches:
       - main
+    # アプリに影響しない変更 (.aof 運用状態 / ドキュメント) では再デプロイしない
+    paths-ignore:
+      - '.aof/**'
+      - '**.md'
+      - '.gitignore'
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
