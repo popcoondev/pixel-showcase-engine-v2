@@ -1,0 +1,14 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-013",
+  "title": "プレビュー専用ページ (バックエンドのデータ源)",
+  "status": "open",
+  "phase": "phase2",
+  "priority_rank": 21,
+  "owner_role": "Builder",
+  "estimate": "M",
+  "rationale": "シーンをサーバーから読み込んで固定画角で見せる公開ページ。既存の固定画角 Viewer (viewerLocked, ?showcase=slug) を再利用し、データ源を IndexedDB → Firestore/Storage に差し替える。",
+  "reuse": "src/store.ts の viewer 初期化 (現在 loadShow=IndexedDB) を backend fetch に分岐。Viewer UI / 固定画角 / 編集不可は既存のまま。",
+  "scope": "閲覧専用。編集不可・自由移動なし (非要件維持)。Shot の固定画角を再生。",
+  "dependencies": ["TASK-012"]
+}

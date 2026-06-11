@@ -2,21 +2,19 @@
   "goal_format_version": 1,
   "type": "next-value-slice",
   "set_at": "2026-06-11",
-  "name": "Shareable showcase (v0.2.0 candidate)",
-  "statement": "圧縮GLBを含むシーンを、自己完結HTMLとして書き出し、他者がブラウザで開いて固定画角Shotを閲覧できる。最小テスト/CIで守る。",
+  "phase": "Phase 1",
+  "name": "Hosted editor (v0.2.0 candidate)",
+  "statement": "Firebase Hosting に本番ビルドをデプロイし、公開URLでエディタが動き、Preview から PNG/mp4 を書き出せる。最小テスト/CIで守る。",
   "in_slice": [
-    "TASK-001 DRACO 圧縮GLBローダー対応",
-    "TASK-002 最小スモークテスト + CI (Vitest 純粋関数 + GitHub Actions typecheck/build)",
-    "TASK-003 静的自己完結HTMLエクスポート + 誤Publishメッセージ是正"
+    "TASK-011 Firebase Hosting デプロイ + CI",
+    "TASK-002 最小スモークテスト + CI (Vitest 純粋関数 + GitHub Actions build/test green)"
   ],
   "fast_follow": [
-    "TASK-004 THUMB サムネ/OG画像自動生成",
-    "TASK-005 ONBOARD 初回サンプルシーン + 最小ガイド"
+    "TASK-004 THUMB サムネ/OG画像 (共有素材・OG)",
+    "TASK-005 ONBOARD 初回サンプルシーン + 最小ガイド (公開時の初回体験)"
   ],
-  "guardian_gates": [
-    "SHARE backend 型は veto (スコープ外)",
-    "SHARE static は埋め込みサイズ上限 + 事前サイズ表示、DRACO先行",
-    "THUMB はサムネを Scene JSON / Undo履歴に入れず IndexedDB に id 参照で保存"
-  ],
-  "exit_criteria": "サンプル(またはユーザー提供)の圧縮GLBシーンを書き出した単一HTMLを別タブ/別環境で開き、Shotの固定画角が再生される。CIが green。"
+  "done_in_phase1": ["TASK-001 DRACO 圧縮GLB対応 (完了)"],
+  "prerequisites": ["human が Firebase プロジェクト作成 + project id 共有"],
+  "exit_criteria": "公開URLでエディタが動き、Draco GLB 配置→Preview→PNG/mp4 書き出しができる。CI が build green でデプロイ。",
+  "next_phase": "Phase 2 (Firebase backend: TASK-012 / TASK-013) — 着手時に Council で DR 化"
 }

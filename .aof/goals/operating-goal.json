@@ -2,14 +2,15 @@
   "goal_format_version": 1,
   "type": "current-operating-goal",
   "set_at": "2026-06-11",
-  "statement": "作った展示を『本人以外も見られる形で外に出せる』状態にする。最大の穴である共有経路(SHARE)を、それを実用にする安価な土台(実物GLBが読めるDRACO・回帰を止める最小テスト)とともに閉じる。",
-  "rationale": "Council of Three の集約。Visionary は SHARE をビジョン最大の穴(#1)とし、Builder は serialize() 既存により静的書き出しが安いと評価、Guardian は backend 型を veto し静的型を size-cap/DRACO先行で gate。3者一致で『共有を、安価な土台付きで閉じる』が現操作目標。",
+  "phase": "Phase 1",
+  "statement": "静的エディタアプリを公開ホスト(Firebase Hosting)に載せ、誰でもブラウザで使えて、Preview から PNG/mp4 を書き出して成果を持ち出せる状態にする。",
+  "rationale": "human maintainer の2フェーズ方針 (DR-2026-003)。Phase1 は『軽く公開 + 書き出しファイルで共有』。PNG/mp4 は実装済みのため新規はデプロイ+CIが中心。サーバー保存は Phase2。",
   "success_criteria": [
-    "ユーザーが圧縮(Draco)GLBを含むシーンを読み込める",
-    "シーンを自己完結HTMLとして書き出し、他者がブラウザで開いて固定画角Shotを見られる",
-    "現状の誤解を招く『URLをコピーしました』(localhost専用)体験が是正されている",
-    "純粋関数の最小スモークテストとCIが回り、回帰を止められる"
+    "公開URLでエディタがブラウザで動作する (Firebase Hosting)",
+    "GLB(Draco含む)配置・Preview・PNG/mp4 書き出しが公開環境で成立",
+    "main push で CI が build green を確認しデプロイされる",
+    "純粋関数の最小スモークテストが回り回帰を止められる"
   ],
-  "supersedes": null,
-  "decision_ref": ".aof/decisions/DR-2026-001-next-priorities.md"
+  "supersedes": "DR-2026-001 の Operating Goal (SHARE自己完結HTML) は DR-2026-003 で Phase2 backend に再編",
+  "decision_ref": ".aof/decisions/DR-2026-003-phased-roadmap.md"
 }

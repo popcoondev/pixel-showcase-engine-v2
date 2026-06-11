@@ -1,0 +1,25 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-012",
+  "title": "Firebase バックエンド (Firestore + Storage + Auth)",
+  "status": "open",
+  "phase": "phase2",
+  "priority_rank": 20,
+  "owner_role": "Builder",
+  "estimate": "L",
+  "rationale": "Phase2 の中核。DB にシーン、オブジェクトストレージに GLB/画像、認証でアカウント管理。Scene v2 のアセット参照分離を活かす。",
+  "design": {
+    "firestore": "scenes/{id}: Scene JSON v2 のメタ + assets 参照 (owner uid, slug, updatedAt)。1ドキュメント1MB上限のため実体は入れない。",
+    "storage": "assets/{hash}.glb / .png: GLB・画像の実体。Scene の assets ハッシュIDをパスに使い重複排除を継承。",
+    "auth": "Firebase Auth でアカウント。自分のシーン/アセットのみ書き込み可 (security rules)。"
+  },
+  "guardian_requirements_from_DR_2026_001": [
+    "アセット容量上限 (ユーザー/シーンごと)",
+    "アセット権利・利用規約 (他者GLB再配布への対処)",
+    "認証 (Firebase Auth)",
+    "PII の扱い (最小収集・公開範囲の明示)"
+  ],
+  "council_required": true,
+  "council_note": "着手時に Council of Three でデータモデル・security rules・容量/権利・認証フローを判断し DR 化 (DR-2026-001 の backend veto を条件付きで上書き)。",
+  "dependencies": ["TASK-011"]
+}

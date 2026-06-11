@@ -1,14 +1,13 @@
 {
   "task_format_version": 1,
   "id": "TASK-003",
-  "title": "静的自己完結HTMLエクスポート + 誤Publishメッセージ是正",
+  "title": "誤Publishメッセージ是正 (+ 旧: 静的HTMLエクスポート)",
   "status": "open",
-  "phase": "slice-1",
+  "phase": "phase2-or-quickfix",
   "priority_rank": 3,
   "owner_role": "Builder",
-  "estimate": "M",
   "council_scores": { "visionary": 5, "builder": 4, "guardian": 3 },
-  "rationale": "ビジョン最大の穴(Visionary #1)。serialize() が純JSONを返すため、viewer を1つのHTMLに焼き込み scene JSON を inline すれば自己完結。Guardian gate により backend 型は veto、static のみ。",
+  "rationale": "DR-2026-003 で再定義。共有が『PNG/mp4 ファイル(Phase1)』と『Firebase backend 保存(Phase2)』に二分されたため、静的自己完結HTMLエクスポートは TASK-012 (backend) に吸収。本タスクに残るのは『URLをコピーしました』(localhost専用) の誤体験是正のみで、これは独立した quickfix として Phase1 中いつでも実施可。",
   "guardian_gates": [
     "アセット埋め込みサイズ上限 (例: 圧縮後20MB)",
     "書き出し前に出力サイズを表示してユーザー確認",
