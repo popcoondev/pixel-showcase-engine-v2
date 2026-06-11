@@ -1,0 +1,23 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-001",
+  "title": "DRACO 圧縮GLBローダー対応",
+  "status": "done",
+  "completed_at": "2026-06-11",
+  "phase": "slice-1",
+  "priority_rank": 1,
+  "owner_role": "Builder",
+  "estimate": "S",
+  "council_scores": { "visionary": 4, "builder": 5, "guardian": 4 },
+  "rationale": "3者最高合意の土台。Blender/Sketchfab の既定エクスポートが Draco 圧縮GLBで、現状 GLTFLoader にローダー未登録のため読めない。SHARE のアセット縮小前提にもなる。",
+  "implementation_hint": "src/scene/Viewport.tsx の GlbContent: GLTFLoader に DRACOLoader を登録。dataURL は atob で ArrayBuffer 化し loader.parse() も検討。WASM decoder は public/draco/ に配置。",
+  "dependencies": [],
+  "acceptance": "実物の圧縮(Draco)GLB が配置でき、影/質感上書きも従来どおり動く。",
+  "outcome": {
+    "decision": "Draco + meshopt 対応の共有 GLTFLoader を新設、WASM デコーダを public/draco/ に同梱(静的エクスポートでも自己完結)",
+    "action": "src/scene/gltfLoader.ts 新設 (DRACOLoader.setDecoderPath(BASE_URL+draco/) + setMeshoptDecoder)。Viewport.tsx GlbContent を loadGltf/enableShadows に置換。",
+    "artifact": ["src/scene/gltfLoader.ts", "src/scene/Viewport.tsx", "public/draco/{draco_decoder.wasm,draco_decoder.js,draco_wasm_wrapper.js}"],
+    "verification": "gltf-transform で生成した実物 Draco GLB (KHR_draco_mesh_compression required) をアプリの import 経路で配置 → 赤い箱が影付き描画、質感上書き(metalness/emissive)も反映。WASM 配信 200、コンソールエラーなし、npm run build green。",
+    "result": "PASS"
+  }
+}

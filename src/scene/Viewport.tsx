@@ -10,11 +10,11 @@ import {
 } from '@react-three/postprocessing'
 import { Effect, ToneMappingMode, type DepthOfFieldEffect } from 'postprocessing'
 import * as THREE from 'three'
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { focalToFov, runtime, useStore } from '../store'
 import type { LightDef, MaterialSettings, SceneObjectDef, Selection, Vec3 } from '../types'
 import { EffectNode } from './EffectNode'
 import { FlyControls } from './FlyControls'
+import { enableShadows, loadGltf } from './gltfLoader'
 
 /** クリック共通処理: Camera モードの Screen Point フォーカス、Edit モードの選択 */
 function handleScenePointerDown(e: ThreeEvent<PointerEvent>, sel: Selection | null) {
@@ -131,21 +131,15 @@ function GlbContent({ def }: { def: SceneObjectDef }) {
     if (!url) return
     let alive = true
     originals.current.clear()
-    new GLTFLoader().load(
-      url,
-      (gltf) => {
+    loadGltf(url)
+      .then((gltf) => {
         if (!alive) return
-        gltf.scene.traverse((o) => {
-          if ((o as THREE.Mesh).isMesh) {
-            o.castShadow = true
-            o.receiveShadow = true
-          }
-        })
+        enableShadows(gltf.scene)
         setObj(gltf.scene)
-      },
-      undefined,
-      () => useStore.getState().flash('GLB の読み込みに失敗しました'),
-    )
+      })
+      .catch(() => {
+        if (alive) useStore.getState().flash('GLB の読み込みに失敗しました')
+      })
     return () => {
       alive = false
     }

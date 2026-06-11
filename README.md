@@ -21,7 +21,7 @@ npm run build   # tsc -b && vite build
 
 `Edit -> Camera -> Save Shot -> Preview`
 
-- **Edit**: オブジェクト・ライト・地面・背景の調整
+- **Edit**: オブジェクト・ライト・地面・背景の調整(GLB/GLTF は Draco / meshopt 圧縮にも対応)
 - **Camera**: 構図・露出・被写界深度(実カメラ寄りの 焦点距離 / 絞り UI)
 - **Preview**: 保存した Shot の固定表示。PNG 保存・動画録画 (MP4 / H.264 を優先。X 等の SNS にそのまま投稿可。非対応ブラウザは WebM)
 - **Viewer**: `?showcase=<slug>` で編集不可の固定画角表示(Publish で発行。保存先は IndexedDB なので GLB 複数でも容量に余裕があります)
