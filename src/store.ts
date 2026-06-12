@@ -224,6 +224,8 @@ interface StoreState {
   viewerLocked: boolean
   /** 公開 Viewer (/s/{id}) で表示する作者名。null=非表示 */
   viewerAuthor: string | null
+  /** Viewer が公開データを読み込み中か (デフォルトキューブを出さないため) */
+  viewerLoading: boolean
   /** インクリメントで CameraRig が active shot のポーズを適用する */
   poseStamp: number
   /** インクリメントで FlyControls が視点をリセットする */
@@ -446,6 +448,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   recording: false,
   viewerLocked: false,
   viewerAuthor: null,
+  viewerLoading: false,
   poseStamp: 0,
   resetStamp: 0,
   canUndo: false,
@@ -455,8 +458,18 @@ export const useStore = create<StoreState>()((set, get) => ({
   cloudSceneId: null,
   moveSpeed: controlPrefs.moveSpeed ?? 4,
   lookSensitivity: controlPrefs.lookSensitivity ?? 1,
-  // Viewer 起動時は IndexedDB から非同期に読み込むまでロック状態で待つ
-  ...(viewerTarget ? { viewerLocked: true, mode: 'preview' as Mode } : {}),
+  // Viewer 起動時は読み込みが終わるまで空シーン+ロード中にする
+  // (デフォルトキューブが一瞬見えるのを防ぐ)
+  ...(viewerTarget
+    ? {
+        viewerLocked: true,
+        viewerLoading: true,
+        mode: 'preview' as Mode,
+        objects: [],
+        lights: [],
+        effects: [],
+      }
+    : {}),
 
   setSceneName: (name) => set({ sceneName: name }),
 
@@ -884,6 +897,7 @@ function applyViewerScene(file: SceneFile, author: string | null) {
   useStore.setState({
     sceneName: f.name,
     viewerAuthor: author,
+    viewerLoading: false,
     assets: f.assets,
     objects: f.objects,
     lights: f.lights,
@@ -906,12 +920,12 @@ if (viewerTarget) {
         const { loadPublicShowcase } = await import('./cloud/publish')
         const result = await loadPublicShowcase(viewerTarget.id)
         if (!result) {
-          useStore.setState({ sceneName: 'この公開シーンは見つかりません' })
+          useStore.setState({ sceneName: 'この公開シーンは見つかりません', viewerLoading: false })
           return
         }
         applyViewerScene(result.file, result.author)
       } catch {
-        useStore.setState({ sceneName: '公開シーンの読み込みに失敗しました' })
+        useStore.setState({ sceneName: '公開シーンの読み込みに失敗しました', viewerLoading: false })
       }
       return
     }
@@ -933,7 +947,7 @@ if (viewerTarget) {
       }
     }
     if (!file) {
-      useStore.setState({ sceneName: `"${viewerTarget.slug}" が見つかりません` })
+      useStore.setState({ sceneName: `"${viewerTarget.slug}" が見つかりません`, viewerLoading: false })
       return
     }
     applyViewerScene(file, null)

@@ -276,6 +276,14 @@ function Footer() {
   )
 }
 
+function ViewerStatus({ text }: { text: string }) {
+  return (
+    <div className="viewer-status">
+      <span>{text}</span>
+    </div>
+  )
+}
+
 function ViewerBar() {
   const sceneName = useStore((s) => s.sceneName)
   const viewerAuthor = useStore((s) => s.viewerAuthor)
@@ -299,6 +307,7 @@ export default function App() {
   const mode = useStore((s) => s.mode)
   const tab = useStore((s) => s.tab)
   const viewerLocked = useStore((s) => s.viewerLocked)
+  const viewerLoading = useStore((s) => s.viewerLoading)
   const aspect = useStore((s) => s.camera.aspect)
   const setTab = useStore((s) => s.setTab)
   // 初回起動 (Viewer 以外) はサンプルシーン + 歓迎ガイドを1度だけ出す
@@ -324,7 +333,7 @@ export default function App() {
         <ViewerBar />
         <div className="stage-wrap">
           <div className="stage framed" style={{ aspectRatio: aspectToNumber(aspect) }}>
-            <Viewport />
+            {viewerLoading ? <ViewerStatus text="読み込み中…" /> : <Viewport />}
           </div>
         </div>
         <HelpOverlay />

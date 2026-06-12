@@ -218,6 +218,17 @@ input.text {
   font-size: 12px;
 }
 
+.viewer-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 14px;
+  letter-spacing: 0.05em;
+}
+
 .mode-edit {
   color: #7ee2a0;
   border-color: #2c5a3d;
