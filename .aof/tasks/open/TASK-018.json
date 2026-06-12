@@ -1,0 +1,22 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-018",
+  "title": "動的OG (/s/{id} を SNS に貼ると絵が出る)",
+  "status": "blocked",
+  "blocked_on": "human: Cloud Functions を解禁するか (DR-2026-004 で Phase2.1 送り)",
+  "phase": "v0.4.0-escalated",
+  "priority_rank": 4,
+  "owner_role": "Builder",
+  "owner_team": "viewer-team",
+  "estimate": "L",
+  "decision_ref": ".aof/decisions/DR-2026-005-next-direction-v04.md",
+  "rationale": "Product Council 最重要: SNS機能を作らずに SNS映え。Firebase Hosting は静的+SPA rewrite で bot は JS 非実行のため、per-/s/{id} の OG meta は Cloud Functions(軽量SSR)が必須。",
+  "design": {
+    "ssr": "firebase.json rewrites で /s/:id だけ軽量 Function に向け、Firestore を読んで <meta og:title/og:description/og:image> を含む HTML を返す",
+    "og_image": "thumbs/{id}.jpg は publish 時に既に Storage 済 → og:image URL は決定論的に構成可能",
+    "appcheck_note": "App Check enforce 中。Function の public endpoint を App Check 対象外として明示するか整合を取る"
+  },
+  "escalation": "Cloud Functions 導入はコスト・運用面積増。maintainer が解禁可否を判断してから着手。",
+  "dependencies": [],
+  "acceptance": "公開URLを SNS に貼ると、タイトル・作者・サムネのカードが展開される。"
+}

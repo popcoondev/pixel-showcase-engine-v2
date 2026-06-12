@@ -1,6 +1,6 @@
 # .aof/ — AOF v2.0 Runtime State
 
-このディレクトリは [AI Organization Framework v2.0.0](https://github.com/popcoondev/ai-organization-framework/tree/v2.0.0) の **managed-project** topology に沿った運用状態です。Pixel Showcase Engine(product)を Council of Three(Visionary / Builder / Guardian, majority-with-guardian-veto)で統治します。
+このディレクトリは [AI Organization Framework v2.1.0](https://github.com/popcoondev/ai-organization-framework/tree/v2.1.0) の **managed-project** topology に沿った運用状態です。Pixel Showcase Engine(product)を、組織モデル [`organization.json`](organization.json)(Product / Architecture / Operations Council, 2_of_3、Role と Agent を分離、Team / Contract / Dependency / Knowledge / Metrics / Lifecycle)で統治します。
 
 ## AI が最初に読む packet
 - [`project-bootstrap.json`](project-bootstrap.json)

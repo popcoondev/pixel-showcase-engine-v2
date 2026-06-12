@@ -1,0 +1,20 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-017",
+  "title": "退会 / データ削除 (クライアント部分)",
+  "status": "open",
+  "phase": "v0.4.0-fast-follow",
+  "priority_rank": 3,
+  "owner_role": "Builder",
+  "owner_team": "cloud-team",
+  "estimate": "M",
+  "decision_ref": ".aof/decisions/DR-2026-005-next-direction-v04.md",
+  "rationale": "現状 storage.rules は delete:false で本人すら自分のファイルを消せない。削除権(GDPR/個人情報保護法)の最低限。最初の外部ユーザーが来る前に。",
+  "design": {
+    "client": "自分のシーン (users/{uid}/showcases と showcases where ownerId==uid) を getDocs→deleteDoc。順序: ①Firestore 削除 ②Auth.delete (Storage は Rules で本人 delete を許可 or 管理スクリプトの GC に委譲)",
+    "storage": "assets/{hash} は content-hash 共有のため個別削除は孤立判定が要る → 管理スクリプト/Functions の GC に委譲 (Phase2.1)",
+    "ui": "アカウント設定に『アカウントとデータを削除』。確認必須"
+  },
+  "dependencies": ["TASK-015"],
+  "acceptance": "ユーザーが自分のシーンとアカウントを削除でき、削除後に /s/{id} が 404/410 になる。"
+}

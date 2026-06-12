@@ -2,22 +2,20 @@
   "goal_format_version": 1,
   "type": "next-value-slice",
   "set_at": "2026-06-12",
-  "phase": "Phase 2",
-  "name": "Cloud save + shareable preview URL (v0.3.0 candidate)",
-  "statement": "Google サインインでシーンをクラウド保存し、権利確認付きで公開すると /s/{id} が発行され、誰でもブラウザで固定画角プレビューを見られる。編集→再公開で同じURLを更新できる。",
-  "slice_status": "実装完了 (2026-06-12)。コード/Rules/CORS/App Check(monitor) すべて反映・実機検証済み。",
-  "done": [
-    "TASK-012 Phase2A: Firebase 基盤 + Google Auth + クラウド保存",
-    "TASK-014 Phase2B: Security Rules / App Check / 規約・権利確認 / 通報窓口",
-    "TASK-013 Phase2C: 公開 + /s/{id} プレビューページ + 公開上書き更新"
+  "phase": "v0.4.0 (完成度と信頼)",
+  "name": "安全と質 (Safety & Quality slice)",
+  "statement": "1ユーザーが課金/データを暴走させられない天井(シーン数上限+削除デクリメント)と、見せ方の質を底上げする look プリセットを、Functions 不要・ソロ完結・非要件遵守で届ける。",
+  "in_slice": [
+    "TASK-015 シーン数上限 + 削除デクリメント (S, Operations GATE)",
+    "TASK-016 PRESETS 展示台/背景/ライトリグの look プリセット (S, Product 価値)"
   ],
-  "launch_gate": "達成 (2026-06-12): App Check Enforce ON (Firestore+Storage) + Budget アラート設定済 (human 確認)。",
-  "release": "v0.3.0 リリース済 (2026-06-12)。",
-  "post_enforce_check": "enforce 後の正規フロー (サインイン→保存→公開→/s/ 閲覧) が壊れていないか実ブラウザで確認することを推奨 (App Check トークン発行を実機で確認)。",
-  "phase2_1_deferred": [
-    "シーン数上限の厳密化 / 累積容量制御 (Cloud Functions)",
-    "退会フロー (それまで UI に案内)",
-    "SNS bot 向け動的 OG"
+  "fast_follow": [
+    "TASK-017 退会/データ削除 クライアント部分 (M)"
   ],
-  "decision_ref": ".aof/decisions/DR-2026-004-phase2-backend-architecture.md"
+  "escalated": [
+    "TASK-018 動的OG — human の Cloud Functions 解禁判断待ち (L)"
+  ],
+  "backlog": ["MOBILE Viewer (S)", "MULTISHOT 単純切替のみ (S)", "FXMORE (M)", "管理スクリプト+孤立GC (Phase2.1)"],
+  "exit_criteria": "シーン数上限が Rules で効き削除でカウントが正しく減る。数種のプリセットがワンクリック適用でき Undo で戻る。build/test green。",
+  "decision_ref": ".aof/decisions/DR-2026-005-next-direction-v04.md"
 }

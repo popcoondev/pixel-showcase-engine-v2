@@ -1,0 +1,199 @@
+{
+  "organization_type": "aof-organization",
+  "organization_format_version": 1,
+  "mission": "「置く・照らす・撮る・固定画角で見せる」を気持ちよく成立させ、作った展示を本人以外にもそのまま見せられる状態にする。",
+  "project_ref": "popcoondev/pixel-showcase-engine-v2",
+  "topology": "managed-project",
+  "councils": [
+    {
+      "council_id": "product-council",
+      "name": "Product Council",
+      "mission": "プロダクトの価値と方向性、非要件の守護",
+      "approval_policy": "2_of_3",
+      "responsibilities": ["方向性決定", "優先順位", "非要件の守護", "リリース判断"]
+    },
+    {
+      "council_id": "architecture-council",
+      "name": "Architecture Council",
+      "mission": "実装可能性・データモデル・技術設計",
+      "approval_policy": "2_of_3",
+      "responsibilities": ["設計判断", "データモデル", "技術的負債管理", "ADR承認"]
+    },
+    {
+      "council_id": "operations-council",
+      "name": "Operations Council",
+      "mission": "運用・安全・コスト・可逆性",
+      "approval_policy": "2_of_3",
+      "responsibilities": ["リスク判断", "セキュリティ", "コスト管理", "インシデント対応"]
+    }
+  ],
+  "teams": [
+    {
+      "team_id": "scene-team",
+      "name": "Scene & Runtime Team",
+      "mission": "3D編集・描画・FX・カメラワーク・look-dev",
+      "responsibilities": ["エディタ", "レンダリング", "FX", "look-dev", "カメラワーク"],
+      "authority": ["scene データモデル", "描画パイプライン"],
+      "deliverables": ["src/scene/*", "src/panels.tsx", "src/store.ts(scene)"],
+      "dependencies": []
+    },
+    {
+      "team_id": "cloud-team",
+      "name": "Cloud & Publish Team",
+      "mission": "認証・保存・公開のバックエンド連携",
+      "responsibilities": ["Auth", "Firestore", "Storage", "公開フロー"],
+      "authority": ["クラウドデータモデル", "Security Rules"],
+      "deliverables": ["src/cloud/*", "src/firebase.ts", "firestore.rules", "storage.rules"],
+      "dependencies": ["scene-team"]
+    },
+    {
+      "team_id": "viewer-team",
+      "name": "Viewer Team",
+      "mission": "公開 /s/{id} の固定画角閲覧体験",
+      "responsibilities": ["Viewer", "固定画角再生", "公開ページUX"],
+      "authority": ["Viewer 表示契約 (編集不可・自由移動なし)"],
+      "deliverables": ["Viewer 表示", "/s/{id} ルーティング"],
+      "dependencies": ["cloud-team", "scene-team"]
+    },
+    {
+      "team_id": "release-team",
+      "name": "QA & Release Team",
+      "mission": "品質と本番デプロイを守る",
+      "responsibilities": ["テスト", "CI", "デプロイ", "リリース", "git運用"],
+      "authority": ["デプロイゲート (test green)"],
+      "deliverables": ["vitest", "GitHub Actions", "Firebase Hosting"],
+      "dependencies": ["scene-team", "cloud-team"]
+    }
+  ],
+  "roles": [
+    {
+      "role_id": "orchestrator",
+      "name": "Orchestrator",
+      "mission": "framing・集約・実装実行・検証",
+      "authority": ["タスク割当", "実装", "集約"],
+      "team_ref": null,
+      "assignments": [
+        { "assignment_id": "as-orch", "assignee_type": "ai-agent", "assignee_ref": "claude-opus", "scope": "全体" }
+      ]
+    },
+    {
+      "role_id": "visionary",
+      "name": "Visionary",
+      "mission": "価値・ビジョン・非要件の守護",
+      "authority": ["価値判断", "スコープ定義"],
+      "team_ref": null,
+      "assignments": [
+        { "assignment_id": "as-vis", "assignee_type": "ai-agent", "assignee_ref": "claude-sonnet", "scope": "Product Council" }
+      ]
+    },
+    {
+      "role_id": "builder",
+      "name": "Builder",
+      "mission": "実現性・設計・実装方針",
+      "authority": ["設計", "実装方針"],
+      "team_ref": "scene-team",
+      "assignments": [
+        { "assignment_id": "as-bld", "assignee_type": "ai-agent", "assignee_ref": "claude-sonnet", "scope": "Architecture Council" }
+      ]
+    },
+    {
+      "role_id": "guardian",
+      "name": "Guardian",
+      "mission": "リスク・安全・コスト・可逆性",
+      "authority": ["risk-gate", "launch-gate"],
+      "team_ref": null,
+      "assignments": [
+        { "assignment_id": "as-grd", "assignee_type": "ai-agent", "assignee_ref": "claude-sonnet", "scope": "Operations Council" }
+      ]
+    },
+    {
+      "role_id": "maintainer",
+      "name": "Human Maintainer",
+      "mission": "最終承認・コンソール操作・公開判断",
+      "authority": ["最終承認", "リリース承認", "インフラ操作"],
+      "team_ref": null,
+      "assignments": [
+        { "assignment_id": "as-mnt", "assignee_type": "human", "assignee_ref": "popcoondev", "scope": "全体" }
+      ]
+    }
+  ],
+  "agents": [
+    {
+      "agent_id": "claude-opus",
+      "agent_type": "ai-agent",
+      "provider": "Anthropic Claude (orchestrator)",
+      "capabilities": ["framing", "implementation", "aggregation", "verification"]
+    },
+    {
+      "agent_id": "claude-sonnet",
+      "agent_type": "ai-agent",
+      "provider": "Anthropic Claude (council worker)",
+      "capabilities": ["analysis", "review", "scoring"]
+    },
+    {
+      "agent_id": "popcoondev",
+      "agent_type": "human",
+      "provider": "human maintainer",
+      "capabilities": ["approval", "console-ops", "release", "direction"]
+    }
+  ],
+  "contracts": [
+    {
+      "contract_id": "scene-json-v2",
+      "name": "Scene JSON v2 (assets 参照分離)",
+      "owner_team_ref": "scene-team",
+      "contract_type": "data-schema",
+      "artifact_ref": "src/types.ts"
+    },
+    {
+      "contract_id": "security-rules",
+      "name": "Firestore/Storage Security Rules",
+      "owner_team_ref": "cloud-team",
+      "contract_type": "security-policy",
+      "artifact_ref": "firestore.rules"
+    },
+    {
+      "contract_id": "public-showcase",
+      "name": "公開 /s/{id} (uid 非露出・固定画角)",
+      "owner_team_ref": "viewer-team",
+      "contract_type": "public-api",
+      "artifact_ref": ".aof/decisions/DR-2026-004-phase2-backend-architecture.md"
+    },
+    {
+      "contract_id": "git-policy",
+      "name": "git 運用ルール",
+      "owner_team_ref": "release-team",
+      "contract_type": "process-policy",
+      "artifact_ref": ".aof/policies.yaml"
+    }
+  ],
+  "dependencies": [
+    { "from_ref": "viewer-team", "to_ref": "cloud-team", "dependency_type": "data-source", "status": "active" },
+    { "from_ref": "cloud-team", "to_ref": "scene-team", "dependency_type": "data-schema", "status": "active" },
+    { "from_ref": "release-team", "to_ref": "scene-team", "dependency_type": "build-gate", "status": "active" },
+    { "from_ref": "release-team", "to_ref": "cloud-team", "dependency_type": "build-gate", "status": "active" }
+  ],
+  "knowledge_owners": [
+    { "knowledge_domain": "3D描画・FX・look-dev", "owner_ref": "scene-team" },
+    { "knowledge_domain": "認証・Security Rules・課金", "owner_ref": "operations-council" },
+    { "knowledge_domain": "クラウド保存・公開フロー", "owner_ref": "cloud-team" },
+    { "knowledge_domain": "固定画角 Viewer 契約", "owner_ref": "viewer-team" },
+    { "knowledge_domain": "git運用・リリース・CI", "owner_ref": "release-team" }
+  ],
+  "metrics": [
+    { "metric_id": "m-quality", "name": "build/test green率", "metric_type": "quality", "owner_ref": "release-team" },
+    { "metric_id": "m-cost", "name": "Firebase 月額コスト", "metric_type": "cost", "owner_ref": "operations-council" },
+    { "metric_id": "m-velocity", "name": "スライス完了ペース", "metric_type": "velocity", "owner_ref": "orchestrator" },
+    { "metric_id": "m-risk", "name": "未対応のセキュリティ/権利/コストリスク", "metric_type": "risk", "owner_ref": "operations-council" },
+    { "metric_id": "m-health", "name": "非要件の遵守 (ゲーム化/SNS化/Blender化していないか)", "metric_type": "health", "owner_ref": "product-council" }
+  ],
+  "escalation": [
+    { "from": "role", "to": "council", "condition": "ロール間で判断が割れる、またはスコープを超える" },
+    { "from": "council", "to": "maintainer", "condition": "2_of_3 で決し切れない、または不可逆・本番影響・コスト・公開可否の判断" }
+  ],
+  "lifecycle": {
+    "state": "Operate",
+    "allowed_states": ["Create", "Operate", "Measure", "Improve", "Split", "Merge", "Archive"]
+  },
+  "updated_at": "2026-06-12T00:00:00Z"
+}

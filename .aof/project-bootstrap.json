@@ -1,17 +1,18 @@
 {
   "bootstrap_type": "aof-project-bootstrap",
   "bootstrap_format_version": 1,
-  "aof_version": "2.0.0",
-  "aof_source": "https://github.com/popcoondev/ai-organization-framework/tree/v2.0.0",
+  "aof_version": "2.1.0",
+  "aof_source": "https://github.com/popcoondev/ai-organization-framework/tree/v2.1.0",
   "topology": "managed-project",
   "install_mode": "runtime-on",
   "write_target": "repo-main-human-directed",
   "write_target_note": "managed-project の既定は aof/state だが、本プロジェクトでは human maintainer (popcoondev) の明示指示により .aof/ を product main に同居させる。cadence 自動化が main を直接書き換えることは禁止。",
+  "organization_ref": ".aof/organization.json",
   "orientation_ref": ".aof/context/active/project-orientation.json",
   "goals_ref": ".aof/goals",
   "tasks_ref": ".aof/tasks",
   "decisions_ref": ".aof/decisions",
   "prompts_ref": ".aof/prompts",
   "product_repo": "popcoondev/pixel-showcase-engine-v2",
-  "product_version": "0.1.0"
+  "product_version": "0.3.0"
 }

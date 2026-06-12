@@ -1,10 +1,23 @@
-model: council-of-three
+# AOF v2.1.0: Council ベースの組織モデル (.aof/organization.json) に準拠
+model: councils
+councils:
+  - product-council
+  - architecture-council
+  - operations-council
 decision_rules:
-  default: majority-with-guardian-veto
+  default: 2_of_3 # v2.1.0 既定。hard-coded law ではなく override 可能な policy
+  note: Guardian の安全懸念が council で解消しない場合は veto ではなく maintainer へ escalate する
 escalation:
   target: human-maintainer
   owner: popcoondev
   max_retries: 2
+  paths:
+    - from: role
+      to: council
+      condition: ロール間の不一致 / スコープ超過
+    - from: council
+      to: maintainer
+      condition: 2_of_3 で決し切れない / 不可逆・本番影響・コスト・公開可否
 routing:
   fast_track:
     allowed_when:

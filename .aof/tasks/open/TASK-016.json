@@ -1,0 +1,20 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-016",
+  "title": "PRESETS (展示台/背景/ライトリグの look プリセット)",
+  "status": "open",
+  "phase": "v0.4.0-slice",
+  "priority_rank": 2,
+  "owner_role": "Builder",
+  "owner_team": "scene-team",
+  "estimate": "S",
+  "decision_ref": ".aof/decisions/DR-2026-005-next-direction-v04.md",
+  "rationale": "Product Council 価値最大。作る摩擦を下げつつ出力品質を底上げ。applyHd2dLook の実証パターンを一般化する。",
+  "design": {
+    "shape": "src/presets.ts に preset 定義配列 (env / lights / effects の値セット)。loadScene ではなく setEnv/updateLight/addEffect 系で diff パッチ適用 (Undo は store が自動対応)",
+    "ui": "Scene タブにプリセット選択 (applyHd2dLook と並列)",
+    "scope_note": "まず env/light/effect の値プリセットに限定。台座ジオメトリ (GLB 同梱) はビルドサイズ増のため v0.5.0 以降に分離"
+  },
+  "dependencies": [],
+  "acceptance": "数種のプリセット (例: 夜の祭壇 / 朝の窓辺 / モノクロ展示 等) をワンクリックで適用でき、Undo で戻せる。"
+}

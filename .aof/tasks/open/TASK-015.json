@@ -1,0 +1,21 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-015",
+  "title": "シーン数上限 + 削除デクリメント (課金/データの天井)",
+  "status": "open",
+  "phase": "v0.4.0-slice",
+  "priority_rank": 1,
+  "owner_role": "Builder",
+  "owner_team": "cloud-team",
+  "estimate": "S",
+  "decision_ref": ".aof/decisions/DR-2026-005-next-direction-v04.md",
+  "rationale": "Operations Council GATE。1ユーザーが無制限にシーンを作れる=課金/ストレージ暴走の穴。Functions 不要のカウンタドキュメント方式で塞ぐ。",
+  "design": {
+    "counter": "users/{uid} に sceneCount を持ち、保存時に batch で sceneDoc.set + userDoc.update(increment(1))。削除時に必ず decrement(同一変更で実装、忘れるとカウント乖離)",
+    "rules": "Firestore: allow create if get(users/{uid}).data.sceneCount < 20 (上限目安20)。初回 sceneCount 不在時の評価 (!exists 分岐 or 初回 {sceneCount:0} 作成) に注意",
+    "files": "src/cloud/scenes.ts (saveSceneToCloud / deleteCloudScene), firestore.rules"
+  },
+  "guardian_gate": "宣伝/外部共有を本格化する前に満たすこと。",
+  "dependencies": [],
+  "acceptance": "上限到達後の新規保存が Rules で拒否される。削除でカウントが正しく減る。"
+}

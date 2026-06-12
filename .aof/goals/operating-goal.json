@@ -2,15 +2,15 @@
   "goal_format_version": 1,
   "type": "current-operating-goal",
   "set_at": "2026-06-12",
-  "phase": "Phase 2",
-  "statement": "シーンとアセットを Firebase に保存し、/s/{id} の公開URLで誰でも(未サインインでも)固定画角プレビューを見られる状態にする。Guardian のローンチ条件(Rules/App Check/規約/Budget)を満たした上で出す。",
-  "rationale": "DR-2026-003 の Phase2 を DR-2026-004 でアーキテクチャ確定。体験の核は『作品がURLとして存在する』(Visionary)、実装は serialize 非破壊の cloud 変換層 (Builder)、安全はアーキテクチャで強制 (Guardian)。",
+  "phase": "v0.4.0 (完成度と信頼)",
+  "statement": "プロダクトを「完成度と信頼」で深める。運用の天井(課金/データの上限・削除権)と見せ方の質(プリセット)を両輪で固め、共有の到達(動的OG)は human の Cloud Functions 判断のうえで開く。",
+  "rationale": "AOF v2.1.0 移行後、3 Council (Product/Architecture/Operations, 2_of_3) で集約。North Star 到達後は機能の横拡張でなく完成度と信頼を彫る段階。非要件(ゲーム化/SNS化/Blender化しない)を守る。",
   "success_criteria": [
-    "Google サインインでクラウド保存、別環境から自分のシーンを開ける (2A)",
-    "Security Rules / App Check / 規約・権利確認 / 通報窓口が機能 (2B)",
-    "/s/{id} を未サインインで開くと固定画角 Shot が再現される (2C)",
-    "email/uid が URL・画面・データに露出しない"
+    "1ユーザーが課金/ストレージを暴走させられない (シーン数上限)",
+    "ユーザーが自分のデータとアカウントを削除できる",
+    "数種の look プリセットで見せ方の質を底上げできる",
+    "動的OG の可否 (Functions 解禁) が maintainer により判断される"
   ],
-  "supersedes": "Phase 1 operating goal (達成、v0.2.0)",
-  "decision_ref": ".aof/decisions/DR-2026-004-phase2-backend-architecture.md"
+  "supersedes": "Phase 2 operating goal (達成、v0.3.0)",
+  "decision_ref": ".aof/decisions/DR-2026-005-next-direction-v04.md"
 }

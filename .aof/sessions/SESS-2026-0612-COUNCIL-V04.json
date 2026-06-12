@@ -1,0 +1,22 @@
+{
+  "session_format_version": 1,
+  "session_id": "SESS-2026-0612-COUNCIL-V04",
+  "at": "2026-06-12",
+  "framework": "AOF v2.1.0",
+  "type": "councils",
+  "approval_policy": "2_of_3",
+  "parent": "claude-opus (orchestrator)",
+  "request": "v0.4.0 以降の次の方向性を計画 (AOF v2.1.0 移行とあわせて)",
+  "councils": [
+    { "council": "product-council", "role": "Visionary", "key": "方向=完成度と信頼。PRESETS+Phase2.1 両輪。最重要=動的OG (SNS化せず SNS映え)。避ける=ギャラリー/自由移動/タイムライン化" },
+    { "council": "operations-council", "role": "Guardian", "key": "GATE: Budget(済)+シーン数上限。続いて退会/削除・管理スクリプト・孤立GC", "read_code": true },
+    { "council": "architecture-council", "role": "Builder", "key": "シーン数上限=S(削除デクリメント同時必須)/PRESETS=S/退会=M(Storage は Admin)/動的OG=L(Functions 解禁が前提)", "read_code": true }
+  ],
+  "resolution": {
+    "v0.4.0_slice": ["TASK-015 シーン数上限+デクリメント", "TASK-016 PRESETS"],
+    "fast_follow": ["TASK-017 退会/削除 client"],
+    "escalated_to_maintainer": "Cloud Functions 解禁の可否 (TASK-018 動的OG / Storage 削除の前提)"
+  },
+  "decision_ref": ".aof/decisions/DR-2026-005-next-direction-v04.md",
+  "org_change": "AOF v2.0.0 → v2.1.0。.aof/organization.json 新設 (Council/Team/Role/Agent/Contract/Dependency/Knowledge/Metrics/Lifecycle)。governance を 2_of_3 + escalation に更新"
+}
