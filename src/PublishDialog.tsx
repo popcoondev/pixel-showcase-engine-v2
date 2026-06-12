@@ -38,6 +38,10 @@ function PublishDialog({ onClose }: { onClose: () => void }) {
   const [url, setUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // 公開する固定画角 (Shot)。既定は現在の active shot
+  const [shotId, setShotId] = useState(
+    () => useStore.getState().activeShotId ?? shots[0]?.id ?? '',
+  )
 
   const isUpdate = !!publishedId && !asNew
 
@@ -46,6 +50,8 @@ function PublishDialog({ onClose }: { onClose: () => void }) {
     setBusy(true)
     try {
       if (!useStore.getState().cloudUser) await signInWithGoogle()
+      // 選んだ Shot を公開画角にする (serialize は activeShotId を見る)
+      if (shotId) useStore.getState().applyShot(shotId)
       const id = await publishToCloud(
         title.trim() || 'untitled',
         author.trim(),
@@ -132,6 +138,18 @@ function PublishDialog({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setAuthor(e.target.value)}
               />
             </div>
+            {shots.length > 1 && (
+              <div className="row">
+                <span className="row-label">公開する画角</span>
+                <select className="text" value={shotId} onChange={(e) => setShotId(e.target.value)}>
+                  {shots.map((shot) => (
+                    <option key={shot.id} value={shot.id}>
+                      {shot.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <label className="publish-terms">
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
               <span>
