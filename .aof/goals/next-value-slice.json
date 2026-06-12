@@ -11,11 +11,9 @@
     "TASK-014 Phase2B: Security Rules / App Check / 規約・権利確認 / 通報窓口",
     "TASK-013 Phase2C: 公開 + /s/{id} プレビューページ + 公開上書き更新"
   ],
-  "launch_gate": [
-    "App Check の Enforce ON (Firestore + Storage) — human のコンソール操作",
-    "Budget アラート確認"
-  ],
-  "release": "上記 launch_gate を満たしたら v0.3.0 を切る (タグ打鍵は human)。",
+  "launch_gate": "達成 (2026-06-12): App Check Enforce ON (Firestore+Storage) + Budget アラート設定済 (human 確認)。",
+  "release": "v0.3.0 リリース済 (2026-06-12)。",
+  "post_enforce_check": "enforce 後の正規フロー (サインイン→保存→公開→/s/ 閲覧) が壊れていないか実ブラウザで確認することを推奨 (App Check トークン発行を実機で確認)。",
   "phase2_1_deferred": [
     "シーン数上限の厳密化 / 累積容量制御 (Cloud Functions)",
     "退会フロー (それまで UI に案内)",
