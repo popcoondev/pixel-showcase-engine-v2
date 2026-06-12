@@ -5,9 +5,10 @@
   "phase": "v0.4.0 (完成度と信頼)",
   "name": "安全と質 (Safety & Quality slice)",
   "statement": "1ユーザーが課金/データを暴走させられない天井(シーン数上限+削除デクリメント)と、見せ方の質を底上げする look プリセットを、Functions 不要・ソロ完結・非要件遵守で届ける。",
+  "slice_status": "完了 (2026-06-12)",
   "in_slice": [
-    "TASK-015 シーン数上限 + 削除デクリメント (S, Operations GATE)",
-    "TASK-016 PRESETS 展示台/背景/ライトリグの look プリセット (S, Product 価値)"
+    "TASK-015 シーン数上限 + 削除デクリメント (完了)",
+    "TASK-016 PRESETS look プリセット (完了)"
   ],
   "fast_follow": [
     "TASK-017 退会/データ削除 クライアント部分 (M)"
