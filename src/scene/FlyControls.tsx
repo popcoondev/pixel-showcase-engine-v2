@@ -43,6 +43,8 @@ export function FlyControls() {
   const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'))
 
   useEffect(() => {
+    // Viewer ロック時は Shot のポーズを保持する (デフォルト視点で上書きしない)
+    if (useStore.getState().viewerLocked) return
     camera.position.set(7, 5, 9)
     camera.lookAt(0, 0.5, 0)
   }, [resetStamp, camera])
