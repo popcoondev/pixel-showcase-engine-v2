@@ -7,6 +7,8 @@ import {
   toggleRecording,
 } from './io'
 import { buildSampleScene, isFirstRun, markOnboarded } from './onboarding'
+import { initAuthWatcher } from './cloud/auth'
+import { CloudAccount, CloudBar } from './CloudUI'
 import { CameraPanel, EditPanel, FxPanel, LightPanel, ObjectPanel, ScenePanel } from './panels'
 import { Viewport } from './scene/Viewport'
 import { aspectToNumber, focalToFov, fovToFocal, useStore } from './store'
@@ -258,6 +260,7 @@ function Footer() {
         </button>
         <button onClick={publishToLocalViewer}>Publish</button>
       </div>
+      <CloudBar />
       <div className="footer-status">
         {statusMessage ? (
           <span className="flash">{statusMessage}</span>
@@ -300,6 +303,11 @@ export default function App() {
     }
   }, [viewerLocked])
 
+  // クラウド認証状態の監視を開始 (1度だけ)
+  useEffect(() => {
+    void initAuthWatcher()
+  }, [])
+
   const framed = mode !== 'edit'
 
   if (viewerLocked) {
@@ -327,6 +335,7 @@ export default function App() {
             </button>
           ))}
         </nav>
+        <CloudAccount />
         <span className={`mode-indicator mode-${mode}`}>{MODE_LABEL[mode]} Mode</span>
       </header>
       <div className="main">

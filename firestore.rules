@@ -1,0 +1,27 @@
+rules_version = '2';
+// DR-2026-004 Phase 2 / TASK-012,014。App Check 強制は TASK-014 (2B) で追加。
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 作業コピー: 本人のみ読み書き。ownerUid は作成後不変。
+    match /users/{uid}/showcases/{id} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.data.ownerUid == uid;
+      allow update: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // 公開スナップショット (TASK-013 / 2C で使用): 公開は誰でも read、書き込みは owner。
+    match /showcases/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if request.auth != null
+                            && resource.data.ownerId == request.auth.uid;
+    }
+  }
+}

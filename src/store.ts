@@ -228,6 +228,12 @@ interface StoreState {
   resetStamp: number
   canUndo: boolean
   canRedo: boolean
+  /** クラウド認証ユーザー。null=未サインイン。Undo / Scene JSON の対象外 */
+  cloudUser: { uid: string; name: string | null } | null
+  /** クラウド処理中フラグ (保存/読込のスピナー用) */
+  cloudBusy: boolean
+  /** 現在のシーンに対応するクラウドドキュメント ID。再保存で上書きするために保持 */
+  cloudSceneId: string | null
   /** free-fly の移動速度 (m/s)。操作設定なので Undo / Scene JSON の対象外 */
   moveSpeed: number
   /** 視点ドラッグの感度倍率 */
@@ -241,6 +247,9 @@ interface StoreState {
   setTransformMode: (m: 'translate' | 'rotate' | 'scale') => void
   setMoveSpeed: (v: number) => void
   setLookSensitivity: (v: number) => void
+  setCloudUser: (u: { uid: string; name: string | null } | null) => void
+  setCloudBusy: (v: boolean) => void
+  setCloudSceneId: (id: string | null) => void
   setTransformDragging: (v: boolean) => void
   setFocusTarget: (p: Vec3 | null) => void
   toggleHelp: () => void
@@ -431,6 +440,9 @@ export const useStore = create<StoreState>()((set, get) => ({
   resetStamp: 0,
   canUndo: false,
   canRedo: false,
+  cloudUser: null,
+  cloudBusy: false,
+  cloudSceneId: null,
   moveSpeed: controlPrefs.moveSpeed ?? 4,
   lookSensitivity: controlPrefs.lookSensitivity ?? 1,
   // Viewer 起動時は IndexedDB から非同期に読み込むまでロック状態で待つ
@@ -497,6 +509,9 @@ export const useStore = create<StoreState>()((set, get) => ({
     set({ lookSensitivity })
     saveControlPrefs(get().moveSpeed, lookSensitivity)
   },
+  setCloudUser: (cloudUser) => set({ cloudUser }),
+  setCloudBusy: (cloudBusy) => set({ cloudBusy }),
+  setCloudSceneId: (cloudSceneId) => set({ cloudSceneId }),
   setTransformDragging: (transformDragging) => set({ transformDragging }),
   setFocusTarget: (focusTarget) => set({ focusTarget }),
   toggleHelp: () => set((s) => ({ helpVisible: !s.helpVisible })),
@@ -793,6 +808,7 @@ export const useStore = create<StoreState>()((set, get) => ({
       selected: null,
       mode: 'edit',
       focusTarget: null,
+      cloudSceneId: null,
     })
     get().flash(`Scene "${f.name}" を読み込みました`)
   },

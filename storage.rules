@@ -1,0 +1,23 @@
+rules_version = '2';
+// DR-2026-004 Phase 2。サイズ25MB上限 + content-type 制限 + create-only(改竄防止)。
+// App Check 強制は TASK-014 (2B) で追加。アセットは content-hash 共有のため公開 read。
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /assets/{hash} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.size < 25 * 1024 * 1024
+        && request.resource.contentType.matches('model/gltf-binary|image/png|image/jpeg|image/webp|application/octet-stream');
+      // 既存アセットの上書き・削除は禁止 (削除は Phase 2.1 で参照管理込みで対応)
+      allow update, delete: if false;
+    }
+
+    match /thumbs/{file} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.resource.size < 2 * 1024 * 1024
+        && request.resource.contentType.matches('image/jpeg|image/png');
+    }
+  }
+}
