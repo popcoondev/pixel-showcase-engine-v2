@@ -222,6 +222,8 @@ interface StoreState {
   statusMessage: string
   recording: boolean
   viewerLocked: boolean
+  /** 公開 Viewer (/s/{id}) で表示する作者名。null=非表示 */
+  viewerAuthor: string | null
   /** インクリメントで CameraRig が active shot のポーズを適用する */
   poseStamp: number
   /** インクリメントで FlyControls が視点をリセットする */
@@ -377,13 +379,20 @@ function makeShotFromCamera(name: string, state: StoreState): Shot | null {
   }
 }
 
-function detectViewerSlug(): string | null {
+type ViewerTarget =
+  | { kind: 'local'; slug: string } // 旧: IndexedDB / localStorage
+  | { kind: 'cloud'; id: string } // 新: Firestore 公開シーン /s/{id}
+
+function detectViewerTarget(): ViewerTarget | null {
   const params = new URLSearchParams(window.location.search)
+  const cloudMatch = window.location.pathname.match(/\/s\/([\w-]+)/)
+  if (cloudMatch) return { kind: 'cloud', id: cloudMatch[1] }
   const pathMatch = window.location.pathname.match(/\/showcase\/([\w-]+)/)
-  return params.get('showcase') ?? pathMatch?.[1] ?? null
+  const slug = params.get('showcase') ?? pathMatch?.[1] ?? null
+  return slug ? { kind: 'local', slug } : null
 }
 
-const viewerSlug = detectViewerSlug()
+const viewerTarget = detectViewerTarget()
 
 const CONTROL_PREFS_KEY = 'pse:control'
 
@@ -436,6 +445,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   statusMessage: '',
   recording: false,
   viewerLocked: false,
+  viewerAuthor: null,
   poseStamp: 0,
   resetStamp: 0,
   canUndo: false,
@@ -446,7 +456,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   moveSpeed: controlPrefs.moveSpeed ?? 4,
   lookSensitivity: controlPrefs.lookSensitivity ?? 1,
   // Viewer 起動時は IndexedDB から非同期に読み込むまでロック状態で待つ
-  ...(viewerSlug ? { viewerLocked: true, mode: 'preview' as Mode } : {}),
+  ...(viewerTarget ? { viewerLocked: true, mode: 'preview' as Mode } : {}),
 
   setSceneName: (name) => set({ sceneName: name }),
 
@@ -866,17 +876,54 @@ useStore.subscribe((state, prev) => {
   }
 })
 
-// Viewer 起動: IndexedDB から公開データを読み込む(旧 localStorage 形式もフォールバック)
-if (viewerSlug) {
+/** 読み込んだ公開シーンを固定画角 Viewer に反映する。 */
+function applyViewerScene(file: SceneFile, author: string | null) {
+  const f = migrateSceneFile(file)
+  const shot = f.shots.find((s) => s.id === f.activeShotId) ?? f.shots[0]
+  restoringHistory = true
+  useStore.setState({
+    sceneName: f.name,
+    viewerAuthor: author,
+    assets: f.assets,
+    objects: f.objects,
+    lights: f.lights,
+    effects: f.effects ?? legacyEnvEffects(f.env),
+    env: { ...defaultEnv(), ...f.env },
+    shots: f.shots,
+    activeShotId: shot?.id ?? null,
+    camera: shot ? { ...shot.settings } : f.camera,
+    focusTarget: shot?.focusTarget ?? null,
+    poseStamp: useStore.getState().poseStamp + 1,
+  })
+  restoringHistory = false
+}
+
+// Viewer 起動: /s/{id}=Firestore 公開シーン、?showcase=slug=旧 IndexedDB/localStorage
+if (viewerTarget) {
   void (async () => {
+    if (viewerTarget.kind === 'cloud') {
+      try {
+        const { loadPublicShowcase } = await import('./cloud/publish')
+        const result = await loadPublicShowcase(viewerTarget.id)
+        if (!result) {
+          useStore.setState({ sceneName: 'この公開シーンは見つかりません' })
+          return
+        }
+        applyViewerScene(result.file, result.author)
+      } catch {
+        useStore.setState({ sceneName: '公開シーンの読み込みに失敗しました' })
+      }
+      return
+    }
+
     let file: SceneFile | null = null
     try {
-      file = await loadShow(viewerSlug)
+      file = await loadShow(viewerTarget.slug)
     } catch {
       /* IndexedDB が使えない環境では localStorage フォールバックへ */
     }
     if (!file) {
-      const raw = localStorage.getItem(`pse:show:${viewerSlug}`)
+      const raw = localStorage.getItem(`pse:show:${viewerTarget.slug}`)
       if (raw) {
         try {
           file = JSON.parse(raw) as SceneFile
@@ -886,26 +933,10 @@ if (viewerSlug) {
       }
     }
     if (!file) {
-      useStore.setState({ sceneName: `"${viewerSlug}" が見つかりません` })
+      useStore.setState({ sceneName: `"${viewerTarget.slug}" が見つかりません` })
       return
     }
-    const f = migrateSceneFile(file)
-    const shot = f.shots.find((s) => s.id === f.activeShotId) ?? f.shots[0]
-    restoringHistory = true
-    useStore.setState({
-      sceneName: f.name,
-      assets: f.assets,
-      objects: f.objects,
-      lights: f.lights,
-      effects: f.effects ?? legacyEnvEffects(f.env),
-      env: { ...defaultEnv(), ...f.env },
-      shots: f.shots,
-      activeShotId: shot?.id ?? null,
-      camera: shot ? { ...shot.settings } : f.camera,
-      focusTarget: shot?.focusTarget ?? null,
-      poseStamp: useStore.getState().poseStamp + 1,
-    })
-    restoringHistory = false
+    applyViewerScene(file, null)
   })()
 }
 

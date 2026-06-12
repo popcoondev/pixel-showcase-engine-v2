@@ -169,6 +169,55 @@ input.text {
   margin-bottom: 8px;
 }
 
+.publish-modal {
+  width: 460px;
+  max-width: 92vw;
+}
+
+.publish-url-row {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.publish-url-row .text {
+  flex: 1;
+  font-size: 12px;
+}
+
+.publish-terms {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin: 12px 0;
+  cursor: pointer;
+}
+
+.publish-terms input {
+  margin-top: 2px;
+}
+
+.publish-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.publish-actions .primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.viewer-author {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
 .mode-edit {
   color: #7ee2a0;
   border-color: #2c5a3d;

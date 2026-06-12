@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react'
-import {
-  openSceneJson,
-  publishToLocalViewer,
-  savePng,
-  saveSceneJson,
-  toggleRecording,
-} from './io'
+import { openSceneJson, savePng, saveSceneJson, toggleRecording } from './io'
+import { PublishButton } from './PublishDialog'
 import { buildSampleScene, isFirstRun, markOnboarded } from './onboarding'
 import { initAuthWatcher } from './cloud/auth'
 import { CloudAccount, CloudBar } from './CloudUI'
@@ -261,7 +256,7 @@ function Footer() {
         <button className={recording ? 'recording' : ''} onClick={toggleRecording}>
           {recording ? '■ 停止' : '● 録画'}
         </button>
-        <button onClick={publishToLocalViewer}>Publish</button>
+        <PublishButton />
       </div>
       <CloudBar />
       <div className="footer-status">
@@ -283,10 +278,14 @@ function Footer() {
 
 function ViewerBar() {
   const sceneName = useStore((s) => s.sceneName)
+  const viewerAuthor = useStore((s) => s.viewerAuthor)
   return (
     <div className="viewer-bar">
       <span className="brand">Pixel Showcase</span>
-      <span className="viewer-title">{sceneName}</span>
+      <span className="viewer-title">
+        {sceneName}
+        {viewerAuthor && <span className="viewer-author"> by {viewerAuthor}</span>}
+      </span>
       <a className="contact-link" href={CONTACT_URL} target="_blank" rel="noopener noreferrer">
         通報・問い合わせ
       </a>
