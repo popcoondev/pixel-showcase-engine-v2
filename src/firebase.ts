@@ -14,12 +14,27 @@ const firebaseConfig = {
   appId: '1:498699227586:web:d5e0620f5dd5fc9687865b',
 }
 
+// App Check の reCAPTCHA v3 site key (公開情報)。空の間は App Check 無効。
+// Firebase Console → App Check で web アプリを reCAPTCHA v3 で登録し、その site key を入れる。
+const APP_CHECK_SITE_KEY = ''
+
 // すべて dynamic import 経由。クラウド機能を使う瞬間まで SDK を読み込まない
 // (メインバンドルを太らせない)。
 let appPromise: Promise<FirebaseApp> | null = null
 function getApp(): Promise<FirebaseApp> {
   if (!appPromise) {
-    appPromise = import('firebase/app').then((m) => m.initializeApp(firebaseConfig))
+    appPromise = import('firebase/app').then(async (m) => {
+      const app = m.initializeApp(firebaseConfig)
+      // App Check: site key が設定されていれば有効化 (curl 等での Rules 迂回を防ぐ)
+      if (APP_CHECK_SITE_KEY) {
+        const ac = await import('firebase/app-check')
+        ac.initializeAppCheck(app, {
+          provider: new ac.ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
+          isTokenAutoRefreshEnabled: true,
+        })
+      }
+      return app
+    })
   }
   return appPromise
 }

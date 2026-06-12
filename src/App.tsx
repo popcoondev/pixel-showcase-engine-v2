@@ -214,6 +214,9 @@ function WelcomeOverlay({ onStart }: { onStart: () => void }) {
   )
 }
 
+// Guardian の通報窓口 (公開コンテンツの権利侵害等の連絡先)
+const CONTACT_URL = 'https://github.com/popcoondev/pixel-showcase-engine-v2/issues/new'
+
 function Footer() {
   const mode = useStore((s) => s.mode)
   const selected = useStore((s) => s.selected)
@@ -267,7 +270,10 @@ function Footer() {
         ) : (
           <span>
             {selectedName ? `選択: ${selectedName} (${transformMode})` : '未選択'} / Shots:{' '}
-            {shots.length} / I でヘルプ
+            {shots.length} / I でヘルプ ·{' '}
+            <a className="contact-link" href={CONTACT_URL} target="_blank" rel="noopener noreferrer">
+              問い合わせ
+            </a>
           </span>
         )}
       </div>
@@ -281,6 +287,9 @@ function ViewerBar() {
     <div className="viewer-bar">
       <span className="brand">Pixel Showcase</span>
       <span className="viewer-title">{sceneName}</span>
+      <a className="contact-link" href={CONTACT_URL} target="_blank" rel="noopener noreferrer">
+        通報・問い合わせ
+      </a>
       <button onClick={savePng}>PNG</button>
     </div>
   )
