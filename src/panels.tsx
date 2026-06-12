@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { fileToDataUrl, imageAspect, pickFile } from './io'
 import { resetCameraRoll } from './scene/FlyControls'
+import { LOOK_PRESETS } from './presets'
 import { EFFECT_LABELS, focalToFov, fovToFocal, useStore } from './store'
 import type { AspectRatio, EffectKind, FocusMode, LightKind, Vec3 } from './types'
 
@@ -173,6 +174,7 @@ export function ScenePanel() {
   const setEnv = useStore((s) => s.setEnv)
   const setSceneName = useStore((s) => s.setSceneName)
   const applyHd2dLook = useStore((s) => s.applyHd2dLook)
+  const applyLookPreset = useStore((s) => s.applyLookPreset)
 
   return (
     <>
@@ -180,7 +182,14 @@ export function ScenePanel() {
         <button className="wide" onClick={applyHd2dLook}>
           HD-2D風に調整
         </button>
-        <Empty text="浅いDOF・ブルーム・フォグ・周辺減光・暖色キーライトをまとめて適用します。Cmd/Ctrl+Z で元に戻せます。" />
+        <div className="btn-grid">
+          {LOOK_PRESETS.map((p) => (
+            <button key={p.id} onClick={() => applyLookPreset(p.id)}>
+              {p.name}
+            </button>
+          ))}
+        </div>
+        <Empty text="背景・霧・発光・周辺減光・ライトリグをまとめて適用します(オブジェクトは変えません)。Cmd/Ctrl+Z で元に戻せます。" />
       </Section>
       <Section title="Scene">
         <Row label="Name">

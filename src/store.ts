@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type * as THREE from 'three'
 import { loadShow } from './db'
+import { LOOK_PRESETS } from './presets'
 import type {
   AspectRatio,
   CameraSettings,
@@ -288,6 +289,8 @@ interface StoreState {
   setCamera: (patch: Partial<CameraSettings>) => void
   /** HD-2D 風の look プリセットを適用する (docs/hd2d-look.md 参照) */
   applyHd2dLook: () => void
+  /** 見せ方プリセット (背景/霧/ライトリグ) を適用する (src/presets.ts) */
+  applyLookPreset: (presetId: string) => void
 
   saveShot: () => void
   applyShot: (id: string) => void
@@ -696,6 +699,20 @@ export const useStore = create<StoreState>()((set, get) => ({
 
   setEnv: (patch) => set((s) => ({ env: { ...s.env, ...patch } })),
   setCamera: (patch) => set((s) => ({ camera: { ...s.camera, ...patch } })),
+
+  applyLookPreset: (presetId) => {
+    const preset = LOOK_PRESETS.find((p) => p.id === presetId)
+    if (!preset) return
+    // ライトリグは既存ライトを置き換える (id は採番)。env/camera はマージ。
+    const lights: LightDef[] = preset.lights.map((l) => ({ ...l, id: newId() }))
+    set((s) => ({
+      env: { ...s.env, ...preset.env },
+      lights,
+      camera: { ...s.camera, ...(preset.camera ?? {}) },
+      selected: s.selected?.type === 'light' ? null : s.selected,
+    }))
+    get().flash(`プリセット「${preset.name}」を適用しました`)
+  },
 
   applyHd2dLook: () => {
     const s = get()
