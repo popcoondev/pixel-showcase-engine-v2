@@ -4,26 +4,22 @@
   "set_at": "2026-06-12",
   "phase": "Phase 2",
   "name": "Cloud save + shareable preview URL (v0.3.0 candidate)",
-  "statement": "Google サインインでシーンをクラウド保存し、権利確認付きで公開すると /s/{id} が発行され、誰でもブラウザで固定画角プレビューを見られる。",
-  "in_slice": [
+  "statement": "Google サインインでシーンをクラウド保存し、権利確認付きで公開すると /s/{id} が発行され、誰でもブラウザで固定画角プレビューを見られる。編集→再公開で同じURLを更新できる。",
+  "slice_status": "実装完了 (2026-06-12)。コード/Rules/CORS/App Check(monitor) すべて反映・実機検証済み。",
+  "done": [
     "TASK-012 Phase2A: Firebase 基盤 + Google Auth + クラウド保存",
-    "TASK-014 Phase2B: 安全土台 (Rules / App Check / 規約・権利確認 / 通報窓口) ← 公開リリースの gate",
-    "TASK-013 Phase2C: 公開 + /s/{id} プレビューページ"
+    "TASK-014 Phase2B: Security Rules / App Check / 規約・権利確認 / 通報窓口",
+    "TASK-013 Phase2C: 公開 + /s/{id} プレビューページ + 公開上書き更新"
   ],
-  "prerequisites_human": [
-    "Blaze プラン + Budget 二段アラート (同時設定)",
-    "Auth: Google プロバイダ有効化",
-    "Firestore 作成 (asia-northeast1) / Storage 開始",
-    "App Check (reCAPTCHA v3) 有効化 + site key 共有",
-    "firebaseConfig の共有"
+  "launch_gate": [
+    "App Check の Enforce ON (Firestore + Storage) — human のコンソール操作",
+    "Budget アラート確認"
   ],
+  "release": "上記 launch_gate を満たしたら v0.3.0 を切る (タグ打鍵は human)。",
   "phase2_1_deferred": [
-    "累積容量の厳密制御 (Cloud Functions)",
-    "Orphan アセット GC",
-    "退会フロー (それまで UI に案内文)",
-    "Budget 自動停止",
+    "シーン数上限の厳密化 / 累積容量制御 (Cloud Functions)",
+    "退会フロー (それまで UI に案内)",
     "SNS bot 向け動的 OG"
   ],
-  "exit_criteria": "別環境・未サインインのブラウザで /s/{id} を開き、Draco GLB 含む固定画角 Shot が再現される。Guardian ローンチ条件 5 項目を満たす。",
   "decision_ref": ".aof/decisions/DR-2026-004-phase2-backend-architecture.md"
 }
