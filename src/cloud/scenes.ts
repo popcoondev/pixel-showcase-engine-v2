@@ -27,13 +27,21 @@ export async function saveSceneToCloud(name: string): Promise<string> {
   const existingId = state.cloudSceneId
   const col = fs.collection(db, 'users', uid, 'showcases')
   const docRef = existingId ? fs.doc(col, existingId) : fs.doc(col)
-  await fs.setDoc(docRef, {
+
+  // TASK-015: 新規作成時のみシーン数カウンタを +1 (削除時に -1)。
+  // batch で atomic にし、カウント乖離を防ぐ。Rules は counter < 20 を要求。
+  const batch = fs.writeBatch(db)
+  batch.set(docRef, {
     name,
     ownerUid: uid,
     scene: sceneNoAssets,
     assetRefs,
     updatedAt: fs.serverTimestamp(),
   })
+  if (!existingId) {
+    batch.set(fs.doc(db, 'users', uid), { sceneCount: fs.increment(1) }, { merge: true })
+  }
+  await batch.commit()
   return docRef.id
 }
 
@@ -80,5 +88,9 @@ export async function deleteCloudScene(id: string): Promise<void> {
   const uid = await requireUid()
   const db = await getDb()
   const fs = await import('firebase/firestore')
-  await fs.deleteDoc(fs.doc(db, 'users', uid, 'showcases', id))
+  // TASK-015: 削除と同時にシーン数カウンタを -1 (saveSceneToCloud の +1 と対)。
+  const batch = fs.writeBatch(db)
+  batch.delete(fs.doc(db, 'users', uid, 'showcases', id))
+  batch.set(fs.doc(db, 'users', uid), { sceneCount: fs.increment(-1) }, { merge: true })
+  await batch.commit()
 }

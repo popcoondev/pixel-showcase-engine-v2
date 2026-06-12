@@ -1,14 +1,31 @@
 rules_version = '2';
-// DR-2026-004 Phase 2 / TASK-012,014。App Check 強制は TASK-014 (2B) で追加。
+// DR-2026-004 Phase 2 / TASK-012,014,015。App Check 強制は TASK-014 で追加。
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // TASK-015: ユーザーごとのカウンタ doc。sceneCount 非負整数のみ許可
+    // (App Check + auth 前提のソフトガード。厳密なサーバ権威カウンタは Functions 解禁時に)。
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      // sceneCount(int)のみ許可。負値を弾かないのは、カウンタ未作成の既存シーンを
+      // 削除したとき -1 になっても削除をブロックしないため。create 側の上限で実効を担保。
+      allow write: if request.auth != null
+                   && request.auth.uid == uid
+                   && request.resource.data.keys().hasOnly(['sceneCount'])
+                   && request.resource.data.sceneCount is int;
+    }
+
     // 作業コピー: 本人のみ読み書き。ownerUid は作成後不変。
+    // create はシーン数上限 (20) 未満のときのみ許可 (counter doc を参照)。
     match /users/{uid}/showcases/{id} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null
                     && request.auth.uid == uid
-                    && request.resource.data.ownerUid == uid;
+                    && request.resource.data.ownerUid == uid
+                    && (
+                      !exists(/databases/$(database)/documents/users/$(uid))
+                      || get(/databases/$(database)/documents/users/$(uid)).data.get('sceneCount', 0) < 20
+                    );
       allow update: if request.auth != null
                     && request.auth.uid == uid
                     && request.resource.data.ownerUid == resource.data.ownerUid;
