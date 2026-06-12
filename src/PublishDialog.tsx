@@ -28,20 +28,30 @@ export function PublishButton() {
 function PublishDialog({ onClose }: { onClose: () => void }) {
   const cloudUser = useStore((s) => s.cloudUser)
   const shots = useStore((s) => s.shots)
+  const publishedId = useStore((s) => s.publishedId)
   const [title, setTitle] = useState(useStore.getState().sceneName)
   const [author, setAuthor] = useState(cloudUser?.name ?? '')
-  const [agreed, setAgreed] = useState(false)
+  // 既に公開済みなら権利確認は同意済みとみなし、更新をデフォルトにする
+  const [agreed, setAgreed] = useState(!!publishedId)
+  const [asNew, setAsNew] = useState(false)
   const [busy, setBusy] = useState(false)
   const [url, setUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const isUpdate = !!publishedId && !asNew
 
   const doPublish = async () => {
     setError(null)
     setBusy(true)
     try {
       if (!useStore.getState().cloudUser) await signInWithGoogle()
-      const id = await publishToCloud(title.trim() || 'untitled', author.trim())
+      const id = await publishToCloud(
+        title.trim() || 'untitled',
+        author.trim(),
+        isUpdate ? publishedId : null,
+      )
+      useStore.getState().setPublishedId(id)
       setUrl(`${window.location.origin}/s/${id}`)
     } catch (e) {
       setError(msgOf(e))
@@ -64,11 +74,13 @@ function PublishDialog({ onClose }: { onClose: () => void }) {
   return (
     <div className="help-overlay" onClick={onClose}>
       <div className="help-card publish-modal" onClick={(e) => e.stopPropagation()}>
-        <h3>公開する</h3>
+        <h3>{isUpdate ? '公開を更新する' : '公開する'}</h3>
 
         {url ? (
           <>
-            <p className="welcome-lead">公開しました。この URL を共有できます:</p>
+            <p className="welcome-lead">
+              {isUpdate ? '公開を更新しました。URL は同じです:' : '公開しました。この URL を共有できます:'}
+            </p>
             <div className="publish-url-row">
               <input className="text" readOnly value={url} onFocus={(e) => e.target.select()} />
               <button onClick={copy}>{copied ? 'コピー済' : 'コピー'}</button>
@@ -84,6 +96,24 @@ function PublishDialog({ onClose }: { onClose: () => void }) {
           </>
         ) : (
           <>
+            {publishedId && (
+              <div className="publish-note">
+                この作品は公開済みです(
+                <a
+                  className="contact-link"
+                  href={`${window.location.origin}/s/${publishedId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  /s/{publishedId}
+                </a>
+                )。
+                <label className="publish-asnew">
+                  <input type="checkbox" checked={asNew} onChange={(e) => setAsNew(e.target.checked)} />
+                  別URLで新規公開する
+                </label>
+              </div>
+            )}
             {shots.length === 0 && (
               <div className="cloud-error">
                 先に Shot を保存してください (R)。公開ページは固定画角の Shot を見せます。
@@ -118,7 +148,15 @@ function PublishDialog({ onClose }: { onClose: () => void }) {
                 disabled={busy || !agreed || shots.length === 0}
                 onClick={doPublish}
               >
-                {busy ? '公開中…' : cloudUser ? '公開' : 'サインインして公開'}
+                {busy
+                  ? isUpdate
+                    ? '更新中…'
+                    : '公開中…'
+                  : !cloudUser
+                    ? 'サインインして公開'
+                    : isUpdate
+                      ? '公開を更新'
+                      : '公開'}
               </button>
             </div>
           </>

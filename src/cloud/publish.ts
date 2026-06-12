@@ -9,7 +9,11 @@ import { requireUid, resolveAssetUrls, uploadAssets } from './storage'
  * - active shot のサムネを thumbs/{id}.jpg にアップロード
  * - uid は doc 内 ownerId (ルール用) のみ。URL・表示には出さない
  */
-export async function publishToCloud(title: string, author: string): Promise<string> {
+export async function publishToCloud(
+  title: string,
+  author: string,
+  existingId?: string | null,
+): Promise<string> {
   const uid = await requireUid()
   const db = await getDb()
   const storage = await getStorageInstance()
@@ -23,7 +27,9 @@ export async function publishToCloud(title: string, author: string): Promise<str
   const assetRefs = await uploadAssets(file.assets)
   const { assets: _assets, ...sceneNoAssets } = file
 
-  const docRef = fs.doc(fs.collection(db, 'showcases'))
+  // existingId があれば同じ公開ドキュメント (= 同じ /s/{id}) を上書き更新
+  const col = fs.collection(db, 'showcases')
+  const docRef = existingId ? fs.doc(col, existingId) : fs.doc(col)
 
   // active shot のサムネをアップロード
   let thumbPath: string | null = null
@@ -44,6 +50,20 @@ export async function publishToCloud(title: string, author: string): Promise<str
     publishedAt: fs.serverTimestamp(),
     termsAgreedAt: fs.serverTimestamp(),
   })
+
+  // クラウド保存済みのシーンには公開先リンクを記録 (次セッションでも上書き更新できる)
+  const cloudSceneId = state.cloudSceneId
+  if (cloudSceneId) {
+    try {
+      await fs.setDoc(
+        fs.doc(db, 'users', uid, 'showcases', cloudSceneId),
+        { publishedId: docRef.id },
+        { merge: true },
+      )
+    } catch {
+      /* リンク記録の失敗は致命的でない */
+    }
+  }
   return docRef.id
 }
 

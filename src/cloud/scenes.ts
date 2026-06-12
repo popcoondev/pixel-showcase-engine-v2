@@ -66,12 +66,14 @@ export async function loadSceneFromCloud(id: string): Promise<void> {
     name?: string
     scene: Omit<SceneFile, 'assets'>
     assetRefs?: Record<string, string>
+    publishedId?: string
   }
 
   const assets = await resolveAssetUrls(data.assetRefs ?? {})
   const file: SceneFile = { ...data.scene, assets, name: data.name ?? data.scene.name }
-  useStore.getState().loadScene(file)
+  useStore.getState().loadScene(file) // loadScene が cloudSceneId/publishedId を null にリセット
   useStore.getState().setCloudSceneId(id)
+  useStore.getState().setPublishedId(data.publishedId ?? null)
 }
 
 export async function deleteCloudScene(id: string): Promise<void> {

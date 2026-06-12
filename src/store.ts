@@ -238,6 +238,8 @@ interface StoreState {
   cloudBusy: boolean
   /** 現在のシーンに対応するクラウドドキュメント ID。再保存で上書きするために保持 */
   cloudSceneId: string | null
+  /** 現在のシーンの公開先 showcases/{id}。再公開で同じ URL を上書きするために保持 */
+  publishedId: string | null
   /** free-fly の移動速度 (m/s)。操作設定なので Undo / Scene JSON の対象外 */
   moveSpeed: number
   /** 視点ドラッグの感度倍率 */
@@ -254,6 +256,7 @@ interface StoreState {
   setCloudUser: (u: { uid: string; name: string | null } | null) => void
   setCloudBusy: (v: boolean) => void
   setCloudSceneId: (id: string | null) => void
+  setPublishedId: (id: string | null) => void
   setTransformDragging: (v: boolean) => void
   setFocusTarget: (p: Vec3 | null) => void
   toggleHelp: () => void
@@ -456,6 +459,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   cloudUser: null,
   cloudBusy: false,
   cloudSceneId: null,
+  publishedId: null,
   moveSpeed: controlPrefs.moveSpeed ?? 4,
   lookSensitivity: controlPrefs.lookSensitivity ?? 1,
   // Viewer 起動時は読み込みが終わるまで空シーン+ロード中にする
@@ -535,6 +539,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   setCloudUser: (cloudUser) => set({ cloudUser }),
   setCloudBusy: (cloudBusy) => set({ cloudBusy }),
   setCloudSceneId: (cloudSceneId) => set({ cloudSceneId }),
+  setPublishedId: (publishedId) => set({ publishedId }),
   setTransformDragging: (transformDragging) => set({ transformDragging }),
   setFocusTarget: (focusTarget) => set({ focusTarget }),
   toggleHelp: () => set((s) => ({ helpVisible: !s.helpVisible })),
@@ -832,6 +837,7 @@ export const useStore = create<StoreState>()((set, get) => ({
       mode: 'edit',
       focusTarget: null,
       cloudSceneId: null,
+      publishedId: null,
     })
     get().flash(`Scene "${f.name}" を読み込みました`)
   },
