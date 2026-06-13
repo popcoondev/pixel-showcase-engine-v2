@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { deleteAccount } from './cloud/account'
 import { signInWithGoogle, signOutCloud } from './cloud/auth'
 import {
   deleteCloudScene,
@@ -12,6 +13,8 @@ import { useStore } from './store'
 function msgOf(e: unknown): string {
   const code = (e as { code?: string })?.code ?? ''
   if (code.includes('popup-closed') || code.includes('cancelled')) return 'サインインを中止しました'
+  if (code.includes('requires-recent-login'))
+    return 'セキュリティのため、一度サインアウトして再サインインしてから削除してください'
   if (code.includes('permission')) return '権限がありません (ルール未デプロイ?)'
   if ((e as Error)?.message === 'not-signed-in') return 'サインインが必要です'
   return (e as Error)?.message ?? 'エラーが発生しました'
@@ -36,10 +39,11 @@ async function doCloudSave() {
   }
 }
 
-/** トップバーのアカウント表示 / サインイン・アウト */
+/** トップバーのアカウント表示 / サインイン・アウト / 退会 */
 export function CloudAccount() {
   const cloudUser = useStore((s) => s.cloudUser)
   const cloudBusy = useStore((s) => s.cloudBusy)
+  const [deleting, setDeleting] = useState(false)
 
   if (cloudUser) {
     return (
@@ -48,6 +52,10 @@ export function CloudAccount() {
         <button className="mini" disabled={cloudBusy} onClick={() => signOutCloud()}>
           サインアウト
         </button>
+        <button className="mini danger" disabled={cloudBusy} onClick={() => setDeleting(true)}>
+          退会
+        </button>
+        {deleting && <DeleteAccountModal onClose={() => setDeleting(false)} />}
       </span>
     )
   }
@@ -146,6 +154,63 @@ function CloudScenesModal({ onClose }: { onClose: () => void }) {
         <button className="wide" onClick={onClose}>
           閉じる
         </button>
+      </div>
+    </div>
+  )
+}
+
+function DeleteAccountModal({ onClose }: { onClose: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
+
+  const doDelete = async () => {
+    setError(null)
+    setBusy(true)
+    try {
+      await deleteAccount()
+      useStore.getState().setCloudSceneId(null)
+      useStore.getState().setPublishedId(null)
+      setDone(true)
+    } catch (e) {
+      setError(msgOf(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="help-overlay" onClick={onClose}>
+      <div className="help-card cloud-modal" onClick={(e) => e.stopPropagation()}>
+        <h3>アカウントを削除</h3>
+        {done ? (
+          <>
+            <p className="welcome-lead">
+              アカウントと、クラウドに保存・公開したシーンを削除しました。公開していた URL は閲覧できなくなります。
+            </p>
+            <button className="wide" onClick={onClose}>
+              閉じる
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="welcome-lead">
+              アカウントと、あなたがクラウドに保存・公開したすべてのシーンを削除します。
+              公開していた <code>/s/...</code> の URL は閲覧できなくなります。
+              <b>この操作は元に戻せません。</b>
+            </p>
+            <p className="welcome-lead">
+              編集中のローカルシーンは消えません(必要なら先に Save Scene で JSON 保存してください)。
+            </p>
+            {error && <div className="cloud-error">{error}</div>}
+            <div className="publish-actions">
+              <button onClick={onClose}>キャンセル</button>
+              <button className="primary danger" disabled={busy} onClick={doDelete}>
+                {busy ? '削除中…' : '削除する'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
