@@ -13,7 +13,7 @@ function msgOf(e: unknown): string {
   return m || 'エラーが発生しました'
 }
 
-const CONTACT_URL = 'https://github.com/popcoondev/pixel-showcase-engine-v2/issues/new'
+const CONTACT_URL = 'https://x.com/moso_x2'
 
 export function PublishButton() {
   const [open, setOpen] = useState(false)
@@ -155,7 +155,7 @@ function PublishDialog({ onClose }: { onClose: () => void }) {
               <span>
                 このシーンに含まれるすべてのアセット(GLB・画像)の権利または使用権を有しており、
                 公開して問題ないことを確認しました。
-                権利侵害等は <a className="contact-link" href={CONTACT_URL} target="_blank" rel="noopener noreferrer">こちら</a> から通報できます。
+                権利に関するご連絡は <a className="contact-link" href={CONTACT_URL} target="_blank" rel="noopener noreferrer">こちら</a>。
               </span>
             </label>
             {error && <div className="cloud-error">{error}</div>}
