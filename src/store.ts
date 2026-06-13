@@ -775,15 +775,17 @@ export const useStore = create<StoreState>()((set, get) => ({
     // 確定フレームを得るため次の描画後にキャプチャする
     requestAnimationFrame(() => {
       try {
-        const w = 256
-        const h = Math.max(1, Math.round((canvas.height / canvas.width) * w)) || 144
+        // OG カード (X summary_large_image) でも綺麗に見えるよう大きめに撮る。
+        // Shot 一覧は <img> 側で縮小表示するので問題ない。canvas が小さければそのまま。
+        const w = Math.min(1200, canvas.width)
+        const h = Math.max(1, Math.round((canvas.height / canvas.width) * w)) || 675
         const off = document.createElement('canvas')
         off.width = w
         off.height = h
         const ctx = off.getContext('2d')
         if (!ctx) return
         ctx.drawImage(canvas, 0, 0, w, h)
-        const url = off.toDataURL('image/jpeg', 0.72)
+        const url = off.toDataURL('image/jpeg', 0.85)
         set((s) => ({ shotThumbnails: { ...s.shotThumbnails, [id]: url } }))
       } catch {
         /* 描画バッファ未保持などでは無視 */
