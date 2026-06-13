@@ -31,13 +31,16 @@ export async function publishToCloud(
   const col = fs.collection(db, 'showcases')
   const docRef = existingId ? fs.doc(col, existingId) : fs.doc(col)
 
-  // active shot のサムネをアップロード
+  // active shot のサムネをアップロード。OG画像用に download URL も保存する。
   let thumbPath: string | null = null
+  let thumbUrl: string | null = null
   const thumb = state.shotThumbnails[file.activeShotId ?? '']
   if (thumb) {
     thumbPath = `thumbs/${docRef.id}.jpg`
+    const thumbRef = st.ref(storage, thumbPath)
     const blob = await fetch(thumb).then((r) => r.blob())
-    await st.uploadBytes(st.ref(storage, thumbPath), blob, { contentType: 'image/jpeg' })
+    await st.uploadBytes(thumbRef, blob, { contentType: 'image/jpeg' })
+    thumbUrl = await st.getDownloadURL(thumbRef)
   }
 
   await fs.setDoc(docRef, {
@@ -47,6 +50,7 @@ export async function publishToCloud(
     scene: sceneNoAssets,
     assetRefs,
     thumbPath,
+    thumbUrl,
     publishedAt: fs.serverTimestamp(),
     termsAgreedAt: fs.serverTimestamp(),
   })
