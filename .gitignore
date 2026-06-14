@@ -38,5 +38,10 @@ public/tmp/
 *.tmp.glb
 *.tmp.png
 
+# ローカルツール状態 (プロダクト外)
+.agents/
+.claude/skills/
+skills-lock.json
+
 # 注: public/draco/ 等の正規アセットは意図的にコミットする。
 # GLB/画像/録画などユーザーデータは public/tmp/ か作業ディレクトリ外に置き、本リポジトリにコミットしない。

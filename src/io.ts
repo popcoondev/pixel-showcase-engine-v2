@@ -1,4 +1,3 @@
-import { saveShow } from './db'
 import { runtime, useStore } from './store'
 import type { SceneFile } from './types'
 
@@ -117,24 +116,4 @@ export function toggleRecording() {
   recorder.start()
   state.setRecording(true)
   state.flash(`録画中 (${ext.toUpperCase()})… もう一度押すと停止します`)
-}
-
-export function publishToLocalViewer() {
-  const s = useStore.getState()
-  if (!s.shots.length) {
-    s.flash('先に Shot を保存してください (R)')
-    return
-  }
-  const suggested = s.sceneName.replace(/[^\w-]/g, '-').toLowerCase()
-  const slug = window.prompt('公開 slug を入力してください', suggested)
-  if (!slug) return
-  saveShow(slug, s.serialize())
-    .then(() => {
-      const url = `${window.location.origin}${window.location.pathname}?showcase=${encodeURIComponent(slug)}`
-      navigator.clipboard?.writeText(url).catch(() => {})
-      useStore.getState().flash(`Viewer URL をコピーしました: ${url}`)
-    })
-    .catch(() => {
-      useStore.getState().flash('Publish に失敗しました (ストレージ書き込みエラー)')
-    })
 }

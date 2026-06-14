@@ -16,22 +16,8 @@ function openDb(): Promise<IDBDatabase> {
   })
 }
 
-/** Publish 用: slug をキーに SceneFile を保存する */
-export async function saveShow(slug: string, file: SceneFile): Promise<void> {
-  const db = await openDb()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite')
-    tx.objectStore(STORE).put(file, slug)
-    tx.oncomplete = () => {
-      db.close()
-      resolve()
-    }
-    tx.onerror = () => {
-      db.close()
-      reject(tx.error ?? new Error('IndexedDB write failed'))
-    }
-  })
-}
+// 旧ローカル Publish (?showcase=slug) の読み込み用。新規公開はクラウド (/s/{id}) に移行済みで、
+// loadShow は過去に IndexedDB へ保存された旧リンクの後方互換のためだけに残す。
 
 /** Viewer 用: slug から SceneFile を読み込む。無ければ null */
 export async function loadShow(slug: string): Promise<SceneFile | null> {
