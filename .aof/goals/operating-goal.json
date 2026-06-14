@@ -13,8 +13,9 @@
   ],
   "supersedes": "v0.4.0 operating goal (完成度と信頼)",
   "decision_ref": ".aof/decisions/DR-2026-007-next-direction-data-lifecycle.md",
-  "open_escalations": [
-    "EU/GDPR 公開範囲 (Guardian)",
-    "GC 戦略: thumbs 即時 + assets 定期GC の二段階 (Builder)"
-  ]
+  "resolved_escalations": [
+    "EU/GDPR 公開範囲: 事実上グローバル公開=GDPR適用、Storage 削除は必須 (2026-06-14 maintainer 承認)",
+    "GC 戦略: 二段階 (退会時 thumbs 即時削除 + 共有 assets は定期GC) を採択 (2026-06-14)"
+  ],
+  "progress": "TASK-019 退会時 Storage 削除 (Function purgeMyData) 完了。残: TASK-020 孤立アセット GC。"
 }
