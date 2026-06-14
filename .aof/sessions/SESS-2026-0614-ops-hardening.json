@@ -1,0 +1,25 @@
+{
+  "session_format_version": 1,
+  "session_id": "SESS-2026-0614-ops-hardening",
+  "at": "2026-06-14",
+  "framework": "AOF v2.1.0",
+  "type": "operations",
+  "owner": "operations-council",
+  "request": "サービス運営に必要な要素の整備 + 後片付け",
+  "applied": [
+    "利用規約 + プライバシーポリシー (src/LegalModal.tsx)",
+    "連絡窓口を控えめ&非公開化 (公開 GitHub Issues → X @moso_x2)",
+    "クッキーレス アクセス解析 (Cloudflare Web Analytics, 同意バナー不要)",
+    "エラー監視 (Sentry, 本番のみ・エラーのみ, ErrorBoundary)",
+    "OGカード画像の高解像度化 (shot サムネ 256→最大1200px)"
+  ],
+  "already_in_place": ["Budget アラート", "Security Rules", "App Check (enforce)"],
+  "verified": "Sentry を本番でテストエラー捕捉確認 / 動的OG を X Card Validator で確認 / 解析 beacon を /s/ 含め配信確認",
+  "cleanup": [
+    "README を現状に更新",
+    "旧ローカル Publish の publishToLocalViewer / saveShow を削除",
+    ".agents/ .claude/skills/ skills-lock.json を gitignore",
+    "完了/陳腐化タスク TASK-003 / TASK-006 を archived へ"
+  ],
+  "note": "規約/プライバシーはテンプレート。本格運用・収益化時に human が内容を再確認する。"
+}
