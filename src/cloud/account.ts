@@ -1,32 +1,16 @@
-import { getAuthInstance, getDb } from '../firebase'
+import { getAuthInstance, getFunctionsInstance } from '../firebase'
 
 /**
- * アカウントと自分のデータを削除する (クライアント完結部分)。
- * - 作業シーン users/{uid}/showcases/* を削除
- * - 公開スナップショット showcases (ownerId==uid) を削除 → /s/{id} は閲覧不可になる
- * - Auth アカウントを削除
- * Storage の実体 (assets/{hash}, thumbs) は content-hash 共有のため個別削除せず、
- * 管理スクリプト / GC に委譲する (DR-2026-005)。users/{uid} カウンタ doc は
- * sceneCount のみ(PIIなし)のため残置 (GC 対象)。
+ * 退会: アカウントと自分のデータを完全削除する (TASK-019, DR-2026-007)。
+ * 実体削除は Admin 権限が要るため Cloud Function purgeMyData に委譲する。
+ * Function 側で 公開スナップショット + その thumbs + 作業シーン + counter + Auth を削除。
+ * 共有アセット assets/{hash} は孤立分を定期 GC (TASK-020) で回収する。
  */
 export async function deleteAccount(): Promise<void> {
   const auth = await getAuthInstance()
-  const user = auth.currentUser
-  if (!user) throw new Error('not-signed-in')
-  const uid = user.uid
-  const db = await getDb()
-  const fs = await import('firebase/firestore')
-
-  // 1. 作業シーン
-  const mine = await fs.getDocs(fs.collection(db, 'users', uid, 'showcases'))
-  for (const d of mine.docs) await fs.deleteDoc(d.ref)
-
-  // 2. 公開スナップショット
-  const pub = await fs.getDocs(
-    fs.query(fs.collection(db, 'showcases'), fs.where('ownerId', '==', uid)),
-  )
-  for (const d of pub.docs) await fs.deleteDoc(d.ref)
-
-  // 3. Auth アカウント (recent-login が要る場合は呼び出し側で再サインインを促す)
-  await user.delete()
+  if (!auth.currentUser) throw new Error('not-signed-in')
+  const functions = await getFunctionsInstance()
+  const { httpsCallable } = await import('firebase/functions')
+  await httpsCallable(functions, 'purgeMyData')()
+  // Auth ユーザーはサーバー側で削除済み → onAuthStateChanged が null を流す
 }

@@ -1,7 +1,40 @@
-const { onRequest } = require('firebase-functions/v2/https')
+const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https')
 const admin = require('firebase-admin')
 
 admin.initializeApp()
+
+/**
+ * 退会: 認証ユーザー自身のデータをサーバー権威で完全削除する (TASK-019, DR-2026-007)。
+ * - 公開スナップショット showcases(ownerId==uid)と、その thumbs/{id}.jpg を削除
+ * - 作業シーン users/{uid}/showcases/* と counter doc を削除
+ * - Auth アカウントを削除
+ * assets/{hash} は content-hash 共有のためここでは消さず、孤立分は定期 GC (TASK-020) で回収。
+ * uid から自分のデータのみ操作するため abuse は自損のみ。
+ */
+exports.purgeMyData = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+
+  const db = admin.firestore()
+  const bucket = admin.storage().bucket()
+
+  // 1. 公開スナップショット: thumbs を消してから doc を削除
+  const pub = await db.collection('showcases').where('ownerId', '==', uid).get()
+  for (const doc of pub.docs) {
+    const thumbPath = doc.get('thumbPath')
+    if (thumbPath) await bucket.file(thumbPath).delete().catch(() => {})
+    await doc.ref.delete()
+  }
+  // 2. 作業シーン
+  const mine = await db.collection('users').doc(uid).collection('showcases').get()
+  for (const doc of mine.docs) await doc.ref.delete()
+  // 3. counter doc
+  await db.collection('users').doc(uid).delete().catch(() => {})
+  // 4. Auth アカウント
+  await admin.auth().deleteUser(uid)
+
+  return { ok: true, deletedShowcases: pub.size }
+})
 
 const APP_ORIGIN = 'https://pixelshowcase-7bc44.web.app'
 const DEFAULT_DESC = 'ドット絵・GLB・画像プレートを3D空間に置いて、固定画角の展示として見せる'

@@ -1,6 +1,7 @@
 import type { FirebaseApp } from 'firebase/app'
 import type { Auth } from 'firebase/auth'
 import type { Firestore } from 'firebase/firestore'
+import type { Functions } from 'firebase/functions'
 import type { FirebaseStorage } from 'firebase/storage'
 
 // Firebase web config は公開情報 (secret ではない)。アクセス制御は
@@ -67,4 +68,14 @@ export function getStorageInstance(): Promise<FirebaseStorage> {
     )
   }
   return storagePromise
+}
+
+let functionsPromise: Promise<Functions> | null = null
+export function getFunctionsInstance(): Promise<Functions> {
+  if (!functionsPromise) {
+    functionsPromise = Promise.all([getApp(), import('firebase/functions')]).then(([app, m]) =>
+      m.getFunctions(app, 'asia-northeast1'),
+    )
+  }
+  return functionsPromise
 }
