@@ -4,6 +4,7 @@ import { PublishButton } from './PublishDialog'
 import { buildSampleScene, isFirstRun, markOnboarded } from './onboarding'
 import { initAuthWatcher } from './cloud/auth'
 import { CloudAccount, CloudBar } from './CloudUI'
+import { LegalLink } from './LegalModal'
 import { CameraPanel, EditPanel, FxPanel, LightPanel, ObjectPanel, ScenePanel } from './panels'
 import { Viewport } from './scene/Viewport'
 import { aspectToNumber, focalToFov, fovToFocal, useStore } from './store'
@@ -265,7 +266,7 @@ function Footer() {
         ) : (
           <span>
             {selectedName ? `選択: ${selectedName} (${transformMode})` : '未選択'} / Shots:{' '}
-            {shots.length} / I でヘルプ ·{' '}
+            {shots.length} / I でヘルプ · <LegalLink /> ·{' '}
             <a className="contact-link" href={CONTACT_URL} target="_blank" rel="noopener noreferrer">
               問い合わせ
             </a>
@@ -294,6 +295,7 @@ function ViewerBar() {
         {sceneName}
         {viewerAuthor && <span className="viewer-author"> by {viewerAuthor}</span>}
       </span>
+      <LegalLink />
       <a className="contact-link" href={CONTACT_URL} target="_blank" rel="noopener noreferrer">
         お問い合わせ
       </a>

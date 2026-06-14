@@ -248,6 +248,40 @@ input.text {
   letter-spacing: 0.05em;
 }
 
+.legal-card {
+  max-width: 560px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.legal-body {
+  overflow-y: auto;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.7;
+}
+
+.legal-body h4 {
+  color: var(--text);
+  margin: 14px 0 4px;
+}
+
+.legal-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.legal-body li {
+  margin-bottom: 6px;
+}
+
+.legal-note {
+  margin-top: 12px;
+  opacity: 0.7;
+}
+
 .mode-edit {
   color: #7ee2a0;
   border-color: #2c5a3d;
