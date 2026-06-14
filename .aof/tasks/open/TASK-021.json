@@ -1,0 +1,19 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-021",
+  "title": "解析/Sentry を2〜3週間ウォッチ (次サイクル機能改善の入力)",
+  "status": "open",
+  "phase": "passive-watch",
+  "priority_rank": 3,
+  "owner_role": "Visionary",
+  "estimate": "S (受動)",
+  "decision_ref": ".aof/decisions/DR-2026-007-next-direction-data-lifecycle.md",
+  "rationale": "Visionary 推奨の機能改善はデータ前提。解析(Cloudflare)とエラー(Sentry)が入りたてなので、データを貯めてから最も摩擦の大きい1点を特定する。今サイクルは受動・並行。",
+  "watch": [
+    "Cloudflare: 訪問数・/s/ 閲覧数・流入元・離脱",
+    "Sentry: 本番エラーの頻度と種類(GLB/WebGL 等)"
+  ],
+  "next": "データが揃ったら『機能改善』を再 framing し council にかける(次サイクル)。",
+  "dependencies": [],
+  "acceptance": "2〜3週間後、解析/Sentry の傾向から改善候補1点を特定できる。"
+}

@@ -1,0 +1,21 @@
+{
+  "packet_type": "aof-council-review-packet",
+  "recorded_at": "2026-06-14T00:00:00Z",
+  "review_packet_id": "CR-2026-0614-next-direction",
+  "council_id": "council-of-three",
+  "stage": "next-direction",
+  "review_status": "decided",
+  "decision_summary": "次サイクルの方向は『管理系=データライフサイクル整備(退会時の Storage 完全削除 → 孤立アセット GC)』。2_of_3 (Builder+Guardian, high) が推奨、Guardian は veto 水準のリスクと判断。Visionary の機能改善は『実利用データが貯まってから』の次サイクルへ(衝突ではなく順序)。解析/Sentry のデータは今サイクル中に並行して蓄積する。",
+  "rationale": "Storage 残存はユーザー数に依らず単調増加し、放置で清算コストが非線形に増大+GDPR 削除権の不履行リスク=データ不要で今判断すべき負債。機能改善はデータ前提で今は当て推量(Visionary 自身が medium・後でよいと明言)。順序: 今=ライフサイクル整備、次=データ駆動の機能改善。",
+  "recommendation": "TASK-019(退会時の Storage 削除 Function)を先に、続いて TASK-020(孤立アセット GC)。並行して解析/Sentry を2〜3週間ウォッチ(TASK-021)。",
+  "team_output_refs": [],
+  "role_result_refs": [
+    ".aof/execution/role-results/RR-2026-0614-visionary.json",
+    ".aof/execution/role-results/RR-2026-0614-builder.json",
+    ".aof/execution/role-results/RR-2026-0614-guardian.json"
+  ],
+  "evidence_refs": ["src/cloud/account.ts", "storage.rules", "functions/index.js"],
+  "follow_up_task_ids": ["TASK-019", "TASK-020", "TASK-021"],
+  "escalation_required": true,
+  "source_decision_record_id": "DR-2026-007"
+}

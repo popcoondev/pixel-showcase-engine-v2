@@ -1,0 +1,21 @@
+{
+  "result_type": "aof-role-result",
+  "recorded_at": "2026-06-14T00:00:00Z",
+  "role": "visionary",
+  "stage": "next-direction",
+  "session_id": "SESS-2026-0614-V24",
+  "status": "complete",
+  "recommendation": "方向1 機能改善。ただし実利用データ(解析/Sentry)が貯まるまで2〜3週間ウォッチし、最も摩擦の大きい1点(おそらく撮る→共有フロー)だけ改善する。",
+  "rationale": "North Star 到達後はツールの核は揃っており、新機能より既存フローの摩擦取りがシェア率/継続率に即効。だが解析/Sentry が入りたてでデータが無く、今の機能判断は当て推量になる。機能判断は後でもできる。非要件(機能数より操作の自然さ)とも一致。",
+  "signals": [
+    "解析+Sentry がたった今入った=知見ゼロで方向決めはリスク最大",
+    "既知バグ無し=バグ回収サイクルの緊急度低い",
+    "非要件が新機能の多くをブロック(SNS化/ゲーム化/自由移動/Blender化)",
+    "共有フロー(撮る→投稿)が最もユーザー価値に直結する摩擦点の可能性",
+    "管理系は UX 価値がユーザーに見えにくい"
+  ],
+  "artifact_refs": [],
+  "decision_required": true,
+  "blocking_reason": "データウォッチ期間を設けるか、今すぐ仮説ベースで改善に入るか(機能系の判断はデータ前提)。",
+  "confidence": "medium"
+}

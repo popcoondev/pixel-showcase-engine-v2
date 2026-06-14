@@ -1,8 +1,9 @@
 {
   "bootstrap_type": "aof-project-bootstrap",
   "bootstrap_format_version": 1,
-  "aof_version": "2.1.0",
-  "aof_source": "https://github.com/popcoondev/ai-organization-framework/tree/v2.1.0",
+  "aof_version": "2.4.0",
+  "aof_source": "https://github.com/popcoondev/ai-organization-framework/tree/v2.4.0",
+  "execution_artifacts_ref": ".aof/execution",
   "topology": "managed-project",
   "install_mode": "runtime-on",
   "write_target": "repo-main-human-directed",

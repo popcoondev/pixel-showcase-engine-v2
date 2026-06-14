@@ -1,0 +1,21 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-020",
+  "title": "孤立アセット GC (参照0の content-hash を定期削除)",
+  "status": "open",
+  "phase": "data-lifecycle-slice",
+  "priority_rank": 2,
+  "owner_role": "Builder",
+  "owner_team": "cloud-team",
+  "estimate": "M",
+  "decision_ref": ".aof/decisions/DR-2026-007-next-direction-data-lifecycle.md",
+  "rationale": "content-hash 共有アセットは退会/削除時に即削除できない(他ユーザー参照の可能性)。参照されなくなった hash を安全に回収する仕組みが要る。",
+  "design": {
+    "approach": "Cloud Scheduler + Function で定期実行。全 users/*/showcases と showcases の assetRefs を集計し、Storage の assets/{hash} のうちどこからも参照されていないものを削除",
+    "safety": "誤削除防止: ドライラン/猶予期間(最近アップロードは除外)を設け、削除前にログ。Operations Council レビュー必須",
+    "alt": "参照カウンタ方式は競合削除リスクが高いため不採用(Builder)"
+  },
+  "guardian_gate": "誤って参照中アセットを消さないこと。まず dry-run で件数確認。",
+  "dependencies": ["TASK-019"],
+  "acceptance": "どのシーンからも参照されない assets/{hash} が定期的に削除され、参照中アセットは保持される。"
+}

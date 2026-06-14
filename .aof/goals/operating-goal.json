@@ -1,16 +1,20 @@
 {
   "goal_format_version": 1,
   "type": "current-operating-goal",
-  "set_at": "2026-06-12",
-  "phase": "v0.4.0 (完成度と信頼)",
-  "statement": "プロダクトを「完成度と信頼」で深める。運用の天井(課金/データの上限・削除権)と見せ方の質(プリセット)を両輪で固め、共有の到達(動的OG)は human の Cloud Functions 判断のうえで開く。",
-  "rationale": "AOF v2.1.0 移行後、3 Council (Product/Architecture/Operations, 2_of_3) で集約。North Star 到達後は機能の横拡張でなく完成度と信頼を彫る段階。非要件(ゲーム化/SNS化/Blender化しない)を守る。",
+  "set_at": "2026-06-14",
+  "phase": "データライフサイクル整備",
+  "statement": "公開した展示の『データを最後まで責任持って扱える』(保存・公開・完全削除)状態にする。退会・削除で Storage 実体まで確実に消え、孤立アセットも溜まらない。",
+  "rationale": "AOF v2.4 の execution packet 連鎖で集約 (DR-2026-007)。2_of_3 (Builder+Guardian) が管理系=データライフサイクルを採択。退会で Storage が残る穴は単調増加・GDPR・非線形清算コストの三重リスクでデータ不要で今判断可。Visionary の機能改善は解析/Sentry のデータ蓄積後の次サイクルへ。",
   "success_criteria": [
-    "1ユーザーが課金/ストレージを暴走させられない (シーン数上限)",
-    "ユーザーが自分のデータとアカウントを削除できる",
-    "数種の look プリセットで見せ方の質を底上げできる",
-    "動的OG の可否 (Functions 解禁) が maintainer により判断される"
+    "退会で当該ユーザーの thumbs が Storage から消える",
+    "孤立アセット (参照0の content-hash) が定期 GC で安全に回収される",
+    "参照中アセットは誤って消えない",
+    "解析/Sentry のデータが次サイクルの機能改善判断の入力になる"
   ],
-  "supersedes": "Phase 2 operating goal (達成、v0.3.0)",
-  "decision_ref": ".aof/decisions/DR-2026-005-next-direction-v04.md"
+  "supersedes": "v0.4.0 operating goal (完成度と信頼)",
+  "decision_ref": ".aof/decisions/DR-2026-007-next-direction-data-lifecycle.md",
+  "open_escalations": [
+    "EU/GDPR 公開範囲 (Guardian)",
+    "GC 戦略: thumbs 即時 + assets 定期GC の二段階 (Builder)"
+  ]
 }

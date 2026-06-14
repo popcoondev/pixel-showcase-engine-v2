@@ -1,0 +1,21 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-019",
+  "title": "退会時の Storage 完全削除 (Cloud Function)",
+  "status": "open",
+  "phase": "data-lifecycle-slice",
+  "priority_rank": 1,
+  "owner_role": "Builder",
+  "owner_team": "cloud-team",
+  "estimate": "M",
+  "decision_ref": ".aof/decisions/DR-2026-007-next-direction-data-lifecycle.md",
+  "rationale": "退会で Firestore/Auth は消えるが Storage 実体が残る穴(storage.rules delete:false)。GDPR 削除権 + コスト漸増。Functions 解禁済で実装可能。",
+  "design": {
+    "thumbs": "退会時、当該ユーザーの公開 showcases に対応する thumbs/{showcaseId}.jpg は共有でないため即時削除(Admin SDK)",
+    "assets": "assets/{hash} は content-hash 共有のため退会時には消さず、参照0を TASK-020 の定期 GC に委ねる(誤って他ユーザー参照を消さない)",
+    "impl": "functions に onCall deleteAccountAssets を追加し account.ts の deleteAccount から呼ぶ、または Firestore onDocumentDeleted トリガー。Admin SDK は公開コレクション+自分のパスのみ操作"
+  },
+  "escalation": "GC 戦略(thumbs 即時 + assets 定期GC の二段階)を maintainer が確定してから着手。",
+  "dependencies": [],
+  "acceptance": "退会後、当該ユーザーの thumbs が Storage から消える。assets は GC で参照0時に消える(TASK-020)。"
+}

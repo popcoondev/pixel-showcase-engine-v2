@@ -1,0 +1,21 @@
+{
+  "result_type": "aof-role-result",
+  "recorded_at": "2026-06-14T00:00:00Z",
+  "role": "builder",
+  "stage": "next-direction",
+  "session_id": "SESS-2026-0614-V24",
+  "status": "complete",
+  "recommendation": "方向4 管理系。最初の一歩=退会時の Storage 実体削除を Cloud Function 化(onCall deleteAccountAssets を account.ts の deleteAccount 末尾から呼ぶ)。コスト M。",
+  "rationale": "退会は Firestore/Auth は消えるが Storage アセットが残る穴が設計時から認識済(account.ts コメント DR-2026-005)。Functions 解禁済で追加 Function の展開コストは低い。放置でアセット永続蓄積=コスト+GDPR+『削除した』UI 約束との乖離が三重に効く。カウンタ厳密化は被害が軽微なので後。Storage GC を先に片付ければ次サイクルの順序が自然。",
+  "signals": [
+    "storage.rules の delete:false と account.ts コメントが負債認識を明示",
+    "uploadAssets は content-hash 共有=参照0のハッシュのみ消す GC が必要",
+    "sceneCount はクライアント batch+Rules<20=負値迂回可だが被害軽微",
+    "functions/index.js は単一関数=Storage GC 追加の管理コスト小",
+    "クラウド統合テスト皆無=Function 実装が Emulator+Vitest 統合テストの足がかり"
+  ],
+  "artifact_refs": ["src/cloud/account.ts", "storage.rules", "functions/index.js"],
+  "decision_required": true,
+  "blocking_reason": "content-hash 共有アセットの GC 戦略: 退会時は thumbs を即時削除し、assets/{hash} は定期 GC(Scheduler)へ委ねる二段階方針を採るか。横断クエリ誤判定で他ユーザーのアセットを消すリスクがある。",
+  "confidence": "high"
+}

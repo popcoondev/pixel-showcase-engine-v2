@@ -1,0 +1,23 @@
+{
+  "snapshot_type": "aof-execution-lineage",
+  "generated_at": "2026-06-14T00:00:00Z",
+  "source_parent_session_id": "SESS-2026-0614-V24",
+  "stage_filter": "next-direction",
+  "role_result_count": 3,
+  "team_output_count": 0,
+  "council_review_count": 1,
+  "decision_required_count": 3,
+  "blocking_signal_count": 0,
+  "stages_observed": ["next-direction"],
+  "latest_stage": "next-direction",
+  "recommended_next_step": "human が2つのエスカレーション(EU/GDPR 公開範囲、GC戦略=thumbs即時+assets定期GCの二段階)を判断 → TASK-019(退会時 Storage 削除)着手。並行して解析/Sentry を2〜3週間ウォッチ。",
+  "role_results": [
+    ".aof/execution/role-results/RR-2026-0614-visionary.json",
+    ".aof/execution/role-results/RR-2026-0614-builder.json",
+    ".aof/execution/role-results/RR-2026-0614-guardian.json"
+  ],
+  "team_outputs": [],
+  "council_reviews": [
+    ".aof/execution/council-reviews/CR-2026-0614-next-direction.json"
+  ]
+}

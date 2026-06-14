@@ -1,0 +1,21 @@
+{
+  "result_type": "aof-role-result",
+  "recorded_at": "2026-06-14T00:00:00Z",
+  "role": "guardian",
+  "stage": "next-direction",
+  "session_id": "SESS-2026-0614-V24",
+  "status": "complete",
+  "recommendation": "方向4 管理系=データライフサイクル整備を最優先(veto 水準)。最初の一歩=退会/削除完了時に Cloud Functions で当該ユーザーの Storage を確実に削除し、Firestore 削除と原子的に紐付ける。",
+  "rationale": "Storage 残存は放置で被害が非線形に拡大(後から孤立ファイル洗い出しが指数的に増える)。GDPR 削除権の不履行=規約整備済でも実装が追わねば法的リスク。機能/バグはデータが出てから判断で間に合うが、ライフサイクル未整備は増えるほど後始末が重くソロでは持続不能。GC は参照カウンタ無しで安全判定が難しいため、まずユーザー単位の確実な削除を先に。",
+  "signals": [
+    "Storage 削除未実装=公開済の今からゴミが蓄積開始",
+    "Budget は検知のみで防止ではない",
+    "GDPR 削除権は EU ユーザー1人で法的リスク発生",
+    "実利用データはこれから=機能判断は後でできる/削除負債は後で高くつく",
+    "シーン数ソフトガード=悪用で Storage/Firestore が無制限に膨らむ経路"
+  ],
+  "artifact_refs": ["storage.rules", "src/cloud/account.ts"],
+  "decision_required": true,
+  "blocking_reason": "EU ユーザーへの公開有無(GDPR 適用可否)。事実上グローバル公開なら Storage 削除は今すぐ必須、EU 遮断なら優先度中。",
+  "confidence": "high"
+}
