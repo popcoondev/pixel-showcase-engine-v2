@@ -1,0 +1,18 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-009",
+  "title": "MOBILE モバイル対応 (Viewer限定から)",
+  "status": "done",
+  "completed_at": "2026-06-17",
+  "context": "maintainer がユーザビリティとして公開 /s/ のモバイル閲覧を選択(SNSシェアはスマホで開かれる)。Viewer 限定で実施(非要件: 編集の自由移動なし)。",
+  "outcome": "① Viewer のステージをエディタ用余白を外して全幅化(310→382px幅)+ トップバーをモバイルで詰めてリンク折返し解消。② 画面タップでクローム(バー/ドット)を隠す完全 showcase 表示、再タップで復帰。③ 複数 Shot 公開時のみ余白下部に控えめな切替ドット(applyShot で視点切替、全画面トグルと非干渉)。16:9 構図はレターボックスで維持(作者の構図を崩さない=maintainer 選択)。検証: モバイル幅(390x844)で全項目スクショ/挙動確認、build/test green、本番デプロイ。",
+  "note": "縦アスペクトで埋める案は構図が変わるため不採用。Editor のタッチ対応は範囲外のまま。",
+  "phase": "backlog-later",
+  "priority_rank": 9,
+  "owner_role": "Builder",
+  "estimate": "L",
+  "council_scores": { "visionary": 2, "builder": 2, "guardian": 2 },
+  "rationale": "オーサリングはデスクトップ優先で正。要件は『モバイルでプレビュー可能』止まり。",
+  "guardian_gate": "Viewer側(読み取り専用・固定画角)のタッチ対応に限定。Edit/Camera のタッチは FlyControls 抜本改修を要し範囲外。",
+  "dependencies": []
+}
