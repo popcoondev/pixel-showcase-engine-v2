@@ -638,7 +638,32 @@ input.text {
 
 .viewer-title {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--text-dim);
+}
+
+/* 公開 Viewer はエディタ用の左右余白を使わず、被写体を全幅で大きく見せる */
+.app.viewer-locked .stage.framed {
+  margin: 0;
+  max-width: 100%;
+}
+
+/* モバイル: トップバーを詰めてリンクの折り返しを防ぐ */
+@media (max-width: 640px) {
+  .viewer-bar {
+    gap: 8px;
+    padding: 6px 10px;
+  }
+  .viewer-bar .brand {
+    font-size: 14px;
+  }
+  .viewer-bar .contact-link {
+    font-size: 10px;
+    white-space: nowrap;
+  }
 }
 
 .contact-link {
