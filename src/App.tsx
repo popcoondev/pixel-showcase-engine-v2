@@ -312,8 +312,13 @@ export default function App() {
   const viewerLoading = useStore((s) => s.viewerLoading)
   const aspect = useStore((s) => s.camera.aspect)
   const setTab = useStore((s) => s.setTab)
+  const viewerShots = useStore((s) => s.shots)
+  const viewerActiveShot = useStore((s) => s.activeShotId)
+  const applyShot = useStore((s) => s.applyShot)
   // 初回起動 (Viewer 以外) はサンプルシーン + 歓迎ガイドを1度だけ出す
   const [showWelcome, setShowWelcome] = useState(() => !viewerLocked && isFirstRun())
+  // 公開 Viewer: タップでクローム(バー/切替)を隠して完全 showcase 表示
+  const [chromeHidden, setChromeHidden] = useState(false)
 
   useEffect(() => {
     if (!viewerLocked && isFirstRun()) {
@@ -330,14 +335,28 @@ export default function App() {
   const framed = mode !== 'edit'
 
   if (viewerLocked) {
+    const multiShot = !viewerLoading && viewerShots.length > 1
     return (
-      <div className="app viewer-locked">
-        <ViewerBar />
-        <div className="stage-wrap">
+      <div className={`app viewer-locked${chromeHidden ? ' immersive' : ''}`}>
+        {!chromeHidden && <ViewerBar />}
+        <div className="stage-wrap" onClick={() => setChromeHidden((h) => !h)}>
           <div className="stage framed" style={{ aspectRatio: aspectToNumber(aspect) }}>
             {viewerLoading ? <ViewerStatus text="読み込み中…" /> : <Viewport />}
           </div>
         </div>
+        {!chromeHidden && multiShot && (
+          <div className="viewer-shots">
+            {viewerShots.map((sh, i) => (
+              <button
+                key={sh.id}
+                className={`viewer-dot${viewerActiveShot === sh.id ? ' active' : ''}`}
+                onClick={() => applyShot(sh.id)}
+                aria-label={`Shot ${i + 1}`}
+                title={sh.name}
+              />
+            ))}
+          </div>
+        )}
         <HelpOverlay />
       </div>
     )

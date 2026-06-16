@@ -651,6 +651,39 @@ input.text {
   max-width: 100%;
 }
 
+.app.viewer-locked .stage-wrap {
+  cursor: pointer;
+}
+
+/* 複数 Shot 公開時のみ: 余白下部に控えめな切替ドット */
+.viewer-shots {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 99px;
+  background: rgba(10, 12, 18, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.viewer-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: transparent;
+  cursor: pointer;
+}
+
+.viewer-dot.active {
+  background: #fff;
+  border-color: #fff;
+}
+
 /* モバイル: トップバーを詰めてリンクの折り返しを防ぐ */
 @media (max-width: 640px) {
   .viewer-bar {
