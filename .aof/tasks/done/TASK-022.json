@@ -1,0 +1,15 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-022",
+  "title": "カメラ動きループ (被写体周りのヨー/ピッチ/ドリーを Shot に焼き込み)",
+  "status": "done",
+  "completed_at": "2026-06-17",
+  "phase": "usability",
+  "owner_role": "Builder",
+  "owner_team": "scene-team",
+  "estimate": "M",
+  "context": "maintainer が DR-2026-007 のデータライフサイクル順序からユーザビリティへピボット。録画動画を保存するのでなく、カメラの動きをパラメータ(稼働領域+速度)として残し公開で再生したい、という要望。",
+  "outcome": "CameraMotion(enabled/yawDeg/pitchDeg/dolly/speed)を CameraSettings に optional 追加し Shot に焼き込み。Preview/Viewer の CameraRig が被写体(注視点)周りをループ再生。Preview=live(スライダー即反映)/ Viewer=shot 保存値 / 旧データ静止。Camera タブに『動きループ』UI。検証: Preview でオービット確認(時間差スクショ)、Save Shot で motion 焼き込み確認、build/test green、本番デプロイ success。",
+  "non_requirement_check": "自由移動でなく作者が決めた演出の動き=非要件(Viewer自由移動なし/ゲーム化しない)に適合。固定画角の進化形。",
+  "note": "TASK-020 孤立GC は据え置き。次は当初選択の『モバイルで /s/ を快適に』が候補。"
+}
