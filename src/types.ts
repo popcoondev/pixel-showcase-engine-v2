@@ -86,6 +86,19 @@ export interface EffectDef {
 export type FocusMode = 'subject' | 'manual' | 'screenPoint'
 export type AspectRatio = '16:9' | '4:3' | '1:1'
 
+/** Preview / Viewer で被写体周りにループさせるカメラの動き(各振幅 0 で無効) */
+export interface CameraMotion {
+  enabled: boolean
+  /** 左右の弧(オービット)振幅 度 */
+  yawDeg: number
+  /** 上下の弧 振幅 度 */
+  pitchDeg: number
+  /** 前後の寄り引き 振幅 (距離に対する割合 0-1) */
+  dolly: number
+  /** ループ周期 秒 */
+  speed: number
+}
+
 export interface CameraSettings {
   /** mm 換算の焦点距離。FOV はここから導出する */
   focalLength: number
@@ -97,6 +110,8 @@ export interface CameraSettings {
   /** F値 */
   aperture: number
   aspect: AspectRatio
+  /** 動きループ(任意。旧データには無いので optional) */
+  motion?: CameraMotion
 }
 
 export interface Shot {

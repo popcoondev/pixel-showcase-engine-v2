@@ -334,6 +334,15 @@ function SelectionGizmo() {
   )
 }
 
+// 動きループ用の再利用 THREE オブジェクト(毎フレーム new しない)
+const WORLD_UP = new THREE.Vector3(0, 1, 0)
+const TMP_BASE = new THREE.Vector3()
+const TMP_FWD = new THREE.Vector3()
+const TMP_PIVOT = new THREE.Vector3()
+const TMP_REL = new THREE.Vector3()
+const TMP_RIGHT = new THREE.Vector3()
+const TMP_Q = new THREE.Quaternion()
+
 function CameraRig() {
   const { camera, gl } = useThree()
   const focalLength = useStore((s) => s.camera.focalLength)
@@ -358,6 +367,44 @@ function CameraRig() {
     camera.position.set(...shot.position)
     camera.quaternion.set(...shot.quaternion)
   }, [poseStamp, camera])
+
+  // Preview / Viewer で動きループを再生(被写体周りをヨー/ピッチ/ドリーで揺らす)。
+  // Edit/Camera(構図決め)では適用しない。Preview は live の camera.motion、Viewer は shot 保存値。
+  useFrame((state) => {
+    const s = useStore.getState()
+    const framed = s.mode === 'preview' || s.viewerLocked
+    if (!framed) return
+    const shot = s.shots.find((x) => x.id === s.activeShotId)
+    if (!shot) return
+    const base = TMP_BASE.fromArray(shot.position)
+    const motion = s.viewerLocked ? shot.settings.motion : s.camera.motion
+    if (!motion || !motion.enabled) {
+      // 動き無し: 基準ポーズに固定(toggle off で即戻る)
+      camera.position.copy(base)
+      camera.quaternion.set(...shot.quaternion)
+      return
+    }
+    // 注視点(pivot): 基準カメラの前方 focus 距離
+    TMP_FWD.set(0, 0, -1).applyQuaternion(TMP_Q.fromArray(shot.quaternion))
+    let d =
+      shot.settings.dofEnabled && shot.settings.focusMode === 'manual'
+        ? shot.settings.manualFocusDistance
+        : base.length()
+    if (!(d > 0)) d = 6
+    const pivot = TMP_PIVOT.copy(base).addScaledVector(TMP_FWD, d)
+    const ph = (Math.PI * 2 * state.clock.elapsedTime) / Math.max(1, motion.speed)
+    const yaw = THREE.MathUtils.degToRad(motion.yawDeg) * Math.sin(ph)
+    const pitch = THREE.MathUtils.degToRad(motion.pitchDeg) * Math.cos(ph)
+    const dollyScale = 1 - (motion.dolly ?? 0) * Math.sin(ph)
+    const rel = TMP_REL.copy(base).sub(pivot)
+    rel.applyAxisAngle(WORLD_UP, yaw)
+    const right = TMP_RIGHT.crossVectors(rel, WORLD_UP)
+    if (right.lengthSq() > 1e-6) rel.applyAxisAngle(right.normalize(), pitch)
+    rel.multiplyScalar(dollyScale)
+    camera.position.copy(pivot).add(rel)
+    camera.up.copy(WORLD_UP)
+    camera.lookAt(pivot)
+  })
 
   return null
 }

@@ -230,6 +230,8 @@ export function CameraPanel() {
   const activeShotId = useStore((s) => s.activeShotId)
   const thumbnails = useStore((s) => s.shotThumbnails)
   const setCamera = useStore((s) => s.setCamera)
+  const setCameraMotion = useStore((s) => s.setCameraMotion)
+  const motion = cam.motion ?? { enabled: false, yawDeg: 12, pitchDeg: 0, dolly: 0, speed: 8 }
   const moveSpeed = useStore((s) => s.moveSpeed)
   const lookSensitivity = useStore((s) => s.lookSensitivity)
   const setMoveSpeed = useStore((s) => s.setMoveSpeed)
@@ -326,6 +328,54 @@ export function CameraPanel() {
         {cam.focusMode === 'screenPoint' && (
           <Empty text="Camera モード中にキャンバスをクリックするとピント位置が決まります。" />
         )}
+      </Section>
+      <Section title="動きループ">
+        <ToggleRow
+          label="有効"
+          value={motion.enabled}
+          onChange={(v) => setCameraMotion({ enabled: v })}
+        />
+        {motion.enabled && (
+          <>
+            <SliderRow
+              label="ヨー(左右の弧)"
+              value={motion.yawDeg}
+              min={0}
+              max={60}
+              step={1}
+              format={(v) => `${Math.round(v)}°`}
+              onChange={(v) => setCameraMotion({ yawDeg: v })}
+            />
+            <SliderRow
+              label="ピッチ(上下)"
+              value={motion.pitchDeg}
+              min={0}
+              max={30}
+              step={1}
+              format={(v) => `${Math.round(v)}°`}
+              onChange={(v) => setCameraMotion({ pitchDeg: v })}
+            />
+            <SliderRow
+              label="ドリー(前後)"
+              value={motion.dolly}
+              min={0}
+              max={0.5}
+              step={0.01}
+              format={(v) => `${Math.round(v * 100)}%`}
+              onChange={(v) => setCameraMotion({ dolly: v })}
+            />
+            <SliderRow
+              label="周期"
+              value={motion.speed}
+              min={2}
+              max={20}
+              step={0.5}
+              format={(v) => `${v.toFixed(1)}s`}
+              onChange={(v) => setCameraMotion({ speed: v })}
+            />
+          </>
+        )}
+        <Empty text="Preview / 公開ページで被写体の周りをループで動きます(各 0 で無効)。Save Shot に焼き込まれます。" />
       </Section>
       <Section title={`Shots (${shots.length})`}>
         <button className="wide" onClick={() => s().saveShot()}>

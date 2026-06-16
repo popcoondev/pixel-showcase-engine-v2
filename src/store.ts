@@ -4,6 +4,7 @@ import { loadShow } from './db'
 import { LOOK_PRESETS } from './presets'
 import type {
   AspectRatio,
+  CameraMotion,
   CameraSettings,
   EffectDef,
   EffectKind,
@@ -161,6 +162,14 @@ function legacyEnvEffects(env: EnvSettings): EffectDef[] {
   return out
 }
 
+export const defaultMotion = (): CameraMotion => ({
+  enabled: false,
+  yawDeg: 12,
+  pitchDeg: 0,
+  dolly: 0,
+  speed: 8,
+})
+
 const defaultCamera = (): CameraSettings => ({
   focalLength: 35,
   exposure: 1,
@@ -169,6 +178,7 @@ const defaultCamera = (): CameraSettings => ({
   manualFocusDistance: 10,
   aperture: 2.8,
   aspect: '16:9',
+  motion: defaultMotion(),
 })
 
 function starterObjects(): SceneObjectDef[] {
@@ -287,6 +297,7 @@ interface StoreState {
 
   setEnv: (patch: Partial<EnvSettings>) => void
   setCamera: (patch: Partial<CameraSettings>) => void
+  setCameraMotion: (patch: Partial<CameraMotion>) => void
   /** HD-2D 風の look プリセットを適用する (docs/hd2d-look.md 参照) */
   applyHd2dLook: () => void
   /** 見せ方プリセット (背景/霧/ライトリグ) を適用する (src/presets.ts) */
@@ -497,7 +508,8 @@ export const useStore = create<StoreState>()((set, get) => ({
         mode: 'preview',
         shots,
         activeShotId: shot.id,
-        camera: { ...shot.settings },
+        // 動きループは live (スライダー) を保持して即プレビューできるようにする
+        camera: { ...shot.settings, motion: s.camera.motion },
         focusTarget: shot.focusTarget,
         selected: null,
         poseStamp: s.poseStamp + 1,
@@ -699,6 +711,10 @@ export const useStore = create<StoreState>()((set, get) => ({
 
   setEnv: (patch) => set((s) => ({ env: { ...s.env, ...patch } })),
   setCamera: (patch) => set((s) => ({ camera: { ...s.camera, ...patch } })),
+  setCameraMotion: (patch) =>
+    set((s) => ({
+      camera: { ...s.camera, motion: { ...(s.camera.motion ?? defaultMotion()), ...patch } },
+    })),
 
   applyLookPreset: (presetId) => {
     const preset = LOOK_PRESETS.find((p) => p.id === presetId)
