@@ -19,6 +19,9 @@ import { enableShadows, loadGltf } from './gltfLoader'
 /** クリック共通処理: Camera モードの Screen Point フォーカス、Edit モードの選択 */
 function handleScenePointerDown(e: ThreeEvent<PointerEvent>, sel: Selection | null) {
   if (e.button !== 0) return
+  // ギズモのハンドルにホバー中(=ギズモ操作の意図)は選択しない。
+  // 重なったオブジェクトの矢印を掴んだとき、裏のオブジェに選択が切り替わるのを防ぐ。
+  if (runtime.gizmo?.axis) return
   const s = useStore.getState()
   if (s.mode === 'camera' && s.camera.dofEnabled && s.camera.focusMode === 'screenPoint') {
     e.stopPropagation()
@@ -160,6 +163,36 @@ function ObjectNode({ def }: { def: SceneObjectDef }) {
       runtime.objects.delete(def.id)
     }
   }, [def.id])
+
+  // 動きループ: Preview/Viewer で基準位置周りにオシレーション + 連続回転。
+  // motion 未設定のオブジェクトは何もしない(宣言的 props が静止保持)。
+  useFrame((state) => {
+    const g = ref.current
+    const m = def.motion
+    if (!g || !m) return
+    const s = useStore.getState()
+    const framed = s.mode === 'preview' || s.viewerLocked
+    if (!framed || !m.enabled) {
+      // 静止: 基準に戻す(ただしギズモ操作中は触らない)
+      if (!s.transformDragging) {
+        g.position.set(...def.position)
+        g.rotation.set(...def.rotation)
+      }
+      return
+    }
+    const t = state.clock.elapsedTime
+    const ph = (Math.PI * 2 * t) / Math.max(1, m.speed)
+    g.position.set(
+      def.position[0] + m.moveX * Math.sin(ph),
+      def.position[1] + m.moveY * Math.sin(ph + Math.PI / 2),
+      def.position[2] + m.moveZ * Math.sin(ph + Math.PI),
+    )
+    g.rotation.set(
+      def.rotation[0],
+      def.rotation[1] + THREE.MathUtils.degToRad(m.spinY) * t,
+      def.rotation[2],
+    )
+  })
 
   return (
     <group

@@ -423,6 +423,9 @@ export function ObjectPanel() {
   }
 
   const uniform = obj.scale[0]
+  const om = obj.motion ?? { enabled: false, moveX: 0, moveY: 0.3, moveZ: 0, spinY: 0, speed: 6 }
+  const setMotion = (patch: Partial<typeof om>) =>
+    s().updateObject(obj.id, { motion: { ...om, ...patch } })
 
   const setImage = () =>
     pickFile('image/*', async (f) => {
@@ -463,6 +466,19 @@ export function ObjectPanel() {
             Delete
           </button>
         </div>
+      </Section>
+      <Section title="動きループ">
+        <ToggleRow label="有効" value={om.enabled} onChange={(v) => setMotion({ enabled: v })} />
+        {om.enabled && (
+          <>
+            <SliderRow label="上下(浮遊)" value={om.moveY} min={0} max={2} step={0.05} format={(v) => `${v.toFixed(2)}m`} onChange={(v) => setMotion({ moveY: v })} />
+            <SliderRow label="左右" value={om.moveX} min={0} max={2} step={0.05} format={(v) => `${v.toFixed(2)}m`} onChange={(v) => setMotion({ moveX: v })} />
+            <SliderRow label="前後" value={om.moveZ} min={0} max={2} step={0.05} format={(v) => `${v.toFixed(2)}m`} onChange={(v) => setMotion({ moveZ: v })} />
+            <SliderRow label="回転(連続)" value={om.spinY} min={0} max={180} step={1} format={(v) => `${Math.round(v)}°/s`} onChange={(v) => setMotion({ spinY: v })} />
+            <SliderRow label="周期" value={om.speed} min={1} max={20} step={0.5} format={(v) => `${v.toFixed(1)}s`} onChange={(v) => setMotion({ speed: v })} />
+          </>
+        )}
+        <Empty text="Preview / 公開ページで基準位置の周りをループします(各 0 で無効)。回転はターンテーブルです。" />
       </Section>
       {obj.kind === 'glb' && (
         <Section title="Material (GLB)">

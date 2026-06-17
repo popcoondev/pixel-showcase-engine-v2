@@ -14,6 +14,21 @@ export interface MaterialSettings {
 
 export type ObjectKind = 'cube' | 'plane' | 'glb'
 
+/** Preview / Viewer でオブジェクトを基準位置周りにループさせる動き(各 0 で無効) */
+export interface ObjectMotion {
+  enabled: boolean
+  /** 左右 振幅 m */
+  moveX: number
+  /** 上下(浮遊)振幅 m */
+  moveY: number
+  /** 前後 振幅 m */
+  moveZ: number
+  /** Y軸 連続回転(ターンテーブル)度/秒 */
+  spinY: number
+  /** 位置オシレーションの周期 秒 */
+  speed: number
+}
+
 export interface SceneObjectDef {
   id: string
   name: string
@@ -26,6 +41,8 @@ export interface SceneObjectDef {
   materialOverride?: boolean
   /** assets テーブルのキー。同じ GLB を複数置いても実体はひとつ */
   glbAssetId?: string
+  /** 動きループ(任意。旧データには無いので optional) */
+  motion?: ObjectMotion
 }
 
 export type LightKind = 'directional' | 'point' | 'spot'
