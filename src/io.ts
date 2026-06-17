@@ -89,6 +89,38 @@ function pickRecordingFormat(): { mime: string; ext: string } {
   return { mime, ext: mime.startsWith('video/mp4') ? 'mp4' : 'webm' }
 }
 
+/**
+ * 動きループの短いクリップ (既定5秒) を MP4 で書き出す。公開時に「ポスト添付用」として使う。
+ * 呼び出し側で Preview にして動きを再生してから呼ぶこと。手動録画(toggleRecording)とは独立。
+ */
+export function recordCanvasClip(seconds = 5): Promise<void> {
+  return new Promise((resolve) => {
+    const canvas = runtime.canvas
+    if (!canvas) {
+      resolve()
+      return
+    }
+    const stream = canvas.captureStream(60)
+    const { mime, ext } = pickRecordingFormat()
+    const localChunks: Blob[] = []
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 12_000_000 })
+    rec.ondataavailable = (e) => {
+      if (e.data.size) localChunks.push(e.data)
+    }
+    rec.onstop = () => {
+      downloadBlob(
+        new Blob(localChunks, { type: mime.split(';')[0] }),
+        `${useStore.getState().sceneName}.loop.${ext}`,
+      )
+      useStore.getState().flash(`${ext.toUpperCase()} (${seconds}秒) を保存しました`)
+      resolve()
+    }
+    rec.start()
+    useStore.getState().flash(`動画を生成中… (${seconds}秒)`)
+    setTimeout(() => rec.stop(), seconds * 1000)
+  })
+}
+
 export function toggleRecording() {
   const state = useStore.getState()
   if (recorder) {

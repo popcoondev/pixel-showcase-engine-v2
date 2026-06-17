@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { signInWithGoogle } from './cloud/auth'
 import { publishToCloud } from './cloud/publish'
+import { recordCanvasClip } from './io'
 import { useStore } from './store'
 
 function msgOf(e: unknown): string {
@@ -42,6 +43,21 @@ function PublishDialog({ onClose }: { onClose: () => void }) {
   const [shotId, setShotId] = useState(
     () => useStore.getState().activeShotId ?? shots[0]?.id ?? '',
   )
+  // 動きループ(カメラ or オブジェクト)が有効なら、公開後に5秒MP4を書き出せる
+  const camMotion = useStore((s) => s.camera.motion)
+  const objects = useStore((s) => s.objects)
+  const motionActive = !!camMotion?.enabled || objects.some((o) => o.motion?.enabled)
+  const [clipBusy, setClipBusy] = useState(false)
+
+  const exportClip = async () => {
+    setClipBusy(true)
+    // 選んだ Shot を Preview で再生(動きが回る)してから5秒録画する
+    if (shotId) useStore.getState().applyShot(shotId)
+    useStore.getState().setMode('preview')
+    await new Promise((r) => setTimeout(r, 400))
+    await recordCanvasClip(5)
+    setClipBusy(false)
+  }
 
   const isUpdate = !!publishedId && !asNew
 
@@ -96,6 +112,20 @@ function PublishDialog({ onClose }: { onClose: () => void }) {
                 開いて確認する ↗
               </a>
             </p>
+            {motionActive && (
+              <div className="publish-note">
+                この展示は<b>動きます</b>。ポストに添付する <b>5秒動画 (MP4)</b> を書き出せます。
+                動画で惹きつけ、本文の URL で展示へ流入を狙えます。
+                <button
+                  className="wide"
+                  disabled={clipBusy}
+                  onClick={exportClip}
+                  style={{ marginTop: 8 }}
+                >
+                  {clipBusy ? '生成中… (5秒)' : '▶ 5秒動画 (MP4) を書き出す'}
+                </button>
+              </div>
+            )}
             <button className="wide" onClick={onClose}>
               閉じる
             </button>
