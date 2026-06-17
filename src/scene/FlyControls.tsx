@@ -151,17 +151,33 @@ export function FlyControls() {
     }
     const onContextMenu = (e: MouseEvent) => e.preventDefault()
 
+    // safety net: どこでマウスを離しても drag 状態と transformDragging を必ずリセットする。
+    // ギズモの onMouseUp が取りこぼされて transformDragging が true のまま残り、
+    // カメラドラッグが効かなくなる不具合を防ぐ。
+    const onGlobalUp = () => {
+      drag.current = null
+      if (useStore.getState().transformDragging) {
+        useStore.getState().setTransformDragging(false)
+      }
+    }
+
     el.addEventListener('pointerdown', onPointerDown)
     el.addEventListener('pointermove', onPointerMove)
     el.addEventListener('pointerup', onPointerUp)
     el.addEventListener('wheel', onWheel, { passive: false })
     el.addEventListener('contextmenu', onContextMenu)
+    window.addEventListener('pointerup', onGlobalUp)
+    window.addEventListener('pointercancel', onGlobalUp)
+    window.addEventListener('blur', onGlobalUp)
     return () => {
       el.removeEventListener('pointerdown', onPointerDown)
       el.removeEventListener('pointermove', onPointerMove)
       el.removeEventListener('pointerup', onPointerUp)
       el.removeEventListener('wheel', onWheel)
       el.removeEventListener('contextmenu', onContextMenu)
+      window.removeEventListener('pointerup', onGlobalUp)
+      window.removeEventListener('pointercancel', onGlobalUp)
+      window.removeEventListener('blur', onGlobalUp)
     }
   }, [gl, camera])
 
