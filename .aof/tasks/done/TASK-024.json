@@ -1,0 +1,14 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-024",
+  "title": "編集中にカメラドラッグが効かなくなる不具合の修正",
+  "status": "done",
+  "completed_at": "2026-06-17",
+  "phase": "bugfix",
+  "owner_role": "Builder",
+  "owner_team": "scene-team",
+  "report": "maintainer: 編集中によくドラッグ(カメラ移動)が効かなくなる。",
+  "root_cause": "FlyControls の blocked() が transformDragging を参照。ギズモの onMouseUp が取りこぼされると transformDragging が true のまま残り、blocked() が常に true=カメラドラッグ(左右とも)が全無効化。",
+  "fix": "window レベルの pointerup/pointercancel/blur で drag 状態と transformDragging を必ずリセットする safety net を追加(src/scene/FlyControls.tsx)。どこでマウスを離しても stuck しない。",
+  "verified": "build/test green、本番デプロイ。重なりギズモ操作後のドラッグ復帰は手動確認推奨。"
+}

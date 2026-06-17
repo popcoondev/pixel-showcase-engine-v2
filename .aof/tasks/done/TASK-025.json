@@ -1,0 +1,15 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-025",
+  "title": "公開時に動きループの5秒MP4を書き出し(ポスト添付用)",
+  "status": "done",
+  "completed_at": "2026-06-17",
+  "phase": "growth",
+  "owner_role": "Builder",
+  "owner_team": "scene-team",
+  "context": "maintainer 要望: 動きループON時、公開(OG生成)時に5秒MP4も生成。ポストに添付して流入数向上を狙う(動画はサーバー保存しない方針)。",
+  "outcome": "io.ts に recordCanvasClip(seconds=5) を追加(canvas captureStream + MediaRecorder, MP4 H.264 優先/WebM フォールバック、手動録画と独立)。PublishDialog: 動きループ(カメラ or オブジェクト)が有効なとき公開完了画面に『5秒動画(MP4)を書き出す』ボタン。選んだ Shot を Preview 再生してから5秒録画→ダウンロード。",
+  "design": "動画=ポストに直接添付(見せる)、本文の /s/ URL=展示へ流入(触らせる)。X は og:video 不可のためこの分担。",
+  "verified": "MP4 H.264 対応 + 動き再生中の録画が ~0.9MB のデータ生成を実機確認。build/test green、本番デプロイ。公開完了画面の E2E は対話サインインのため未実施。",
+  "note": "5秒固定。シームレスなループには motion の周期を 5 or 2.5s 等にすると良い(将来: 周期に合わせた長さの自動調整)。"
+}
