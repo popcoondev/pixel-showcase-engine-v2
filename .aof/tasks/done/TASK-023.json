@@ -1,0 +1,14 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-023",
+  "title": "オブジェクト動きループ + ギズモ重なり選択バグ修正",
+  "status": "done",
+  "completed_at": "2026-06-17",
+  "phase": "usability",
+  "owner_role": "Builder",
+  "owner_team": "scene-team",
+  "context": "maintainer 要望: カメラ(TASK-022)と同様にオブジェクトも可動域を決めてループしたい。あわせて、重なったオブジェクトで移動矢印を掴むと裏のオブジェに選択が切り替わるバグの報告。",
+  "outcome_feature": "ObjectMotion(moveX/Y/Z 振幅 + spinY 連続回転 + speed)を SceneObjectDef に optional 追加。ObjectNode の useFrame が Preview/Viewer で基準位置周りにオシレーション+ターンテーブル回転。Edit ではギズモ操作を妨げないよう基準に戻す(transformDragging 中は不干渉)。Object タブに『動きループ』UI。検証: 浮遊+回転を時間差スクショで確認。",
+  "outcome_bugfix": "handleScenePointerDown に runtime.gizmo?.axis ガードを追加。ギズモのハンドルにホバー中は選択をスキップし、矢印を掴んだのに裏のオブジェに選択が切り替わる不具合を解消。既存の runtime.gizmo インフラを利用。",
+  "verified": "build/test green、本番デプロイ success。動きは実機/時間差スクショで確認。バグ修正はロジック上の修正(重なり+矢印ホバーの E2E は手動確認推奨)。"
+}
