@@ -322,6 +322,87 @@ exports.placeAsset = onCall({ region: 'asia-northeast1' }, async (request) => {
   return { ok: true, sceneId, objectId: obj.id, objectCount: objects.length }
 })
 
+/** 1日あたり書き込み操作上限を検査し、{today, opCount} を返す(超過時は throw)。 */
+async function aiCheckOpLimit(u) {
+  const today = new Date().toISOString().slice(0, 10)
+  const opCount = u.aiOpDate === today ? u.aiOpCount || 0 : 0
+  if (opCount >= AI_DAILY_OP_LIMIT) throw new HttpsError('resource-exhausted', 'daily operation limit reached')
+  return { today, opCount }
+}
+
+exports.updateObject = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const sceneId = data.sceneId
+  const objectId = data.objectId
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  if (typeof objectId !== 'string' || !objectId) throw new HttpsError('invalid-argument', 'objectId required')
+
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  const u = (await userRef.get()).data() || {}
+  const { today, opCount } = await aiCheckOpLimit(u)
+
+  const sceneRef = userRef.collection('showcases').doc(sceneId)
+  const sceneSnap = await sceneRef.get()
+  if (!sceneSnap.exists) throw new HttpsError('not-found', 'scene not found')
+  const docData = sceneSnap.data() || {}
+  const scene = docData.scene || {}
+  const objects = Array.isArray(scene.objects) ? scene.objects : []
+  const obj = objects.find((o) => o && o.id === objectId)
+  if (!obj) throw new HttpsError('not-found', 'object not found')
+
+  // position / rotation / scale のみ更新可(kind/material/参照は不変)
+  if (data.position !== undefined) obj.position = aiVec3(data.position, -50, 50, obj.position || [0, 0, 0])
+  if (data.rotation !== undefined) {
+    const r = Array.isArray(data.rotation) ? data.rotation : []
+    const cur = obj.rotation || [0, 0, 0]
+    obj.rotation = [aiClamp(r[0], -12.6, 12.6, cur[0]), aiClamp(r[1], -12.6, 12.6, cur[1]), aiClamp(r[2], -12.6, 12.6, cur[2])]
+  }
+  if (data.scale !== undefined) {
+    const s = Array.isArray(data.scale) ? data.scale : []
+    const cur = obj.scale || [1, 1, 1]
+    obj.scale = [aiClamp(s[0], 0.01, 50, cur[0]), aiClamp(s[1], 0.01, 50, cur[1]), aiClamp(s[2], 0.01, 50, cur[2])]
+  }
+
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.objects': objects, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId, objectId, objectCount: objects.length }
+})
+
+exports.removeObject = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const sceneId = data.sceneId
+  const objectId = data.objectId
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  if (typeof objectId !== 'string' || !objectId) throw new HttpsError('invalid-argument', 'objectId required')
+
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  const u = (await userRef.get()).data() || {}
+  const { today, opCount } = await aiCheckOpLimit(u)
+
+  const sceneRef = userRef.collection('showcases').doc(sceneId)
+  const sceneSnap = await sceneRef.get()
+  if (!sceneSnap.exists) throw new HttpsError('not-found', 'scene not found')
+  const docData = sceneSnap.data() || {}
+  const scene = docData.scene || {}
+  const objects = Array.isArray(scene.objects) ? scene.objects : []
+  const next = objects.filter((o) => !(o && o.id === objectId))
+  const removed = next.length !== objects.length
+
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.objects': next, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId, removed, objectCount: next.length }
+})
+
 const APP_ORIGIN = 'https://pixelshowcase-7bc44.web.app'
 const DEFAULT_DESC = 'ドット絵・GLB・画像プレートを3D空間に置いて、固定画角の展示として見せる'
 
