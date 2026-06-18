@@ -2,19 +2,19 @@
   "task_id": "TASK-034",
   "title": "実験: オーナー資格スクリプトでアセット→シーン自動生成の品質検証",
   "description": "新公開サーフェスを作らず、オーナー資格情報で動くローカル/サーバ側スクリプトで listLibraryAssets→シーンJSON生成→saveSceneToCloud を数パターン試し、既存Viewerで目視評価。価値の核(AIが見せ方品質を保った展示を生成できるか)と時短を検証。成功閾値=5シーン中4つが手直し最小で公開可能 かつ 人手より速い。",
-  "status": "open",
+  "status": "done",
   "origin": "human",
   "orchestrator_session_id": null,
   "assigned_session_ids": [],
   "related_decision_record_id": null,
   "operating_goal_ref": null,
   "created_at": "2026-06-18T13:31:07.119Z",
-  "updated_at": "2026-06-18T13:31:07.119Z",
+  "updated_at": "2026-06-18T13:49:00.668Z",
   "assigned_at": null,
-  "done_at": null,
+  "done_at": "2026-06-18T13:49:00.668Z",
   "retired_at": null,
   "last_triaged_at": null,
   "stale_candidate_at": null,
   "retire_candidate_at": null,
-  "triage_notes": "TASK-033 の前提実験(create-project-after-experiment, NVR-MQJJET7J-1X7LRI)。新インフラ/新認証なし=低リスク。"
+  "triage_notes": "実験成功(価値の核=肯定): src/experiments/composeScene.ts(純関数, unit5件)。preview 実機で画像4枚→浅いアーチ配置+三灯+3/4フレーミング+見せ方envの破綻ないギャラリー構図を生成確認。学び: ①framing ヒューリスティックは初回引きすぎ→1度調整で被写体が中央に収束(=与える制約が品質を左右) ②GLB はサイズ正規化(bounds基準スケール)が要る(画像はaspectで済む)。結論: プログラム生成は実用見込み。新インフラ/新認証なしで検証完了。"
 }
