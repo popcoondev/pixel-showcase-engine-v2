@@ -49,17 +49,22 @@ export function CloudAccount() {
   const cloudUser = useStore((s) => s.cloudUser)
   const cloudBusy = useStore((s) => s.cloudBusy)
   const [deleting, setDeleting] = useState(false)
+  const [linking, setLinking] = useState(false)
 
   if (cloudUser) {
     return (
       <span className="cloud-account">
         <span className="cloud-name">{cloudUser.name ?? 'サインイン中'}</span>
+        <button className="mini" disabled={cloudBusy} onClick={() => setLinking(true)}>
+          連携
+        </button>
         <button className="mini" disabled={cloudBusy} onClick={() => signOutCloud()}>
           サインアウト
         </button>
         <button className="mini danger" disabled={cloudBusy} onClick={() => setDeleting(true)}>
           退会
         </button>
+        {linking && <AgentLinkModal uid={cloudUser.uid} onClose={() => setLinking(false)} />}
         {deleting && <DeleteAccountModal onClose={() => setDeleting(false)} />}
       </span>
     )
@@ -230,6 +235,47 @@ function CloudScenesModal({ onClose }: { onClose: () => void }) {
             </li>
           ))}
         </ul>
+        <button className="wide" onClick={onClose}>
+          閉じる
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** AI エージェント連携 (MCP) 用に、自分のアカウントID(uid)を表示・コピーする */
+function AgentLinkModal({ uid, onClose }: { uid: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    navigator.clipboard?.writeText(uid).then(
+      () => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+      },
+      () => {},
+    )
+  }
+  return (
+    <div className="help-overlay" onClick={onClose}>
+      <div className="help-card cloud-modal" onClick={(e) => e.stopPropagation()}>
+        <h3>エージェント連携 (MCP)</h3>
+        <p className="welcome-lead">
+          Claude や Codex などの AI エージェントから、あなたのアセットでシーンを編集できます。
+          連携には下のアカウントID (uid) を使います。
+        </p>
+        <div className="row">
+          <span className="row-label">アカウントID</span>
+          <div className="row-body">
+            <input className="text" readOnly value={uid} onFocus={(e) => e.currentTarget.select()} />
+            <button className="mini" onClick={copy}>
+              {copied ? 'コピーしました' : 'コピー'}
+            </button>
+          </div>
+        </div>
+        <p className="welcome-lead">
+          セットアップ手順は <code>mcp-server/README</code> を参照。サービスアカウント鍵などの秘密は
+          このIDと違って共有しないでください。
+        </p>
         <button className="wide" onClick={onClose}>
           閉じる
         </button>
