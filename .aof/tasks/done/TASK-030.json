@@ -2,19 +2,19 @@
   "task_id": "TASK-030",
   "title": "ライト発光の色サイクル",
   "description": "LightPulse に色サイクル(hueシフト/2-3色グラデ)を追加しネオン演出強化。発光ループと統合、非対応時は単色フォールバック。",
-  "status": "open",
+  "status": "done",
   "origin": "orchestrator",
   "orchestrator_session_id": "SESS-MQJ5JV1L-BOSC1N",
   "assigned_session_ids": [],
   "related_decision_record_id": null,
   "operating_goal_ref": null,
   "created_at": "2026-06-18T07:03:57.600Z",
-  "updated_at": "2026-06-18T07:03:57.600Z",
+  "updated_at": "2026-06-18T08:13:45.242Z",
   "assigned_at": null,
-  "done_at": null,
+  "done_at": "2026-06-18T08:13:45.242Z",
   "retired_at": null,
   "last_triaged_at": null,
   "stale_candidate_at": null,
   "retire_candidate_at": null,
-  "triage_notes": "v0.8.0 候補 / next-value-slice 由来"
+  "triage_notes": "完了: LightDef に LightColorCycle(hue=色相シフト/gradient=2〜4色巡回, hueRange/colors/speed/phase)。LightNode useFrame で intensity と color を分離変調(applyColorCycle, THREE.Color HSL/lerp, 共有クロック+phase)。Light Inspector に『色サイクル』UI(種類2択/色相振れ幅 or 色リスト+追加減/周期/位相)。発光ループと併用可。preview 実機で gradient 巡回 緑→青 を E2E 確認。build/test green。"
 }
