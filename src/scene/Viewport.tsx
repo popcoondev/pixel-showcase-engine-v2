@@ -14,6 +14,7 @@ import { focalToFov, runtime, useStore } from '../store'
 import type { LightDef, MaterialSettings, SceneObjectDef, Selection, Vec3 } from '../types'
 import { EffectNode } from './EffectNode'
 import { FlyControls } from './FlyControls'
+import { useGifTexture } from './gifTexture'
 import { enableShadows, loadGltf } from './gltfLoader'
 
 /** クリック共通処理: Camera モードの Screen Point フォーカス、Edit モードの選択 */
@@ -39,12 +40,16 @@ function StdMaterial({ m, side }: { m: MaterialSettings; side?: THREE.Side }) {
   const textureUrl = useStore((s) =>
     m.textureAssetId ? s.assets[m.textureAssetId] : undefined,
   )
-  const tex = useMemo(() => {
+  // GIF はループ再生する animated texture、それ以外は静止テクスチャ。
+  // 静止側は GIF のデコード完了までのプレースホルダ(1フレーム目)も兼ねる。
+  const gifTex = useGifTexture(textureUrl)
+  const staticTex = useMemo(() => {
     if (!textureUrl) return null
     const t = new THREE.TextureLoader().load(textureUrl)
     t.colorSpace = THREE.SRGBColorSpace
     return t
   }, [textureUrl])
+  const tex = gifTex ?? staticTex
 
   useEffect(() => {
     if (!tex) return
@@ -52,7 +57,8 @@ function StdMaterial({ m, side }: { m: MaterialSettings; side?: THREE.Side }) {
     tex.needsUpdate = true
   }, [tex, m.pixelated])
 
-  useEffect(() => () => tex?.dispose(), [tex])
+  // gif texture は hook 側で破棄する。ここでは自前の静止テクスチャのみ破棄。
+  useEffect(() => () => staticTex?.dispose(), [staticTex])
 
   return (
     <meshStandardMaterial
