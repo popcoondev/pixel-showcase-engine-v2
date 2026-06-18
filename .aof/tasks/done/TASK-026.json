@@ -1,0 +1,15 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-026",
+  "title": "配置したGIF画像プレートをループ再生(アニメーション対応)",
+  "status": "done",
+  "completed_at": "2026-06-18",
+  "phase": "growth",
+  "owner_role": "Builder",
+  "owner_team": "scene-team",
+  "context": "maintainer 要望: オブジェクト画像のGIF再生に対応。配置したGIFが全てループ再生する状態にしたい。従来は画像プレートにGIFを置いても1フレーム目で静止していた。",
+  "outcome": "src/scene/gifTexture.ts に useGifTexture フックを新設。ブラウザ標準 ImageDecoder で GIF を全フレームデコードし、CanvasTexture を frame の delay に従って毎フレーム更新・ループ再生する(差分フレーム/透明の合成は ImageDecoder が自動処理)。StdMaterial(Viewport.tsx)で GIF なら animated texture、それ以外は従来の静止テクスチャ。静止側は GIF デコード完了までのプレースホルダも兼ねる。",
+  "design": "先頭4バイト(GIFマジック 'GIF8')で判定するため dataURL(エディタ/ローカル)でもクラウド公開の https URL でも動作。極端に短い frame delay(<20ms)はブラウザ慣習で 100ms に丸め。frame index が変わったフレームのみ canvas 再描画+needsUpdate でGPUアップロードを最小化。gif texture の破棄は hook 側、静止テクスチャの破棄は StdMaterial 側、と所有を分離。ImageDecoder 非対応環境は静止テクスチャにフォールバック。追加ライブラリなし。",
+  "verified": "build/test green(test 10 passed)。preview 実機(Chromium)で ImageDecoder 利用可・GIF判定true・3フレームGIF(各300ms)を正しくデコード(frameCount=3, durations=300000µs)。addPlane で GIF プレートを配置し、スクリーンショットで 緑(F3)→赤(F1) のフレーム切替=ループ再生をエンドツーエンド確認。テストプレートは撤去済み。",
+  "note": "全フレームを ImageBitmap に展開して保持するため、巨大GIFはメモリ消費に注意(ドット絵想定では問題なし)。将来: 大判GIFのオンデマンドデコード、編集パネルでのGIF判別表示。"
+}
