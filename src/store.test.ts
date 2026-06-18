@@ -169,6 +169,56 @@ describe('loadScene / serialize 往復', () => {
     expect(out.objects[0].position).toEqual([1, 2, 3])
   })
 
+  it('動きループ系(motion/pulse/colorCycle/easing/phase)が公開シーンの往復で保たれる', () => {
+    const scene: SceneFile = {
+      version: 2,
+      name: 'loops',
+      assets: {},
+      objects: [
+        {
+          id: 'o1',
+          name: 'm',
+          kind: 'cube',
+          position: [0, 0, 0],
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1],
+          material: {
+            color: '#ffffff',
+            metalness: 0,
+            roughness: 1,
+            emissive: '#000000',
+            emissiveIntensity: 0,
+            pixelated: true,
+          },
+          motion: { enabled: true, moveX: 0, moveY: 0.4, moveZ: 0, spinY: 30, speed: 6, easing: 'easeInOut', phase: 0.25 },
+        },
+      ],
+      lights: [
+        {
+          id: 'l1',
+          name: 'key',
+          kind: 'point',
+          color: '#ff00ff',
+          intensity: 50,
+          position: [0, 3, 0],
+          castShadow: false,
+          pulse: { enabled: true, mode: 'pulse', min: 0.2, speed: 1, easing: 'easeOut', phase: 0.5 },
+          colorCycle: { enabled: true, mode: 'gradient', hueRange: 60, colors: ['#ff00ff', '#00ffff', '#ffff00'], speed: 4, phase: 0.5 },
+        },
+      ],
+      env: {} as EnvSettings,
+      camera: { ...camera, motion: { enabled: true, yawDeg: 18, pitchDeg: 4, dolly: 0.1, speed: 11, easing: 'easeInOut', phase: 0.5 } },
+      shots: [],
+      activeShotId: null,
+    }
+    useStore.getState().loadScene(scene)
+    const out = useStore.getState().serialize()
+    expect(out.objects[0].motion).toEqual(scene.objects[0].motion)
+    expect(out.lights[0].pulse).toEqual(scene.lights[0].pulse)
+    expect(out.lights[0].colorCycle).toEqual(scene.lights[0].colorCycle)
+    expect(out.camera.motion).toEqual(scene.camera.motion)
+  })
+
   it('旧 env トグル (sparkleEnabled) は effects に移行される', () => {
     const legacy = v1Scene({
       env: { sparkleEnabled: true } as unknown as EnvSettings,
