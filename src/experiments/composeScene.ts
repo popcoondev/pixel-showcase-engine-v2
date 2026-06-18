@@ -104,7 +104,7 @@ export function composeScene(assets: ComposerAsset[], opts: ComposeOptions = {})
     const z = -Math.abs(t) * spacing * 0.5
     const yaw = -t * 0.6 // 端を内側に向ける
     if (a.kind === 'glb') {
-      objects.push({
+      const o: SceneObjectDef = {
         id: id(),
         name: a.name,
         kind: 'glb',
@@ -113,10 +113,12 @@ export function composeScene(assets: ComposerAsset[], opts: ComposeOptions = {})
         scale: [1, 1, 1],
         material: material(),
         glbAssetId: a.hash,
-        motion: opts.turntable
-          ? { enabled: true, moveX: 0, moveY: 0, moveZ: 0, spinY: 18, speed: 8, easing: 'linear' }
-          : undefined,
-      })
+      }
+      // motion は undefined キーを作らない(Firestore は undefined を拒否する)
+      if (opts.turntable) {
+        o.motion = { enabled: true, moveX: 0, moveY: 0, moveZ: 0, spinY: 18, speed: 8, easing: 'linear' }
+      }
+      objects.push(o)
     } else {
       const aspect = a.aspect && a.aspect > 0 ? a.aspect : 1
       const h = 1.6

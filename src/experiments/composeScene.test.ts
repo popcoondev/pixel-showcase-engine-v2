@@ -44,6 +44,12 @@ describe('composeScene', () => {
     expect(glb.motion?.spinY).toBeGreaterThan(0)
   })
 
+  it('turntable オフの GLB は motion キーを持たない(Firestore は undefined を拒否する)', () => {
+    const f = composeScene(assets) // turntable 未指定
+    const glb = f.objects.find((o) => o.kind === 'glb')!
+    expect(Object.prototype.hasOwnProperty.call(glb, 'motion')).toBe(false)
+  })
+
   it('単一アセットは中央に置く', () => {
     const f = composeScene([assets[1]])
     expect(f.objects[0].position[0]).toBe(0)

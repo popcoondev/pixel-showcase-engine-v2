@@ -2,6 +2,8 @@ const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https')
 const admin = require('firebase-admin')
 
 admin.initializeApp()
+// 動的生成シーンの保存で undefined フィールドが混じっても 500 にしない(値ごと無視)。
+admin.firestore().settings({ ignoreUndefinedProperties: true })
 
 /**
  * 退会: 認証ユーザー自身のデータをサーバー権威で完全削除する (TASK-019, DR-2026-007)。
@@ -118,11 +120,13 @@ function composeSceneServer(assets, opts) {
     const z = -Math.abs(t) * spacing * 0.5
     const yaw = -t * 0.6
     if (a.kind === 'glb') {
-      objects.push({
+      const o = {
         id: aiId(), name: a.name, kind: 'glb', position: [x, 0, z], rotation: [0, yaw, 0], scale: [1, 1, 1],
         material: aiMaterial(), glbAssetId: a.hash,
-        motion: turntable ? { enabled: true, moveX: 0, moveY: 0, moveZ: 0, spinY: 18, speed: 8, easing: 'linear' } : undefined,
-      })
+      }
+      // motion は undefined キーを作らない(Firestore は undefined を拒否=500 になる)
+      if (turntable) o.motion = { enabled: true, moveX: 0, moveY: 0, moveZ: 0, spinY: 18, speed: 8, easing: 'linear' }
+      objects.push(o)
     } else {
       const aspect = a.aspect && a.aspect > 0 ? a.aspect : 1
       const h = 1.6
