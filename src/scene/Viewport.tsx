@@ -11,7 +11,15 @@ import {
 import { Effect, ToneMappingMode, type DepthOfFieldEffect } from 'postprocessing'
 import * as THREE from 'three'
 import { focalToFov, runtime, useStore } from '../store'
-import type { EasingKind, LightDef, MaterialSettings, SceneObjectDef, Selection, Vec3 } from '../types'
+import type {
+  EasingKind,
+  LightColorCycle,
+  LightDef,
+  MaterialSettings,
+  SceneObjectDef,
+  Selection,
+  Vec3,
+} from '../types'
 import { EffectNode } from './EffectNode'
 import { ease, easeOsc } from './easing'
 import { FlyControls } from './FlyControls'
@@ -226,6 +234,32 @@ function ObjectNode({ def }: { def: SceneObjectDef }) {
   )
 }
 
+const CC_HSL = { h: 0, s: 0, l: 0 }
+const CC_A = new THREE.Color()
+const CC_B = new THREE.Color()
+
+/** 色サイクルを target に書き込む。base=基準色, t=共有クロック秒 */
+function applyColorCycle(target: THREE.Color, base: string, cc: LightColorCycle, t: number) {
+  const speed = Math.max(0.05, cc.speed)
+  const tp = t + (cc.phase ?? 0) * speed // 位相 = 1 周期ぶんの時間シフト
+  if (cc.mode === 'hue') {
+    target.set(base)
+    target.getHSL(CC_HSL)
+    const h = (CC_HSL.h + (cc.hueRange / 360) * Math.sin((Math.PI * 2 * tp) / speed) + 1) % 1
+    target.setHSL(h, CC_HSL.s, CC_HSL.l)
+    return
+  }
+  // gradient: 2〜4 色を巡回
+  const cols = cc.colors && cc.colors.length >= 2 ? cc.colors : [base, base]
+  const n = cols.length
+  const u = ((((tp / speed) % 1) + 1) % 1) * n
+  const i = Math.floor(u) % n
+  const f = u - Math.floor(u)
+  CC_A.set(cols[i])
+  CC_B.set(cols[(i + 1) % n])
+  target.copy(CC_A).lerp(CC_B, f)
+}
+
 /** 発光ループ: 経過時間 t(秒)から基準強度に対する係数 0..1 を返す。phase=共有クロック上の位相 0..1 */
 function pulseFactor(
   mode: 'pulse' | 'blink' | 'flicker',
@@ -261,18 +295,27 @@ function LightNode({ def }: { def: LightDef }) {
     }
   }, [def.id])
 
-  // 発光ループ: Preview/Viewer で intensity を明滅させる。Edit では基準値で静止。
+  // 発光ループ + 色サイクル: Preview/Viewer で intensity / color を変調。Edit では基準値で静止。
   useFrame((state) => {
     const l = lightRef.current
     if (!l) return
-    const p = def.pulse
     const framed = mode === 'preview' || viewerLocked
-    if (!p || !p.enabled || !framed) {
+    const t = state.clock.elapsedTime
+    // 明滅
+    const p = def.pulse
+    if (p && p.enabled && framed) {
+      const k = pulseFactor(p.mode, t, Math.max(0.05, p.speed), p.easing, p.phase ?? 0)
+      l.intensity = def.intensity * (p.min + (1 - p.min) * k)
+    } else {
       l.intensity = def.intensity
-      return
     }
-    const k = pulseFactor(p.mode, state.clock.elapsedTime, Math.max(0.05, p.speed), p.easing, p.phase ?? 0)
-    l.intensity = def.intensity * (p.min + (1 - p.min) * k)
+    // 色サイクル
+    const cc = def.colorCycle
+    if (cc && cc.enabled && framed) {
+      applyColorCycle(l.color, def.color, cc, t)
+    } else {
+      l.color.set(def.color)
+    }
   })
 
   return (

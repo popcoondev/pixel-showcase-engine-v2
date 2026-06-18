@@ -8,6 +8,7 @@ import type {
   EasingKind,
   EffectKind,
   FocusMode,
+  LightColorCycleMode,
   LightKind,
   LightPulseMode,
   ObjectMotion,
@@ -27,6 +28,11 @@ const PULSE_MODE_LABELS: Record<LightPulseMode, string> = {
   pulse: '柔らかく明滅',
   blink: '素早く点滅',
   flicker: 'ちらつき',
+}
+
+const COLOR_CYCLE_MODE_LABELS: Record<LightColorCycleMode, string> = {
+  hue: '色相シフト',
+  gradient: '多色グラデ',
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -722,6 +728,99 @@ export function LightPanel() {
                 onChange={(v) => s().setLightPulse(light.id, { phase: v })}
               />
               <div className="empty">プレビュー(▶)/公開ページで明滅します。編集中は基準の明るさで静止。</div>
+            </>
+          )}
+        </Section>
+      ) : null}
+      {light ? (
+        <Section title="色サイクル">
+          <ToggleRow
+            label="有効"
+            value={light.colorCycle?.enabled ?? false}
+            onChange={(v) => s().setLightColorCycle(light.id, { enabled: v })}
+          />
+          {light.colorCycle?.enabled && (
+            <>
+              <Row label="種類">
+                <div className="btn-grid" style={{ gridTemplateColumns: '1fr 1fr', margin: 0 }}>
+                  {(['hue', 'gradient'] as LightColorCycleMode[]).map((m) => (
+                    <button
+                      key={m}
+                      className={light.colorCycle?.mode === m ? 'active' : ''}
+                      onClick={() => s().setLightColorCycle(light.id, { mode: m })}
+                    >
+                      {COLOR_CYCLE_MODE_LABELS[m]}
+                    </button>
+                  ))}
+                </div>
+              </Row>
+              {light.colorCycle.mode === 'hue' ? (
+                <SliderRow
+                  label="色相の振れ幅"
+                  value={light.colorCycle.hueRange}
+                  min={0}
+                  max={180}
+                  step={1}
+                  format={(v) => `±${Math.round(v)}°`}
+                  onChange={(v) => s().setLightColorCycle(light.id, { hueRange: v })}
+                />
+              ) : (
+                <>
+                  {light.colorCycle.colors.map((c, i) => (
+                    <ColorRow
+                      key={i}
+                      label={`色 ${i + 1}`}
+                      value={c}
+                      onChange={(v) => {
+                        const next = [...light.colorCycle!.colors]
+                        next[i] = v
+                        s().setLightColorCycle(light.id, { colors: next })
+                      }}
+                    />
+                  ))}
+                  <div className="btn-grid">
+                    <button
+                      disabled={light.colorCycle.colors.length >= 4}
+                      onClick={() =>
+                        s().setLightColorCycle(light.id, {
+                          colors: [...light.colorCycle!.colors, '#ffffff'],
+                        })
+                      }
+                    >
+                      色を追加
+                    </button>
+                    <button
+                      disabled={light.colorCycle.colors.length <= 2}
+                      onClick={() =>
+                        s().setLightColorCycle(light.id, {
+                          colors: light.colorCycle!.colors.slice(0, -1),
+                        })
+                      }
+                    >
+                      減らす
+                    </button>
+                  </div>
+                </>
+              )}
+              <SliderRow
+                label="周期"
+                value={light.colorCycle.speed}
+                min={1}
+                max={20}
+                step={0.5}
+                format={(v) => `${v.toFixed(1)}s`}
+                onChange={(v) => s().setLightColorCycle(light.id, { speed: v })}
+              />
+              <SliderRow
+                label="位相(連動)"
+                value={light.colorCycle.phase ?? 0}
+                min={0}
+                max={1}
+                step={0.01}
+                format={(v) => `${Math.round(v * 100)}%`}
+                onChange={(v) => s().setLightColorCycle(light.id, { phase: v })}
+              />
+              <div className="empty">プレビュー(▶)/公開ページで色が巡回します。発光ループと併用可。</div>
             </>
           )}
         </Section>

@@ -70,6 +70,22 @@ export interface LightPulse {
   phase?: number
 }
 
+/** 色サイクルの種類: hue=基準色の色相を揺らす / gradient=複数色を巡回 */
+export type LightColorCycleMode = 'hue' | 'gradient'
+
+export interface LightColorCycle {
+  enabled: boolean
+  mode: LightColorCycleMode
+  /** hue: 色相の振れ幅(度 0..180) */
+  hueRange: number
+  /** gradient: 巡回する色(2〜4色) */
+  colors: string[]
+  /** 周期 秒 */
+  speed: number
+  /** 共有クロック上の位相オフセット 0..1(任意) */
+  phase?: number
+}
+
 export interface LightDef {
   id: string
   name: string
@@ -80,6 +96,8 @@ export interface LightDef {
   castShadow: boolean
   /** 任意: 発光ループ(明滅/点滅/ちらつき)。未設定なら静止 */
   pulse?: LightPulse
+  /** 任意: 色サイクル(色相シフト/多色グラデ)。未設定なら基準色で静止 */
+  colorCycle?: LightColorCycle
 }
 
 export interface EnvSettings {

@@ -9,6 +9,7 @@ import type {
   EffectDef,
   EffectKind,
   EnvSettings,
+  LightColorCycle,
   LightDef,
   LightKind,
   LightPulse,
@@ -178,6 +179,14 @@ export const defaultLightPulse = (): LightPulse => ({
   speed: 1.5,
 })
 
+export const defaultLightColorCycle = (base = '#ff3df0'): LightColorCycle => ({
+  enabled: true,
+  mode: 'gradient',
+  hueRange: 60,
+  colors: [base, '#3df0ff', '#f0e63d'],
+  speed: 4,
+})
+
 const defaultCamera = (): CameraSettings => ({
   focalLength: 35,
   exposure: 1,
@@ -298,6 +307,7 @@ interface StoreState {
   addLight: (kind: LightKind) => void
   updateLight: (id: string, patch: Partial<LightDef>) => void
   setLightPulse: (id: string, patch: Partial<LightPulse>) => void
+  setLightColorCycle: (id: string, patch: Partial<LightColorCycle>) => void
   removeLight: (id: string) => void
 
   addEffect: (kind: EffectKind) => void
@@ -700,6 +710,15 @@ export const useStore = create<StoreState>()((set, get) => ({
     set((s) => ({
       lights: s.lights.map((l) =>
         l.id === id ? { ...l, pulse: { ...(l.pulse ?? defaultLightPulse()), ...patch } } : l,
+      ),
+    })),
+
+  setLightColorCycle: (id, patch) =>
+    set((s) => ({
+      lights: s.lights.map((l) =>
+        l.id === id
+          ? { ...l, colorCycle: { ...(l.colorCycle ?? defaultLightColorCycle(l.color)), ...patch } }
+          : l,
       ),
     })),
 
