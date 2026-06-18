@@ -206,6 +206,122 @@ exports.createSceneFromAssets = onCall({ region: 'asia-northeast1' }, async (req
   return { ok: true, sceneId: docRef.id, objectCount: scene.objects.length }
 })
 
+// ============================================================================
+// エージェント編集API (TASK-035 / DR-2026-009): list / get / draft / place。
+// すべて uid 自損スコープ・書き込み検証・上限つき。状態はクラウドのシーン doc。
+// ============================================================================
+
+const AI_MAX_OBJECTS = 300
+const AI_DAILY_OP_LIMIT = 500
+
+function aiClamp(x, lo, hi, def) {
+  const n = typeof x === 'number' && isFinite(x) ? x : def
+  return Math.max(lo, Math.min(hi, n))
+}
+function aiVec3(arr, lo, hi, def) {
+  const a = Array.isArray(arr) ? arr : []
+  return [aiClamp(a[0], lo, hi, def[0]), aiClamp(a[1], lo, hi, def[1]), aiClamp(a[2], lo, hi, def[2])]
+}
+
+exports.listAssets = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const snap = await admin.firestore().collection('users').doc(uid).collection('assets').get()
+  const assets = snap.docs.map((d) => {
+    const x = d.data() || {}
+    return { hash: d.id, name: x.name || '(無題)', kind: x.kind === 'glb' ? 'glb' : 'image', aspect: typeof x.aspect === 'number' ? x.aspect : null }
+  })
+  return { ok: true, assets }
+})
+
+exports.createDraftScene = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const name = typeof data.name === 'string' && data.name.trim() ? data.name.trim().slice(0, 80) : '下書きシーン'
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  const u = (await userRef.get()).data() || {}
+  if ((u.sceneCount || 0) >= AI_SCENE_LIMIT) throw new HttpsError('resource-exhausted', 'scene limit reached')
+  const eye = [0, 1.5, 7], target = [0, 1, 0]
+  const shot = { id: aiId(), name: 'Auto Shot', position: eye, quaternion: lookAtQuaternion(eye, target), settings: aiCameraSettings(), focusTarget: target }
+  const scene = { version: 2, name, objects: [], lights: aiLights(), effects: [], env: aiEnv(), camera: aiCameraSettings(), shots: [shot], activeShotId: shot.id }
+  const docRef = userRef.collection('showcases').doc()
+  const batch = db.batch()
+  batch.set(docRef, { name, ownerUid: uid, scene, assetRefs: {}, updatedAt: admin.firestore.FieldValue.serverTimestamp(), createdBy: 'createDraftScene' })
+  batch.set(userRef, { sceneCount: admin.firestore.FieldValue.increment(1) }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: docRef.id }
+})
+
+exports.getScene = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const sceneId = (request.data || {}).sceneId
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  const snap = await admin.firestore().doc('users/' + uid + '/showcases/' + sceneId).get()
+  if (!snap.exists) throw new HttpsError('not-found', 'scene not found')
+  const d = snap.data() || {}
+  return { ok: true, sceneId, name: d.name || '', scene: d.scene || null, assetRefs: d.assetRefs || {} }
+})
+
+exports.placeAsset = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const sceneId = data.sceneId
+  const hash = data.hash
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  if (typeof hash !== 'string' || !hash) throw new HttpsError('invalid-argument', 'hash required')
+
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  const u = (await userRef.get()).data() || {}
+
+  // 1日あたり書き込み操作上限(DR-2026-009 条件3)
+  const today = new Date().toISOString().slice(0, 10)
+  const opCount = u.aiOpDate === today ? u.aiOpCount || 0 : 0
+  if (opCount >= AI_DAILY_OP_LIMIT) throw new HttpsError('resource-exhausted', 'daily operation limit reached')
+
+  // asset が本人 library に在ること(条件1,2)
+  const assetSnap = await userRef.collection('assets').doc(hash).get()
+  if (!assetSnap.exists) throw new HttpsError('failed-precondition', 'asset not in your library')
+  const asset = assetSnap.data() || {}
+  const kind = asset.kind === 'glb' ? 'glb' : 'image'
+  const aspect = typeof asset.aspect === 'number' && asset.aspect > 0 ? asset.aspect : 1
+
+  const sceneRef = userRef.collection('showcases').doc(sceneId)
+  const sceneSnap = await sceneRef.get()
+  if (!sceneSnap.exists) throw new HttpsError('not-found', 'scene not found')
+  const docData = sceneSnap.data() || {}
+  const scene = docData.scene || {}
+  const objects = Array.isArray(scene.objects) ? scene.objects : []
+  if (objects.length >= AI_MAX_OBJECTS) throw new HttpsError('resource-exhausted', 'object limit reached')
+
+  // 入力の検証/クランプ(条件2)
+  const position = aiVec3(data.position, -50, 50, [0, 0, 0])
+  const r = Array.isArray(data.rotation) ? data.rotation : []
+  const rotation = [aiClamp(r[0], -12.6, 12.6, 0), aiClamp(r[1], -12.6, 12.6, 0), aiClamp(r[2], -12.6, 12.6, 0)]
+
+  let obj
+  if (kind === 'glb') {
+    const s = aiClamp(Array.isArray(data.scale) ? data.scale[0] : 1, 0.01, 50, 1)
+    obj = { id: aiId(), name: asset.name || 'asset', kind: 'glb', position, rotation, scale: [s, s, s], material: aiMaterial(), glbAssetId: hash }
+  } else {
+    const h = aiClamp(Array.isArray(data.scale) ? data.scale[1] : 1.6, 0.05, 50, 1.6)
+    obj = { id: aiId(), name: asset.name || 'asset', kind: 'plane', position: [position[0], position[1] || h / 2, position[2]], rotation, scale: [h * aspect, h, 1], material: Object.assign(aiMaterial(), { textureAssetId: hash }) }
+  }
+  objects.push(obj)
+  const assetRefs = Object.assign({}, docData.assetRefs || {})
+  assetRefs[hash] = asset.storagePath || 'assets/' + hash
+
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.objects': objects, assetRefs, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId, objectId: obj.id, objectCount: objects.length }
+})
+
 const APP_ORIGIN = 'https://pixelshowcase-7bc44.web.app'
 const DEFAULT_DESC = 'ドット絵・GLB・画像プレートを3D空間に置いて、固定画角の展示として見せる'
 
