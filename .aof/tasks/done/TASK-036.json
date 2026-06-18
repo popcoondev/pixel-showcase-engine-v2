@@ -2,19 +2,19 @@
   "task_id": "TASK-036",
   "title": "MCP ゲートウェイ: 編集APIを Claude のツールとして公開 (DR-2026-009 スライス2)",
   "description": "maintainer 運用の MCP サーバー。Firebase 資格情報を保持し ID トークンを取得、listAssets/getScene/createDraftScene/placeAsset を MCP ツールとして公開。Claude は生トークンを見ない。service-account JSON はリポジトリに置かない。",
-  "status": "open",
+  "status": "done",
   "origin": "human",
   "orchestrator_session_id": null,
   "assigned_session_ids": [],
   "related_decision_record_id": null,
   "operating_goal_ref": null,
   "created_at": "2026-06-18T22:42:20.458Z",
-  "updated_at": "2026-06-18T23:13:44.672Z",
+  "updated_at": "2026-06-18T23:19:52.273Z",
   "assigned_at": null,
-  "done_at": null,
+  "done_at": "2026-06-18T23:19:52.273Z",
   "retired_at": null,
   "last_triaged_at": null,
   "stale_candidate_at": null,
   "retire_candidate_at": null,
-  "triage_notes": "標準MCP互換が要件: Claude だけでなく Codex 等あらゆる MCP クライアントで使えること=標準 stdio transport + JSON Schema ツール、ベンダー依存なし。@modelcontextprotocol/sdk + Firebase クライアントSDK(headless サインイン: サービスアカウントで自分uid用 custom token→signInWithCustomToken)。契約は docs/agent-api.md。秘密はリポジトリ外。"
+  "triage_notes": "実装着地(install/config は人手): mcp-server/ サブパッケージ。標準 stdio + JSON Schema(zod)で7ツール公開=Claude/Codex 等任意のMCP互換。認証=SA custom token→signInWithCustomToken、生トークンは外に出ない。node --check OK。**人手の残: ① firebase deploy --only functions(update/remove) ② cd mcp-server && npm install ③ SA鍵+PSE_UID 設定しMCPクライアントに登録。** 視覚フィードバックは将来課題。"
 }
