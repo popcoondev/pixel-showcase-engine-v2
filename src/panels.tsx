@@ -442,6 +442,15 @@ export function CameraPanel() {
               onChange={(v) => setCameraMotion({ speed: v })}
             />
             <EasingRow value={motion.easing} onChange={(v) => setCameraMotion({ easing: v })} />
+            <SliderRow
+              label="位相(連動)"
+              value={motion.phase ?? 0}
+              min={0}
+              max={1}
+              step={0.01}
+              format={(v) => `${Math.round(v * 100)}%`}
+              onChange={(v) => setCameraMotion({ phase: v })}
+            />
           </>
         )}
         <Empty text="Preview / 公開ページで被写体の周りをループで動きます(各 0 で無効)。Save Shot に焼き込まれます。" />
@@ -547,6 +556,7 @@ export function ObjectPanel() {
             <SliderRow label="回転(連続)" value={om.spinY} min={0} max={180} step={1} format={(v) => `${Math.round(v)}°/s`} onChange={(v) => setMotion({ spinY: v })} />
             <SliderRow label="周期" value={om.speed} min={1} max={20} step={0.5} format={(v) => `${v.toFixed(1)}s`} onChange={(v) => setMotion({ speed: v })} />
             <EasingRow value={om.easing} onChange={(v) => setMotion({ easing: v })} />
+            <SliderRow label="位相(連動)" value={om.phase ?? 0} min={0} max={1} step={0.01} format={(v) => `${Math.round(v * 100)}%`} onChange={(v) => setMotion({ phase: v })} />
           </>
         )}
         <Empty text="Preview / 公開ページで基準位置の周りをループします(各 0 で無効)。回転はターンテーブルです。" />
@@ -702,6 +712,15 @@ export function LightPanel() {
                   onChange={(v) => s().setLightPulse(light.id, { easing: v })}
                 />
               )}
+              <SliderRow
+                label="位相(連動)"
+                value={light.pulse.phase ?? 0}
+                min={0}
+                max={1}
+                step={0.01}
+                format={(v) => `${Math.round(v * 100)}%`}
+                onChange={(v) => s().setLightPulse(light.id, { phase: v })}
+              />
               <div className="empty">プレビュー(▶)/公開ページで明滅します。編集中は基準の明るさで静止。</div>
             </>
           )}

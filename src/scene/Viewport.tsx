@@ -188,7 +188,7 @@ function ObjectNode({ def }: { def: SceneObjectDef }) {
       return
     }
     const t = state.clock.elapsedTime
-    const ph = (Math.PI * 2 * t) / Math.max(1, m.speed)
+    const ph = (Math.PI * 2 * t) / Math.max(1, m.speed) + Math.PI * 2 * (m.phase ?? 0)
     g.position.set(
       def.position[0] + m.moveX * easeOsc(m.easing, Math.sin(ph)),
       def.position[1] + m.moveY * easeOsc(m.easing, Math.sin(ph + Math.PI / 2)),
@@ -226,18 +226,21 @@ function ObjectNode({ def }: { def: SceneObjectDef }) {
   )
 }
 
-/** 発光ループ: 経過時間 t(秒)から基準強度に対する係数 0..1 を返す */
+/** 発光ループ: 経過時間 t(秒)から基準強度に対する係数 0..1 を返す。phase=共有クロック上の位相 0..1 */
 function pulseFactor(
   mode: 'pulse' | 'blink' | 'flicker',
   t: number,
   speed: number,
   easing?: EasingKind,
+  phase = 0,
 ): number {
-  const ph = Math.PI * 2 * t * speed
+  // 位相を 1 周期ぶんの時間シフトとして全モードに反映(共有クロックで交互/連動)
+  const tp = t + phase / Math.max(speed, 0.05)
+  const ph = Math.PI * 2 * tp * speed
   if (mode === 'blink') return Math.sin(ph) >= 0 ? 1 : 0
   if (mode === 'flicker') {
     // 不規則(ネオン管のちらつき): 非整数倍の正弦を合成し、明側に寄せる
-    const v = (Math.sin(t * speed * 8.1) + Math.sin(t * speed * 15.3) + Math.sin(t * speed * 23.7)) / 3
+    const v = (Math.sin(tp * speed * 8.1) + Math.sin(tp * speed * 15.3) + Math.sin(tp * speed * 23.7)) / 3
     return Math.pow(0.5 + 0.5 * v, 0.45)
   }
   // pulse: 柔らかい明滅(イージングで溜め/抜けを付けられる)
@@ -268,7 +271,7 @@ function LightNode({ def }: { def: LightDef }) {
       l.intensity = def.intensity
       return
     }
-    const k = pulseFactor(p.mode, state.clock.elapsedTime, Math.max(0.05, p.speed), p.easing)
+    const k = pulseFactor(p.mode, state.clock.elapsedTime, Math.max(0.05, p.speed), p.easing, p.phase ?? 0)
     l.intensity = def.intensity * (p.min + (1 - p.min) * k)
   })
 
@@ -468,7 +471,9 @@ function CameraRig() {
         : base.length()
     if (!(d > 0)) d = 6
     const pivot = TMP_PIVOT.copy(base).addScaledVector(TMP_FWD, d)
-    const ph = (Math.PI * 2 * state.clock.elapsedTime) / Math.max(1, motion.speed)
+    const ph =
+      (Math.PI * 2 * state.clock.elapsedTime) / Math.max(1, motion.speed) +
+      Math.PI * 2 * (motion.phase ?? 0)
     const sinE = easeOsc(motion.easing, Math.sin(ph))
     const cosE = easeOsc(motion.easing, Math.cos(ph))
     const yaw = THREE.MathUtils.degToRad(motion.yawDeg) * sinE

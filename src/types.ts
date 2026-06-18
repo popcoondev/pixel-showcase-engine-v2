@@ -29,6 +29,8 @@ export interface ObjectMotion {
   speed: number
   /** 揺れのイージング(任意。旧データは linear 相当) */
   easing?: EasingKind
+  /** 共有クロック上の位相オフセット 0..1(同周期の別ループと連動させる。任意) */
+  phase?: number
 }
 
 /** 動きループの揺れ方。linear=純正弦(従来), easeInOut=端で溜める, easeIn/easeOut=片側に溜める */
@@ -64,6 +66,8 @@ export interface LightPulse {
   speed: number
   /** 明滅のイージング(pulse モード時に有効。任意) */
   easing?: EasingKind
+  /** 共有クロック上の位相オフセット 0..1(同速の別ライトと交互/連動。任意) */
+  phase?: number
 }
 
 export interface LightDef {
@@ -137,6 +141,8 @@ export interface CameraMotion {
   speed: number
   /** カメラワークのイージング(任意。旧データは linear 相当) */
   easing?: EasingKind
+  /** 共有クロック上の位相オフセット 0..1(任意) */
+  phase?: number
 }
 
 export interface CameraSettings {
