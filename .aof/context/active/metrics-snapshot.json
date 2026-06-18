@@ -2,7 +2,7 @@
   "snapshot_type": "aof-metrics-snapshot",
   "snapshot_format_version": 1,
   "organization_ref": ".aof/organization.json",
-  "generated_at": "2026-06-18T07:04:11.156Z",
+  "generated_at": "2026-06-18T08:18:54.845Z",
   "declared_metric_ids": [
     "m-quality",
     "m-cost",
@@ -14,7 +14,7 @@
     {
       "metric_key": "task-open-count",
       "name": "Open Task Count",
-      "value": 9,
+      "value": 5,
       "unit": "tasks",
       "source": ".aof/tasks/open",
       "mapped_declared_metric_id": null
@@ -22,7 +22,7 @@
     {
       "metric_key": "task-throughput-total",
       "name": "Task Throughput Total",
-      "value": 22,
+      "value": 26,
       "unit": "tasks",
       "source": ".aof/tasks",
       "mapped_declared_metric_id": null

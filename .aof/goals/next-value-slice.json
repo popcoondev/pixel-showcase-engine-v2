@@ -1,9 +1,9 @@
 {
   "goal_type": "next-value-slice",
-  "content": "v0.8.0『動き・リッチさ』の収れん: (1) 動きループのプリセット&イージング、(2) 複数ライト/オブジェクトの位相同期(共有クロックで連動演出)、(3) ライト発光の色サイクル、(4) 公開Viewerでの動き一貫再生の堅牢化。範囲=編集UIとViewer再生まで。非要件厳守・後方互換維持・新バックエンド/サーバー動画保存は範囲外。",
-  "updated_at": "2026-06-18T07:03:13.355Z",
+  "content": "v0.8.0『動き・リッチさ』の収れん: 動きプリセット&イージング(028)/位相同期-共有クロック(029)/ライト発光の色サイクル(030)/公開Viewer動き一貫再生の検証(031)。全4タスク完了。",
+  "updated_at": "2026-06-18T08:19:19.891Z",
   "agreed_with_human": true,
-  "source_session_id": "SESS-MQJ5JV1L-BOSC1N",
+  "source_session_id": null,
   "source_decision_record_id": null,
-  "declared_complete_at": null
+  "declared_complete_at": "2026-06-18T08:19:19.891Z"
 }
