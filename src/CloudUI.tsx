@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { deleteAccount } from './cloud/account'
+import { createSceneFromAssets } from './cloud/aiCompose'
 import { listLibraryAssets, type LibraryAsset } from './cloud/assets'
 import { signInWithGoogle, signOutCloud } from './cloud/auth'
 import {
@@ -18,6 +19,9 @@ function msgOf(e: unknown): string {
   if (code.includes('requires-recent-login'))
     return 'セキュリティのため、一度サインアウトして再サインインしてから削除してください'
   if (code.includes('permission')) return '権限がありません (ルール未デプロイ?)'
+  if (code.includes('failed-precondition'))
+    return 'ライブラリにアセットがありません。先に GLB/画像を置いて ☁保存 してください'
+  if (code.includes('resource-exhausted')) return '生成上限に達しました (1日20件 / シーン20件)'
   if ((e as Error)?.message === 'not-signed-in') return 'サインインが必要です'
   return (e as Error)?.message ?? 'エラーが発生しました'
 }
@@ -36,6 +40,22 @@ async function doCloudSave() {
     s.flash('クラウドに保存しました')
   } catch (e) {
     s.flash(`クラウド保存に失敗: ${msgOf(e)}`)
+  } finally {
+    s.setCloudBusy(false)
+  }
+}
+
+/** アカウントのアセットからサーバ側で新シーンを生成し、読み込む (DR-2026-008) */
+async function doAiCompose() {
+  const s = useStore.getState()
+  try {
+    if (!s.cloudUser) await signInWithGoogle()
+    s.setCloudBusy(true)
+    const res = await createSceneFromAssets({ turntable: false })
+    await loadSceneFromCloud(res.sceneId)
+    s.flash(`AI が ${res.objectCount} 点でシーンを生成しました`)
+  } catch (e) {
+    s.flash(`AI生成に失敗: ${msgOf(e)}`)
   } finally {
     s.setCloudBusy(false)
   }
@@ -88,6 +108,9 @@ export function CloudBar() {
       </button>
       <button disabled={cloudBusy} onClick={() => setLib(true)}>
         ☁ ライブラリ
+      </button>
+      <button disabled={cloudBusy} onClick={doAiCompose} title="アカウントのアセットから自動でシーンを生成">
+        ✨ AIで組む
       </button>
       {open && <CloudScenesModal onClose={() => setOpen(false)} />}
       {lib && <LibraryModal onClose={() => setLib(false)} />}
