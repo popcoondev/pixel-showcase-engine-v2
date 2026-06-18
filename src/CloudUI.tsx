@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { deleteAccount } from './cloud/account'
+import { listLibraryAssets, type LibraryAsset } from './cloud/assets'
 import { signInWithGoogle, signOutCloud } from './cloud/auth'
 import {
   deleteCloudScene,
@@ -8,6 +9,7 @@ import {
   saveSceneToCloud,
   type CloudSceneMeta,
 } from './cloud/scenes'
+import { imageAspect } from './io'
 import { useStore } from './store'
 
 function msgOf(e: unknown): string {
@@ -70,10 +72,11 @@ export function CloudAccount() {
   )
 }
 
-/** フッターのクラウド操作 (保存 / 開く) + シーン一覧モーダル */
+/** フッターのクラウド操作 (保存 / 開く / ライブラリ) + 一覧モーダル */
 export function CloudBar() {
   const cloudBusy = useStore((s) => s.cloudBusy)
   const [open, setOpen] = useState(false)
+  const [lib, setLib] = useState(false)
 
   return (
     <div className="footer-group">
@@ -83,7 +86,80 @@ export function CloudBar() {
       <button disabled={cloudBusy} onClick={() => setOpen(true)}>
         ☁ 開く
       </button>
+      <button disabled={cloudBusy} onClick={() => setLib(true)}>
+        ☁ ライブラリ
+      </button>
       {open && <CloudScenesModal onClose={() => setOpen(false)} />}
+      {lib && <LibraryModal onClose={() => setLib(false)} />}
+    </div>
+  )
+}
+
+/** アカウントに登録済みのアセット一覧。クリックで現在のシーンに配置する。 */
+function LibraryModal({ onClose }: { onClose: () => void }) {
+  const [assets, setAssets] = useState<LibraryAsset[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      try {
+        if (!useStore.getState().cloudUser) await signInWithGoogle()
+        const list = await listLibraryAssets()
+        if (alive) setAssets(list)
+      } catch (e) {
+        if (alive) setError(msgOf(e))
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const place = async (a: LibraryAsset) => {
+    const s = useStore.getState()
+    try {
+      s.registerAssetUrl(a.hash, a.url)
+      if (a.kind === 'glb') {
+        s.addGlb(a.hash, a.name)
+      } else {
+        const aspect = await imageAspect(a.url)
+        s.addPlane(a.hash, aspect, a.name)
+      }
+      s.flash(`「${a.name}」を配置しました`)
+      onClose()
+    } catch (e) {
+      setError(msgOf(e))
+    }
+  }
+
+  return (
+    <div className="help-overlay" onClick={onClose}>
+      <div className="help-card cloud-modal" onClick={(e) => e.stopPropagation()}>
+        <h3>アセットライブラリ</h3>
+        <p className="welcome-lead">
+          このアカウントで保存したシーンのオブジェクトです。クリックで今のシーンに配置できます。
+        </p>
+        {error && <div className="cloud-error">{error}</div>}
+        {!assets && !error && <div className="empty">読み込み中…</div>}
+        {assets && assets.length === 0 && (
+          <div className="empty">まだアセットがありません。GLB/画像を置いてクラウド保存すると貯まります。</div>
+        )}
+        <ul className="item-list">
+          {assets?.map((a) => (
+            <li key={a.hash}>
+              <span className="shot-name">{a.name}</span>
+              <span className="kind">{a.kind === 'glb' ? '3D' : '画像'}</span>
+              <button className="mini" onClick={() => place(a)}>
+                配置
+              </button>
+            </li>
+          ))}
+        </ul>
+        <button className="wide" onClick={onClose}>
+          閉じる
+        </button>
+      </div>
     </div>
   )
 }

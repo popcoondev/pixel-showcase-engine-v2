@@ -15,6 +15,13 @@ service cloud.firestore {
                    && request.resource.data.sceneCount is int;
     }
 
+    // TASK-032: アカウント単位のアセットライブラリ。doc id = Storage content-hash。
+    // 本人のみ read/write。実体は Storage assets/{hash}(public read / create-only)を再利用。
+    match /users/{uid}/assets/{hash} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // 作業コピー: 本人のみ読み書き。ownerUid は作成後不変。
     // create はシーン数上限 (20) 未満のときのみ許可 (counter doc を参照)。
     match /users/{uid}/showcases/{id} {

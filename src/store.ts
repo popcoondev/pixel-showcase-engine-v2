@@ -294,6 +294,8 @@ interface StoreState {
 
   /** dataURL を assets に登録して id を返す(内容が同じなら既存 id を再利用) */
   registerAsset: (dataUrl: string) => Promise<string>
+  /** ライブラリ等から、内容ハッシュ(=key)と URL を指定してアセットを登録する */
+  registerAssetUrl: (hash: string, url: string) => void
   /** どのオブジェクトからも参照されなくなった asset を削除する */
   pruneAssets: () => void
   addCube: () => void
@@ -593,6 +595,12 @@ export const useStore = create<StoreState>()((set, get) => ({
       set((s) => ({ assets: { ...s.assets, [id]: dataUrl } }))
     }
     return id
+  },
+
+  registerAssetUrl: (hash, url) => {
+    if (!get().assets[hash]) {
+      set((s) => ({ assets: { ...s.assets, [hash]: url } }))
+    }
   },
 
   pruneAssets: () => {

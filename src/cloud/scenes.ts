@@ -1,3 +1,4 @@
+import { registerSceneAssets } from './assets'
 import { getDb } from '../firebase'
 import { useStore } from '../store'
 import type { SceneFile } from '../types'
@@ -42,6 +43,15 @@ export async function saveSceneToCloud(name: string): Promise<string> {
     batch.set(fs.doc(db, 'users', uid), { sceneCount: fs.increment(1) }, { merge: true })
   }
   await batch.commit()
+
+  // アカウント単位のアセットライブラリに登録 (TASK-032)。
+  // ルール未デプロイ等で失敗してもシーン保存自体は成功させる(ベストエフォート)。
+  try {
+    await registerSceneAssets(file.objects, assetRefs)
+  } catch (e) {
+    console.warn('asset library register skipped:', e)
+  }
+
   return docRef.id
 }
 
