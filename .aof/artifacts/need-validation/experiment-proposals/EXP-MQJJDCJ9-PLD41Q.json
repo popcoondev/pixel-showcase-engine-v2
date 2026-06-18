@@ -1,0 +1,12 @@
+{
+  "artifact_type": "experiment-proposal",
+  "recorded_at": "2026-06-18T13:29:03.669Z",
+  "experiment_proposal_id": "EXP-MQJJDCJ9-PLD41Q",
+  "assumption_to_test": "AI はアカウントのアセットから『破綻のない・見せ方品質を保った』展示シーンを生成できる(=価値の核)",
+  "smallest_testable_validation": "新公開サーフェスを作らず、オーナー資格情報で動くローカルスクリプトで listLibraryAssets→シーンJSON生成→saveSceneToCloud を数パターン試し、生成シーンを既存Viewerで目視評価",
+  "expected_learning": "生成品質が実用水準か / どの制約(配置規則・画角・ライト)をAIに与えれば破綻しないか / 本当に時短になるか",
+  "expected_cost": "数時間の実装+手動評価。新インフラ/新認証/コスト露出なし",
+  "success_threshold": "5シーン中4つが手直し最小で公開可能な品質、かつ人手より速い",
+  "source_task_id": null,
+  "source_decision_record_id": null
+}

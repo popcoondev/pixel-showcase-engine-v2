@@ -1,0 +1,14 @@
+{
+  "artifact_type": "problem-statement",
+  "recorded_at": "2026-06-18T13:28:30.481Z",
+  "problem_statement_id": "PST-MQJJCMXD-O0274W",
+  "affected_party": "展示を作る個人クリエイター(maintainer 含む)、および将来 AI エージェント経由で素材活用したいユーザー",
+  "actual_problem": "アカウントに貯めたアセット(GLB/画像)を、人手の編集UIでしか組めない。プログラム/AI からアセット一覧取得→新シーン生成ができないため、量産・自動配置・テンプレ展開ができない",
+  "why_it_matters": "見せ方の品質を保ったまま素材を再利用して展示を量産できると、作家の制作コストが下がり公開数=流入が増える(プロダクトの北極星に直結)",
+  "why_now": "TASK-032 でアカウント単位のアセット登録簿(users/{uid}/assets)が本番稼働し、プログラムから一覧/参照できる土台が整った",
+  "evidence_refs": [
+    ".aof/tasks/open/TASK-033.json"
+  ],
+  "source_task_id": null,
+  "source_decision_record_id": null
+}

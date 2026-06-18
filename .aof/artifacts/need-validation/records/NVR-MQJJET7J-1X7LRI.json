@@ -1,0 +1,42 @@
+{
+  "record_type": "need-validation-record",
+  "recorded_at": "2026-06-18T13:30:11.935Z",
+  "validation_id": "NVR-MQJJET7J-1X7LRI",
+  "raw_need": "AI/外部からアカウントのアセット一覧を取得し新シーンを生成・保存できるようにする(TASK-033)",
+  "validation_status": "experiment-required",
+  "validated_need": "AI がアカウントのアセットから見せ方品質を保った展示シーンを生成できる、を最小実験で先に検証する",
+  "decision_summary": "ニーズは妥当だが価値の核(AIが破綻ない展示を生成できるか)が未検証、かつフル外部API化は認証/App Check/濫用/コストの不可逆リスク大。まず新公開サーフェス無しのオーナー資格スクリプトで生成品質を検証し、良ければ段階的に安全な実行面へ拡張する",
+  "authority_action": "require-experiment",
+  "project_creation_recommendation": "create-project-after-experiment",
+  "validation_questions_answered": [
+    {
+      "question": "なぜ今か",
+      "answer": "TASK-032でアセット登録簿が稼働しプログラム参照の土台が整った",
+      "evidence_state": "strong"
+    },
+    {
+      "question": "最大リスクは",
+      "answer": "プログラム的クライアントはreCAPTCHA不可→App Check専用パス/認証が不可逆な外部サーフェスになり濫用・コスト露出を生む",
+      "evidence_state": "mixed"
+    },
+    {
+      "question": "価値の核は検証済みか",
+      "answer": "AI生成シーンの品質サンプルが無く未検証",
+      "evidence_state": "weak"
+    }
+  ],
+  "hidden_assumptions": [
+    "AI生成シーンが手直し最小で公開水準に達する(未検証)"
+  ],
+  "evidence_gaps": [
+    "実際の生成品質サンプルと時短の定量データが無い"
+  ],
+  "problem_statement_ref": "/Users/mn/development/pixel-showcase-engine/.aof/artifacts/need-validation/problem-statements/PST-MQJJCMXD-O0274W.json",
+  "value_hypothesis_ref": "/Users/mn/development/pixel-showcase-engine/.aof/artifacts/need-validation/value-hypotheses/VHY-MQJJDCEG-52XJDX.json",
+  "alternative_analysis_ref": "/Users/mn/development/pixel-showcase-engine/.aof/artifacts/need-validation/alternative-analyses/ALT-MQJJDCHZ-NWSYH1.json",
+  "experiment_proposal_ref": "/Users/mn/development/pixel-showcase-engine/.aof/artifacts/need-validation/experiment-proposals/EXP-MQJJDCJ9-PLD41Q.json",
+  "project_charter_ref": null,
+  "discovery_handoff_ref": null,
+  "source_task_id": null,
+  "source_decision_record_id": null
+}

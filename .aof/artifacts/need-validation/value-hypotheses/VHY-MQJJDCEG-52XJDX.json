@@ -1,0 +1,17 @@
+{
+  "artifact_type": "value-hypothesis",
+  "recorded_at": "2026-06-18T13:29:03.496Z",
+  "value_hypothesis_id": "VHY-MQJJDCEG-52XJDX",
+  "expected_value_creation": "アセット再利用で展示の量産・テンプレ展開・自動配置が可能になり、制作コスト減→公開数=流入増",
+  "beneficiary": "個人クリエイター / maintainer / 将来の AI 連携ユーザー",
+  "supporting_evidence": [
+    "TASK-032 で登録簿が稼働(プログラム参照可)",
+    "既存の serialize/loadScene でシーンJSONは機械生成可能"
+  ],
+  "success_criteria": [
+    "AI/スクリプトがアカウントのアセットから破綻のない展示シーンを生成・保存できる",
+    "人手編集に対し制作時間を有意に短縮(体感)"
+  ],
+  "source_task_id": null,
+  "source_decision_record_id": null
+}

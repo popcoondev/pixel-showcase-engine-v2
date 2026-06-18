@@ -1,0 +1,22 @@
+{
+  "artifact_type": "alternative-analysis",
+  "recorded_at": "2026-06-18T13:29:03.623Z",
+  "alternative_analysis_id": "ALT-MQJJDCHZ-NWSYH1",
+  "subject_need": "アカウントのアセットから AI/プログラムで新シーンを生成する",
+  "alternative_solutions": [
+    "公開外部API+専用認証(custom token/API key)+App Check専用パス(フル外部サーフェス)",
+    "オーナー自身の資格情報で動くローカル/サーバ側スクリプト(既存SDK利用、新公開認証なし)",
+    "編集UI内の『AIで組む』ボタン(サインイン済みセッションで実行、外部公開なし)"
+  ],
+  "non_solution_options": [
+    "テンプレシーンの手動複製で当面しのぐ"
+  ],
+  "defer_options": [
+    "需要が見えるまで保留(TASK-032 の手動再利用で様子見)"
+  ],
+  "stop_options": [
+    "外部公開オーサリングはやらない(非要件・濫用/コスト懸念が価値を上回るなら)"
+  ],
+  "source_task_id": null,
+  "source_decision_record_id": null
+}

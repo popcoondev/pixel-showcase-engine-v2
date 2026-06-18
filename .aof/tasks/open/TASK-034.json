@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-034",
+  "title": "実験: オーナー資格スクリプトでアセット→シーン自動生成の品質検証",
+  "description": "新公開サーフェスを作らず、オーナー資格情報で動くローカル/サーバ側スクリプトで listLibraryAssets→シーンJSON生成→saveSceneToCloud を数パターン試し、既存Viewerで目視評価。価値の核(AIが見せ方品質を保った展示を生成できるか)と時短を検証。成功閾値=5シーン中4つが手直し最小で公開可能 かつ 人手より速い。",
+  "status": "open",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-18T13:31:07.119Z",
+  "updated_at": "2026-06-18T13:31:07.119Z",
+  "assigned_at": null,
+  "done_at": null,
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "TASK-033 の前提実験(create-project-after-experiment, NVR-MQJJET7J-1X7LRI)。新インフラ/新認証なし=低リスク。"
+}
