@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-033",
+  "title": "AI/外部からアセット一覧取得 & シーン生成(プログラム的オーサリング)",
+  "description": "外部(AIエージェント等)が、認証済みアカウントのアセット一覧を取得し、選んだアセットで新シーンを生成・保存できる API/インターフェース。スコープ=アセット一覧 read とシーン JSON 生成・保存。要 Decision Record: 認証方式(custom token / 限定 API key)、App Check(プログラム的クライアントは reCAPTCHA 不可→専用パス要)、濫用/コスト上限、シーン数上限(TASK-015)との整合、公開可否は別ゲート。DR-2026-001(backend veto 履歴)/DR-2026-004(backend arch)/App Check enforcement を踏まえる。",
+  "status": "open",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-18T09:40:19.810Z",
+  "updated_at": "2026-06-18T09:40:19.810Z",
+  "assigned_at": null,
+  "done_at": null,
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "検討候補 / maintainer 提案 2026-06-18。優先度未確定。外部サーフェス=Operations/Guardian の安全審査必須。実装前に need-validation + DR。非要件抵触なし(オーサリング生産性、SNS化ではない)。"
+}
