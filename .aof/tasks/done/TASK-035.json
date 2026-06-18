@@ -9,12 +9,12 @@
   "related_decision_record_id": null,
   "operating_goal_ref": null,
   "created_at": "2026-06-18T22:42:20.405Z",
-  "updated_at": "2026-06-18T22:42:20.506Z",
+  "updated_at": "2026-06-18T23:13:44.618Z",
   "assigned_at": null,
   "done_at": "2026-06-18T22:42:20.506Z",
   "retired_at": null,
   "last_triaged_at": null,
   "stale_candidate_at": null,
   "retire_candidate_at": null,
-  "triage_notes": "実装着地(デプロイ人手): functions/index.js に listAssets/getScene/createDraftScene/placeAsset。uid自損・書込検証・上限(object300/scene20/op500日)。node --check OK・7 exports。**人手: firebase deploy --only functions。** 次=TASK-036 MCP。"
+  "triage_notes": "API充足: updateObject/removeObject 追加(計6ツール: list/get/draft/place/update/remove)。docs/agent-api.md に契約明文化(MCP JSON Schema の単一の出所、OpenAPI不使用)。9 exports・build/test green(20)。**人手: firebase deploy --only functions(update/remove 反映)。** UI の『✨AIで組む』ボタンは撤去(AI 経路は MCP 一本化)。"
 }
