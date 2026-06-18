@@ -2,19 +2,19 @@
   "task_id": "TASK-033",
   "title": "AI/外部からアセット一覧取得 & シーン生成(プログラム的オーサリング)",
   "description": "外部(AIエージェント等)が、認証済みアカウントのアセット一覧を取得し、選んだアセットで新シーンを生成・保存できる API/インターフェース。スコープ=アセット一覧 read とシーン JSON 生成・保存。要 Decision Record: 認証方式(custom token / 限定 API key)、App Check(プログラム的クライアントは reCAPTCHA 不可→専用パス要)、濫用/コスト上限、シーン数上限(TASK-015)との整合、公開可否は別ゲート。DR-2026-001(backend veto 履歴)/DR-2026-004(backend arch)/App Check enforcement を踏まえる。",
-  "status": "open",
+  "status": "done",
   "origin": "human",
   "orchestrator_session_id": null,
   "assigned_session_ids": [],
   "related_decision_record_id": null,
   "operating_goal_ref": null,
   "created_at": "2026-06-18T09:40:19.810Z",
-  "updated_at": "2026-06-18T13:49:00.719Z",
+  "updated_at": "2026-06-18T14:10:00.077Z",
   "assigned_at": null,
-  "done_at": null,
+  "done_at": "2026-06-18T14:10:00.077Z",
   "retired_at": null,
   "last_triaged_at": null,
   "stale_candidate_at": null,
   "retire_candidate_at": null,
-  "triage_notes": "実験(TASK-034)成功で価値の核を確認。段階拡張の次の安全な一手=編集UI内『AIで組む』ボタン(サインイン済みセッションで composeScene→loadScene、新公開サーフェス無し)。フル外部API(プログラム認証/App Check専用パス)は依然 Operations/Guardian の DR 必須=据え置き。NVR-MQJJET7J / create-project-after-experiment 充足。"
+  "triage_notes": "実装着地(デプロイは人手): DR-2026-008(案A=Functionゲートウェイ+IDトークン)採択。functions/index.js に callable createSceneFromAssets(認証 uid 自損のみ / Admin 実行 / App Check 非enforce はこの1本のみ / library読取→three非依存composeSceneServer→作業コピー保存 / 日次生成20・シーン上限20・入力50 の三重上限 / 公開しない)。四元数は three.lookAt と一致(dot=1.0)を検算、配置規則は composeScene.ts と整合。src/cloud/aiCompose.ts にクライアント/エージェント呼び出しヘルパー。build/test green(19)。**人手の残: firebase deploy --only functions(手動)。** 外部エージェントは信頼サーバで custom token ミント→IDトークンで callable を叩く。"
 }
