@@ -1,0 +1,15 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-027",
+  "title": "ライトの発光ループ(明滅/点滅/ちらつき)",
+  "status": "done",
+  "completed_at": "2026-06-18",
+  "phase": "growth",
+  "owner_role": "Builder",
+  "owner_team": "scene-team",
+  "context": "maintainer 要望: ライトを動かしたい。ネオンのように柔らかく、または素早く点滅、リッチな演出にしたい。",
+  "outcome": "LightDef に optional な LightPulse(enabled/mode/min/speed)を追加。mode は pulse(柔らかい明滅=正弦)/blink(素早い点滅=矩形波)/flicker(ネオン管のちらつき=非整数倍正弦の合成を明側にバイアス)。Viewport の LightNode に lightRef + useFrame を追加し、Preview/Viewer で intensity = base*(min+(1-min)*k) を毎フレーム変調。Edit では基準値で静止。Light Inspector に『発光ループ』UI(有効トグル + 種類3択ボタン + 最小の明るさ% + 速さHz)。",
+  "design": "発光ループは scene の lights に乗るため公開シーンに自動同梱され Viewer で再生(camera/object motion と同じ Preview/Viewer 限定再生の方針に統一)。pulse 未設定の既存ライトは静止=後方互換。frame 変調は intensity のみで宣言的 props と非競合(非再生時は毎フレーム base に戻すので JSX と一致)。setLightPulse で nested merge(defaultLightPulse 初期化)。追加ライブラリなし。",
+  "verified": "build green / test 10 passed。preview 実機: point light に neon pulse を設定→Preview で明滅。blink/min0/0.7Hz に切替え、半周期ずらした2枚のスクリーンショットで ON(マゼンタ点灯)→OFF(消灯=Key Light のみ)を end-to-end 確認。テストライト/Shot は撤去。",
+  "note": "WebGL canvas は preserveDrawingBuffer 非保持で drawImage 読み出しが更新されないため、検証は実フレームの screenshot で実施。R3F scene は別レンダラルートで DOM fiber から辿れない。将来: 色のサイクル/カスタム波形、effect との連動。"
+}
