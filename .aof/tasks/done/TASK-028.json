@@ -2,19 +2,19 @@
   "task_id": "TASK-028",
   "title": "動きループ・プリセット & イージング",
   "description": "カメラ/オブジェクト/発光ループに名前付きプリセット(ネオン点滅/ゆらぎ漂い/ターンテーブル等)とイージングを追加。1クリックでリッチな動きを適用。後方互換維持。",
-  "status": "open",
+  "status": "done",
   "origin": "orchestrator",
   "orchestrator_session_id": "SESS-MQJ5JV1L-BOSC1N",
   "assigned_session_ids": [],
   "related_decision_record_id": null,
   "operating_goal_ref": null,
   "created_at": "2026-06-18T07:03:57.511Z",
-  "updated_at": "2026-06-18T07:03:57.511Z",
+  "updated_at": "2026-06-18T07:36:17.119Z",
   "assigned_at": null,
-  "done_at": null,
+  "done_at": "2026-06-18T07:36:17.119Z",
   "retired_at": null,
   "last_triaged_at": null,
   "stale_candidate_at": null,
   "retire_candidate_at": null,
-  "triage_notes": "v0.8.0 候補 / next-value-slice 由来"
+  "triage_notes": "完了: easing.ts + motionPresets.ts 追加。types に EasingKind/easing? を3 motion 型へ。Viewport の camera/object/light useFrame に easeOsc/ease 適用。panels に PresetRow/EasingRow。preview 実機でターンテーブル回転を E2E 確認。build/test green。"
 }
