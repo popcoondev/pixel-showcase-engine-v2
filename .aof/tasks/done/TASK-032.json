@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-032",
+  "title": "アカウント単位のアセットライブラリ(一覧 + 再利用配置で新シーン作成)",
+  "description": "サインイン中アカウントが登録済みのオブジェクト(GLB/画像プレート/ドット絵)を一覧表示し、そこから選んで配置し新しいシーンを構成できる。現状アセットは Storage assets/{hash} に content-hash で置かれるがアカウント単位の索引が無いため、users/{uid}/assets にメタ(name/type/thumbUrl/createdAt/参照Storage hash)を持つ登録簿を新設する。既存シーンの assets からのバックフィルは任意。Security Rules で own-only。TASK-020(孤立GC)/TASK-019(退会削除)と参照カウント設計を整合させる。",
+  "status": "done",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-18T09:40:19.746Z",
+  "updated_at": "2026-06-18T09:54:43.981Z",
+  "assigned_at": null,
+  "done_at": "2026-06-18T09:54:43.981Z",
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "実装完了(クラウド E2E は人手): users/{uid}/assets/{hash} 登録簿を新設(cloud/assets.ts: deriveAssetMeta 純関数 + registerSceneAssets 保存時登録 + listLibraryAssets)。saveSceneToCloud にベストエフォート登録を追加(rules 未デプロイでも保存は成功)。store に registerAssetUrl(hash,url)。CloudUI に『☁ ライブラリ』+ LibraryModal(一覧→クリックで addGlb/addPlane 配置)。firestore.rules に users/{uid}/assets own-only を追加。Storage assets/{hash} は既存(public read/create-only)を再利用。検証: deriveAssetMeta 単体3件 + build/test green(14)。配置→描画(画像プレート aspect 反映)を preview 実機で確認。**人手の残: ① firestore.rules を本番デプロイ(firebase deploy --only firestore:rules) ② サインインしての保存→ライブラリ→配置の round-trip 確認。** フォローアップ: 退会 Function purgeMyData に users/{uid}/assets 削除を追加(TASK-019/033 と整合)。GLB サムネ・参照カウント(TASK-020)は将来。"
+}
