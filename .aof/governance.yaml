@@ -7,17 +7,13 @@ councils:
 decision_rules:
   default: 2_of_3 # v2.1.0 既定。hard-coded law ではなく override 可能な policy
   note: Guardian の安全懸念が council で解消しない場合は veto ではなく maintainer へ escalate する
+# escalation paths (記述のみ / simple-yaml 非対応の入れ子配列は避ける):
+#   role -> council     : ロール間の不一致 / スコープ超過
+#   council -> maintainer: 2_of_3 で決し切れない / 不可逆・本番影響・コスト・公開可否
 escalation:
   target: human-maintainer
   owner: popcoondev
   max_retries: 2
-  paths:
-    - from: role
-      to: council
-      condition: ロール間の不一致 / スコープ超過
-    - from: council
-      to: maintainer
-      condition: 2_of_3 で決し切れない / 不可逆・本番影響・コスト・公開可否
 routing:
   fast_track:
     allowed_when:

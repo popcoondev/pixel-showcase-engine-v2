@@ -1,22 +1,9 @@
 {
-  "goal_format_version": 1,
-  "type": "next-value-slice",
-  "set_at": "2026-06-14",
-  "phase": "データライフサイクル整備",
-  "name": "Storage 完全削除 + 孤立アセット GC",
-  "statement": "退会・削除時に Storage 実体まで確実に消え、参照されなくなった共有アセットも定期 GC で安全に回収される。",
-  "in_slice": [
-    "TASK-019 退会時の Storage 削除 (Cloud Function, thumbs 即時)",
-    "TASK-020 孤立アセット GC (参照0の content-hash を定期削除)"
-  ],
-  "parallel_passive": [
-    "TASK-021 解析/Sentry を2〜3週間ウォッチ (次サイクル機能改善の入力)"
-  ],
-  "blocked_on_human": [
-    "EU/GDPR 公開範囲の確定",
-    "GC 戦略 (二段階) の確定"
-  ],
-  "next_cycle": "データ駆動の機能改善 (Visionary, TASK-021 のデータ後に再 framing)",
-  "exit_criteria": "退会で thumbs が消え、GC で孤立 assets が安全に回収される。参照中は保持。",
-  "decision_ref": ".aof/decisions/DR-2026-007-next-direction-data-lifecycle.md"
+  "goal_type": "next-value-slice",
+  "content": "v0.8.0『動き・リッチさ』の収れん: (1) 動きループのプリセット&イージング、(2) 複数ライト/オブジェクトの位相同期(共有クロックで連動演出)、(3) ライト発光の色サイクル、(4) 公開Viewerでの動き一貫再生の堅牢化。範囲=編集UIとViewer再生まで。非要件厳守・後方互換維持・新バックエンド/サーバー動画保存は範囲外。",
+  "updated_at": "2026-06-18T07:03:13.355Z",
+  "agreed_with_human": true,
+  "source_session_id": "SESS-MQJ5JV1L-BOSC1N",
+  "source_decision_record_id": null,
+  "declared_complete_at": null
 }

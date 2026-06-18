@@ -1,0 +1,32 @@
+{
+  "snapshot_type": "aof-learning-loop",
+  "snapshot_format_version": 1,
+  "organization_ref": ".aof/organization.json",
+  "generated_at": "2026-06-18T07:04:11.115Z",
+  "latest_outcome": null,
+  "latest_self_audit": null,
+  "current_next_value_slice": {
+    "content": "v0.8.0『動き・リッチさ』の収れん: (1) 動きループのプリセット&イージング、(2) 複数ライト/オブジェクトの位相同期(共有クロックで連動演出)、(3) ライト発光の色サイクル、(4) 公開Viewerでの動き一貫再生の堅牢化。範囲=編集UIとViewer再生まで。非要件厳守・後方互換維持・新バックエンド/サーバー動画保存は範囲外。",
+    "updated_at": "2026-06-18T07:03:13.355Z",
+    "declared_complete_at": null,
+    "source_session_id": "SESS-MQJ5JV1L-BOSC1N",
+    "source_decision_record_id": null
+  },
+  "improvement_proposal": {
+    "proposal_basis": "next-value-slice",
+    "proposed_focus": "v0.8.0『動き・リッチさ』の収れん: (1) 動きループのプリセット&イージング、(2) 複数ライト/オブジェクトの位相同期(共有クロックで連動演出)、(3) ライト発光の色サイクル、(4) 公開Viewerでの動き一貫再生の堅牢化。範囲=編集UIとViewer再生まで。非要件厳守・後方互換維持・新バックエンド/サーバー動画保存は範囲外。",
+    "related_task_ids": [],
+    "open_task_count": 9
+  },
+  "learning_state": {
+    "has_outcome_evidence": false,
+    "has_self_audit": false,
+    "has_next_value_slice": true,
+    "loop_state": "improving"
+  },
+  "observations": [
+    "No outcome report has been observed in the current local session archive.",
+    "No active framework self-audit is present yet.",
+    "Current next value slice: v0.8.0『動き・リッチさ』の収れん: (1) 動きループのプリセット&イージング、(2) 複数ライト/オブジェクトの位相同期(共有クロックで連動演出)、(3) ライト発光の色サイクル、(4) 公開Viewerでの動き一貫再生の堅牢化。範囲=編集UIとViewer再生まで。非要件厳守・後方互換維持・新バックエンド/サーバー動画保存は範囲外。"
+  ]
+}

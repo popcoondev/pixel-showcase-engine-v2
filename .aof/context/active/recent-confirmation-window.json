@@ -1,22 +1,26 @@
 {
-  "window_format_version": 1,
-  "updated_at": "2026-06-11",
-  "confirmations": [
+  "window_type": "recent-confirmation-window",
+  "updated_at": "2026-06-18T07:02:33.959Z",
+  "entries": [
     {
-      "at": "2026-06-11",
-      "by": "popcoondev",
-      "decision": "本リポジトリを AOF v2.0 (managed-project) として扱う",
-      "source": "human instruction"
+      "question": "今回、変更してはいけない制約や既存要素はありますか",
+      "answer": "守る制約: 非要件4つ(ゲーム化しない/Viewer自由移動なし/Blender的な重DCCにしない/機能追加より操作の自然さと見せ方品質を優先)。固定画角Viewer(viewerLocked)の編集不可前提、Scene JSON v2のアセット重複排除(hashDataUrl/serialize/migrate)、store.tsのUndo/スナップショット、サーバーに動画保存はしない方針。push/release/publishはhuman(popcoondev)承認。既存の動きループ/GIF/発光ループのデータ後方互換(optionalフィールド)を壊さない。",
+      "recorded_at": "2026-06-18T07:02:33.958Z",
+      "expectation_state": "runtime は初回の clarification 回答を取り込み、need validation に進める状態になった",
+      "mismatch_state": null,
+      "scale_direction": "complete need validation before planning",
+      "source_session_id": "SESS-MQJ5JV1L-BOSC1N",
+      "source_decision_record_id": null
     },
     {
-      "at": "2026-06-11",
-      "by": "popcoondev",
-      "decision": "GitHub は public リポジトリ pixel-showcase-engine-v2、初版タグ v0.1.0",
-      "source": "human instruction"
+      "question": "今回、何を改善対象とし、どの範囲までを扱いますか",
+      "answer": "改善対象と範囲: v0.8.0は『動き・リッチさ』系譜の収れん。候補=動きループのプリセット&イージング&位相同期(複数ライト/オブジェクトの連動)、ライト発光の色サイクル、エフェクトと動きの連動、公開Viewerでの一貫再生。範囲は編集UIとViewer再生まで。新バックエンド/サーバー動画保存/認証変更は範囲外。",
+      "recorded_at": "2026-06-18T07:02:33.959Z",
+      "expectation_state": "runtime は初回の clarification 回答を取り込み、need validation に進める状態になった",
+      "mismatch_state": null,
+      "scale_direction": "complete need validation before planning",
+      "source_session_id": "SESS-MQJ5JV1L-BOSC1N",
+      "source_decision_record_id": null
     }
-  ],
-  "open_questions_for_human": [
-    "SHARE の公開ホスティング先 (GitHub Pages か、ローカルHTML配布のみか)",
-    "DRACO 受け入れ確認用に実物の圧縮 GLB を1つ提供できるか"
   ]
 }

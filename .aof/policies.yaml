@@ -1,3 +1,10 @@
+policy_profile_id: pixel-showcase-policy
+default_priority_order:
+  - value
+  - safety
+  - quality
+  - speed
+  - cost
 policies_format_version: 1
 updated_at: "2026-06-11"
 decision_ref: ".aof/decisions/DR-2026-002-git-management.md"

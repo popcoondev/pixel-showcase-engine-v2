@@ -1,0 +1,15 @@
+workflow_id: showcase-evolution
+name: Showcase Evolution
+entry_conditions:
+  - request-present
+stages:
+  - clarification
+  - orientation
+  - planning
+  - build-preparation
+  - release
+decision_points:
+  - slice-scope-approval
+  - release-approval
+default_governance_scope: slice-scope-approval
+default_routing_mode: deep-path

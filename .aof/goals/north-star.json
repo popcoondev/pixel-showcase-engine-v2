@@ -1,11 +1,9 @@
 {
-  "goal_format_version": 1,
-  "type": "north-star",
-  "statement": "「置く・照らす・撮る・固定画角で見せる」を気持ちよく成立させ、作った展示作品を本人以外にもそのまま見せられる(SNS・ブログで共有できる)状態にする。",
-  "guardrails": [
-    "ゲーム化しない",
-    "Viewer で自由移動させない",
-    "Blender 的な重い総合DCCにしない",
-    "機能追加より操作の自然さと見せ方の品質を優先"
-  ]
+  "goal_type": "north-star",
+  "content": "「置く・照らす・撮る・固定画角で見せる」を気持ちよく成立させ、作った展示を本人以外にもそのまま見せられる状態にする。ゲームでも重DCCでもなく、構図と見せ方の品質で魅せる Web 展示オーサリングツール。",
+  "updated_at": "2026-06-18T07:03:13.307Z",
+  "agreed_with_human": true,
+  "source_session_id": "SESS-MQJ5JV1L-BOSC1N",
+  "source_decision_record_id": null,
+  "declared_complete_at": null
 }

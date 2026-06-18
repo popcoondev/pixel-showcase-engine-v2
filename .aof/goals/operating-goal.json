@@ -1,21 +1,9 @@
 {
-  "goal_format_version": 1,
-  "type": "current-operating-goal",
-  "set_at": "2026-06-14",
-  "phase": "データライフサイクル整備",
-  "statement": "公開した展示の『データを最後まで責任持って扱える』(保存・公開・完全削除)状態にする。退会・削除で Storage 実体まで確実に消え、孤立アセットも溜まらない。",
-  "rationale": "AOF v2.4 の execution packet 連鎖で集約 (DR-2026-007)。2_of_3 (Builder+Guardian) が管理系=データライフサイクルを採択。退会で Storage が残る穴は単調増加・GDPR・非線形清算コストの三重リスクでデータ不要で今判断可。Visionary の機能改善は解析/Sentry のデータ蓄積後の次サイクルへ。",
-  "success_criteria": [
-    "退会で当該ユーザーの thumbs が Storage から消える",
-    "孤立アセット (参照0の content-hash) が定期 GC で安全に回収される",
-    "参照中アセットは誤って消えない",
-    "解析/Sentry のデータが次サイクルの機能改善判断の入力になる"
-  ],
-  "supersedes": "v0.4.0 operating goal (完成度と信頼)",
-  "decision_ref": ".aof/decisions/DR-2026-007-next-direction-data-lifecycle.md",
-  "resolved_escalations": [
-    "EU/GDPR 公開範囲: 事実上グローバル公開=GDPR適用、Storage 削除は必須 (2026-06-14 maintainer 承認)",
-    "GC 戦略: 二段階 (退会時 thumbs 即時削除 + 共有 assets は定期GC) を採択 (2026-06-14)"
-  ],
-  "progress": "TASK-019 退会時 Storage 削除 (Function purgeMyData) 完了。残: TASK-020 孤立アセット GC。"
+  "goal_type": "operating-goal",
+  "content": "v0.7.2 までの現在地を総括し、次リリース v0.8.0 への進化ポイントを整理する。非要件(ゲーム化しない/Viewer自由移動なし/Blender化しない/操作の自然さと見せ方品質を優先)を守りつつ、最近の動きループ(カメラ/オブジェクト)・GIFループ・ライト発光ループという『動き・リッチさ』の系譜を次の価値スライスにつなぐ。",
+  "updated_at": "2026-06-18T07:02:12.973Z",
+  "agreed_with_human": true,
+  "source_session_id": "SESS-MQJ5JV1L-BOSC1N",
+  "source_decision_record_id": null,
+  "declared_complete_at": null
 }

@@ -12,7 +12,7 @@ clarification:
     followup_budget: 1
     max_rounds: 2
     priority_order:
-      - non-requirement-violation
+      - missing-prohibition
       - missing-constraint
       - missing-success-criteria
 human_maintainer: popcoondev

@@ -1,36 +1,122 @@
 {
-  "orientation_format_version": 1,
+  "orientation_type": "project-orientation",
   "project_type": "web-app (authoring tool)",
-  "product_summary": "ドット絵・GLB/GLTF・画像プレートを3D空間に配置し、固定画角の展示ビューとして見せる Web オーサリングツール。ゲームではない。",
-  "stack": "React + TypeScript + Vite + three.js (R3F + drei + postprocessing + zustand)",
-  "repo_boundaries": {
-    "app": "src/",
-    "scene": "src/scene/",
-    "state": "src/store.ts",
-    "io": "src/io.ts / src/db.ts",
-    "docs": "docs/",
-    "aof_state": ".aof/"
-  },
+  "domain_summary": "ドット絵・GLB/GLTF・画像プレートを3D空間に配置し、固定画角の展示ビューとして見せる Web オーサリングツール。ゲームではない。スタック: React + TypeScript + Vite + three.js (R3F + drei + postprocessing + zustand)。",
+  "repo_boundaries": [
+    "app: src/",
+    "scene: src/scene/",
+    "state: src/store.ts",
+    "io: src/io.ts / src/db.ts",
+    "docs: docs/",
+    "aof_state: .aof/"
+  ],
   "protected_areas": [
     "src/store.ts の Doc スナップショット/Undo 履歴ロジック",
     "Scene JSON v2 アセット重複排除 (hashDataUrl/serialize/migrateSceneFile)",
     "固定画角 Viewer (viewerLocked) の編集不可前提"
   ],
-  "required_commands": {
-    "dev": "npm run dev",
-    "verify": "npm run build (tsc -b && vite build)"
-  },
+  "required_commands": [
+    "dev: npm run dev",
+    "verify: npm run build (tsc -b && vite build)",
+    "test: npm run test (vitest run)"
+  ],
   "verification_entrypoints": [
     "npm run build による型チェック",
-    "preview ツールでの目視確認 (自動テストは v0.1.0 時点で皆無)"
+    "npm run test (vitest)",
+    "preview ツールでの実機目視確認"
   ],
-  "release_constraints": "public repo popcoondev/pixel-showcase-engine-v2、SemVer タグ + GitHub Release。現在 v0.1.0。",
-  "non_requirements": [
-    "ゲーム化しない",
-    "Viewer で自由移動させない",
-    "Blender 的な重い総合DCCにしない",
-    "機能追加より操作の自然さと見せ方の品質を優先"
+  "release_constraints": [
+    "public repo popcoondev/pixel-showcase-engine-v2、SemVer タグ + GitHub Release",
+    "main push で Firebase Hosting に自動デプロイ。push/release は human maintainer 承認後",
+    "現在 v0.7.2"
   ],
   "human_owner": "popcoondev",
-  "approval_boundary": "slice scope / release / publish hosting は human maintainer 承認"
+  "approval_boundary": "slice scope / release / publish hosting は human maintainer 承認。cadence 自動化が .aof を main に直接書き込むことは禁止。",
+  "command_registry_ref": ".aof/command-registry.json",
+  "command_routing_summary": {
+    "detail_ref": "docs/cli-reference.md",
+    "categories": [
+      {
+        "category": "read",
+        "purpose": "Inspect current runtime state, registries, and operator-facing summaries."
+      },
+      {
+        "category": "verify",
+        "purpose": "Validate integrity, drift, and benchmark-grade compliance."
+      },
+      {
+        "category": "write",
+        "purpose": "Write canonical runtime artifacts, decisions, and state transitions."
+      },
+      {
+        "category": "execute",
+        "purpose": "Advance the runtime, orchestration, or repair path."
+      },
+      {
+        "category": "observe",
+        "purpose": "Export or visualize evidence, metrics, lineage, and analytics."
+      }
+    ],
+    "top_commands": [
+      {
+        "command": "command-register",
+        "category": "read",
+        "purpose": "Read the command registry so operators and AI can route without loading the full CLI reference."
+      },
+      {
+        "command": "command-routing-audit",
+        "category": "verify",
+        "purpose": "Verify that bootstrap, orientation, and command registry routing surfaces remain aligned."
+      },
+      {
+        "command": "council-exec",
+        "category": "execute",
+        "purpose": "Execute a council stage and optionally invoke model-backed seats."
+      },
+      {
+        "command": "init",
+        "category": "execute",
+        "purpose": "Seed a project with the canonical AOF runtime skeleton and recognition packet."
+      },
+      {
+        "command": "need-validation-benchmark",
+        "category": "verify",
+        "purpose": "Benchmark whether Need Validation rejects, reframes, and gates project creation correctly."
+      },
+      {
+        "command": "organization-status",
+        "category": "read",
+        "purpose": "Read the operator-facing organization summary and active goals."
+      },
+      {
+        "command": "organization-verify",
+        "category": "verify",
+        "purpose": "Verify bootstrap, organization, capability, and command-routing integrity."
+      },
+      {
+        "command": "release-state-audit",
+        "category": "verify",
+        "purpose": "Verify that active release refs and governed release surfaces remain aligned."
+      },
+      {
+        "command": "run",
+        "category": "execute",
+        "purpose": "Start an AOF runtime session from a user request."
+      },
+      {
+        "command": "upgrade",
+        "category": "execute",
+        "purpose": "Upgrade an existing AOF installation to the current bootstrap shape."
+      }
+    ],
+    "runtime_flow": [
+      "Read the command register first to route without loading the full CLI reference.",
+      "Use read commands to inspect runtime state before changing artifacts.",
+      "Use verify commands before claiming correctness or release readiness.",
+      "Use write commands to persist canonical artifacts and governed state changes.",
+      "Use execute commands to move the runtime or orchestration loop forward.",
+      "Use observe commands when exporting visibility, metrics, or analytical outputs."
+    ]
+  },
+  "updated_at": "2026-06-18T06:56:48.303Z"
 }
