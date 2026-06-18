@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-035",
+  "title": "エージェント編集API: listAssets/getScene/createDraftScene/placeAsset (DR-2026-009 スライス1)",
+  "description": "uid自損スコープの callable Function 4本。書き込み検証(hash所有確認/position±50・scale 0.01-50・配列長3有限数クランプ)と上限(object300/シーン20/書込500/日)。状態はクラウドのシーンdoc(read-modify-write)。公開しない。",
+  "status": "done",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-18T22:42:20.405Z",
+  "updated_at": "2026-06-18T22:42:20.506Z",
+  "assigned_at": null,
+  "done_at": "2026-06-18T22:42:20.506Z",
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "実装着地(デプロイ人手): functions/index.js に listAssets/getScene/createDraftScene/placeAsset。uid自損・書込検証・上限(object300/scene20/op500日)。node --check OK・7 exports。**人手: firebase deploy --only functions。** 次=TASK-036 MCP。"
+}

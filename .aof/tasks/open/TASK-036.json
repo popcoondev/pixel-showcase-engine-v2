@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-036",
+  "title": "MCP ゲートウェイ: 編集APIを Claude のツールとして公開 (DR-2026-009 スライス2)",
+  "description": "maintainer 運用の MCP サーバー。Firebase 資格情報を保持し ID トークンを取得、listAssets/getScene/createDraftScene/placeAsset を MCP ツールとして公開。Claude は生トークンを見ない。service-account JSON はリポジトリに置かない。",
+  "status": "open",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-18T22:42:20.458Z",
+  "updated_at": "2026-06-18T22:42:20.458Z",
+  "assigned_at": null,
+  "done_at": null,
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "DR-2026-009 スライス2。スライス1の上のアダプタ。"
+}
