@@ -3,7 +3,25 @@ import { fileToDataUrl, imageAspect, pickFile } from './io'
 import { resetCameraRoll } from './scene/FlyControls'
 import { LOOK_PRESETS } from './presets'
 import { EFFECT_LABELS, focalToFov, fovToFocal, useStore } from './store'
-import type { AspectRatio, EffectKind, FocusMode, LightKind, LightPulseMode, Vec3 } from './types'
+import type {
+  AspectRatio,
+  EasingKind,
+  EffectKind,
+  FocusMode,
+  LightKind,
+  LightPulseMode,
+  ObjectMotion,
+  Vec3,
+} from './types'
+import {
+  CAMERA_PRESETS,
+  EASING_LABELS,
+  LIGHT_PRESETS,
+  OBJECT_PRESETS,
+  type MotionPreset,
+} from './motionPresets'
+
+const EASING_KINDS: EasingKind[] = ['linear', 'easeInOut', 'easeIn', 'easeOut']
 
 const PULSE_MODE_LABELS: Record<LightPulseMode, string> = {
   pulse: '柔らかく明滅',
@@ -120,6 +138,49 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 function Empty({ text }: { text: string }) {
   return <div className="empty">{text}</div>
+}
+
+/** 動きループのワンクリック・プリセット行 */
+function PresetRow<T>({
+  presets,
+  onApply,
+}: {
+  presets: MotionPreset<T>[]
+  onApply: (apply: Partial<T>) => void
+}) {
+  return (
+    <Row label="プリセット">
+      <div className="btn-grid" style={{ gridTemplateColumns: '1fr 1fr', margin: 0 }}>
+        {presets.map((p) => (
+          <button key={p.id} onClick={() => onApply(p.apply)}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+    </Row>
+  )
+}
+
+/** 揺れ/明滅のイージング選択行 */
+function EasingRow({
+  value,
+  onChange,
+}: {
+  value: EasingKind | undefined
+  onChange: (v: EasingKind) => void
+}) {
+  const current = value ?? 'linear'
+  return (
+    <Row label="イージング">
+      <div className="btn-grid" style={{ gridTemplateColumns: '1fr 1fr', margin: 0 }}>
+        {EASING_KINDS.map((k) => (
+          <button key={k} className={current === k ? 'active' : ''} onClick={() => onChange(k)}>
+            {EASING_LABELS[k]}
+          </button>
+        ))}
+      </div>
+    </Row>
+  )
 }
 
 export function EditPanel() {
@@ -336,6 +397,7 @@ export function CameraPanel() {
         )}
       </Section>
       <Section title="動きループ">
+        <PresetRow presets={CAMERA_PRESETS} onApply={(a) => setCameraMotion(a)} />
         <ToggleRow
           label="有効"
           value={motion.enabled}
@@ -379,6 +441,7 @@ export function CameraPanel() {
               format={(v) => `${v.toFixed(1)}s`}
               onChange={(v) => setCameraMotion({ speed: v })}
             />
+            <EasingRow value={motion.easing} onChange={(v) => setCameraMotion({ easing: v })} />
           </>
         )}
         <Empty text="Preview / 公開ページで被写体の周りをループで動きます(各 0 で無効)。Save Shot に焼き込まれます。" />
@@ -429,8 +492,8 @@ export function ObjectPanel() {
   }
 
   const uniform = obj.scale[0]
-  const om = obj.motion ?? { enabled: false, moveX: 0, moveY: 0.3, moveZ: 0, spinY: 0, speed: 6 }
-  const setMotion = (patch: Partial<typeof om>) =>
+  const om: ObjectMotion = obj.motion ?? { enabled: false, moveX: 0, moveY: 0.3, moveZ: 0, spinY: 0, speed: 6 }
+  const setMotion = (patch: Partial<ObjectMotion>) =>
     s().updateObject(obj.id, { motion: { ...om, ...patch } })
 
   const setImage = () =>
@@ -474,6 +537,7 @@ export function ObjectPanel() {
         </div>
       </Section>
       <Section title="動きループ">
+        <PresetRow presets={OBJECT_PRESETS} onApply={(a) => setMotion(a)} />
         <ToggleRow label="有効" value={om.enabled} onChange={(v) => setMotion({ enabled: v })} />
         {om.enabled && (
           <>
@@ -482,6 +546,7 @@ export function ObjectPanel() {
             <SliderRow label="前後" value={om.moveZ} min={0} max={2} step={0.05} format={(v) => `${v.toFixed(2)}m`} onChange={(v) => setMotion({ moveZ: v })} />
             <SliderRow label="回転(連続)" value={om.spinY} min={0} max={180} step={1} format={(v) => `${Math.round(v)}°/s`} onChange={(v) => setMotion({ spinY: v })} />
             <SliderRow label="周期" value={om.speed} min={1} max={20} step={0.5} format={(v) => `${v.toFixed(1)}s`} onChange={(v) => setMotion({ speed: v })} />
+            <EasingRow value={om.easing} onChange={(v) => setMotion({ easing: v })} />
           </>
         )}
         <Empty text="Preview / 公開ページで基準位置の周りをループします(各 0 で無効)。回転はターンテーブルです。" />
@@ -592,6 +657,7 @@ export function LightPanel() {
       ) : null}
       {light ? (
         <Section title="発光ループ">
+          <PresetRow presets={LIGHT_PRESETS} onApply={(a) => s().setLightPulse(light.id, a)} />
           <ToggleRow
             label="有効"
             value={light.pulse?.enabled ?? false}
@@ -630,6 +696,12 @@ export function LightPanel() {
                 format={(v) => `${v.toFixed(1)}Hz`}
                 onChange={(v) => s().setLightPulse(light.id, { speed: v })}
               />
+              {light.pulse.mode === 'pulse' && (
+                <EasingRow
+                  value={light.pulse.easing}
+                  onChange={(v) => s().setLightPulse(light.id, { easing: v })}
+                />
+              )}
               <div className="empty">プレビュー(▶)/公開ページで明滅します。編集中は基準の明るさで静止。</div>
             </>
           )}

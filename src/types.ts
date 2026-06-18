@@ -27,7 +27,12 @@ export interface ObjectMotion {
   spinY: number
   /** 位置オシレーションの周期 秒 */
   speed: number
+  /** 揺れのイージング(任意。旧データは linear 相当) */
+  easing?: EasingKind
 }
+
+/** 動きループの揺れ方。linear=純正弦(従来), easeInOut=端で溜める, easeIn/easeOut=片側に溜める */
+export type EasingKind = 'linear' | 'easeInOut' | 'easeIn' | 'easeOut'
 
 export interface SceneObjectDef {
   id: string
@@ -57,6 +62,8 @@ export interface LightPulse {
   min: number
   /** 速さ(Hz 目安) */
   speed: number
+  /** 明滅のイージング(pulse モード時に有効。任意) */
+  easing?: EasingKind
 }
 
 export interface LightDef {
@@ -128,6 +135,8 @@ export interface CameraMotion {
   dolly: number
   /** ループ周期 秒 */
   speed: number
+  /** カメラワークのイージング(任意。旧データは linear 相当) */
+  easing?: EasingKind
 }
 
 export interface CameraSettings {

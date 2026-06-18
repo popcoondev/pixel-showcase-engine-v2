@@ -11,8 +11,9 @@ import {
 import { Effect, ToneMappingMode, type DepthOfFieldEffect } from 'postprocessing'
 import * as THREE from 'three'
 import { focalToFov, runtime, useStore } from '../store'
-import type { LightDef, MaterialSettings, SceneObjectDef, Selection, Vec3 } from '../types'
+import type { EasingKind, LightDef, MaterialSettings, SceneObjectDef, Selection, Vec3 } from '../types'
 import { EffectNode } from './EffectNode'
+import { ease, easeOsc } from './easing'
 import { FlyControls } from './FlyControls'
 import { useGifTexture } from './gifTexture'
 import { enableShadows, loadGltf } from './gltfLoader'
@@ -189,9 +190,9 @@ function ObjectNode({ def }: { def: SceneObjectDef }) {
     const t = state.clock.elapsedTime
     const ph = (Math.PI * 2 * t) / Math.max(1, m.speed)
     g.position.set(
-      def.position[0] + m.moveX * Math.sin(ph),
-      def.position[1] + m.moveY * Math.sin(ph + Math.PI / 2),
-      def.position[2] + m.moveZ * Math.sin(ph + Math.PI),
+      def.position[0] + m.moveX * easeOsc(m.easing, Math.sin(ph)),
+      def.position[1] + m.moveY * easeOsc(m.easing, Math.sin(ph + Math.PI / 2)),
+      def.position[2] + m.moveZ * easeOsc(m.easing, Math.sin(ph + Math.PI)),
     )
     g.rotation.set(
       def.rotation[0],
@@ -226,7 +227,12 @@ function ObjectNode({ def }: { def: SceneObjectDef }) {
 }
 
 /** 発光ループ: 経過時間 t(秒)から基準強度に対する係数 0..1 を返す */
-function pulseFactor(mode: 'pulse' | 'blink' | 'flicker', t: number, speed: number): number {
+function pulseFactor(
+  mode: 'pulse' | 'blink' | 'flicker',
+  t: number,
+  speed: number,
+  easing?: EasingKind,
+): number {
   const ph = Math.PI * 2 * t * speed
   if (mode === 'blink') return Math.sin(ph) >= 0 ? 1 : 0
   if (mode === 'flicker') {
@@ -234,8 +240,8 @@ function pulseFactor(mode: 'pulse' | 'blink' | 'flicker', t: number, speed: numb
     const v = (Math.sin(t * speed * 8.1) + Math.sin(t * speed * 15.3) + Math.sin(t * speed * 23.7)) / 3
     return Math.pow(0.5 + 0.5 * v, 0.45)
   }
-  // pulse: 柔らかい明滅
-  return 0.5 + 0.5 * Math.sin(ph)
+  // pulse: 柔らかい明滅(イージングで溜め/抜けを付けられる)
+  return ease(easing, 0.5 + 0.5 * Math.sin(ph))
 }
 
 function LightNode({ def }: { def: LightDef }) {
@@ -262,7 +268,7 @@ function LightNode({ def }: { def: LightDef }) {
       l.intensity = def.intensity
       return
     }
-    const k = pulseFactor(p.mode, state.clock.elapsedTime, Math.max(0.05, p.speed))
+    const k = pulseFactor(p.mode, state.clock.elapsedTime, Math.max(0.05, p.speed), p.easing)
     l.intensity = def.intensity * (p.min + (1 - p.min) * k)
   })
 
@@ -463,9 +469,11 @@ function CameraRig() {
     if (!(d > 0)) d = 6
     const pivot = TMP_PIVOT.copy(base).addScaledVector(TMP_FWD, d)
     const ph = (Math.PI * 2 * state.clock.elapsedTime) / Math.max(1, motion.speed)
-    const yaw = THREE.MathUtils.degToRad(motion.yawDeg) * Math.sin(ph)
-    const pitch = THREE.MathUtils.degToRad(motion.pitchDeg) * Math.cos(ph)
-    const dollyScale = 1 - (motion.dolly ?? 0) * Math.sin(ph)
+    const sinE = easeOsc(motion.easing, Math.sin(ph))
+    const cosE = easeOsc(motion.easing, Math.cos(ph))
+    const yaw = THREE.MathUtils.degToRad(motion.yawDeg) * sinE
+    const pitch = THREE.MathUtils.degToRad(motion.pitchDeg) * cosE
+    const dollyScale = 1 - (motion.dolly ?? 0) * sinE
     const rel = TMP_REL.copy(base).sub(pivot)
     rel.applyAxisAngle(WORLD_UP, yaw)
     const right = TMP_RIGHT.crossVectors(rel, WORLD_UP)
