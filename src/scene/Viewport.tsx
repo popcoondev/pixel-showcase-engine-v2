@@ -225,8 +225,22 @@ function ObjectNode({ def }: { def: SceneObjectDef }) {
   )
 }
 
+/** 発光ループ: 経過時間 t(秒)から基準強度に対する係数 0..1 を返す */
+function pulseFactor(mode: 'pulse' | 'blink' | 'flicker', t: number, speed: number): number {
+  const ph = Math.PI * 2 * t * speed
+  if (mode === 'blink') return Math.sin(ph) >= 0 ? 1 : 0
+  if (mode === 'flicker') {
+    // 不規則(ネオン管のちらつき): 非整数倍の正弦を合成し、明側に寄せる
+    const v = (Math.sin(t * speed * 8.1) + Math.sin(t * speed * 15.3) + Math.sin(t * speed * 23.7)) / 3
+    return Math.pow(0.5 + 0.5 * v, 0.45)
+  }
+  // pulse: 柔らかい明滅
+  return 0.5 + 0.5 * Math.sin(ph)
+}
+
 function LightNode({ def }: { def: LightDef }) {
   const proxyRef = useRef<THREE.Group>(null)
+  const lightRef = useRef<THREE.Light>(null)
   const mode = useStore((s) => s.mode)
   const viewerLocked = useStore((s) => s.viewerLocked)
   const showProxy = mode === 'edit' && !viewerLocked
@@ -238,10 +252,25 @@ function LightNode({ def }: { def: LightDef }) {
     }
   }, [def.id])
 
+  // 発光ループ: Preview/Viewer で intensity を明滅させる。Edit では基準値で静止。
+  useFrame((state) => {
+    const l = lightRef.current
+    if (!l) return
+    const p = def.pulse
+    const framed = mode === 'preview' || viewerLocked
+    if (!p || !p.enabled || !framed) {
+      l.intensity = def.intensity
+      return
+    }
+    const k = pulseFactor(p.mode, state.clock.elapsedTime, Math.max(0.05, p.speed))
+    l.intensity = def.intensity * (p.min + (1 - p.min) * k)
+  })
+
   return (
     <>
       {def.kind === 'directional' && (
         <directionalLight
+          ref={lightRef}
           position={def.position}
           color={def.color}
           intensity={def.intensity}
@@ -257,6 +286,7 @@ function LightNode({ def }: { def: LightDef }) {
       )}
       {def.kind === 'point' && (
         <pointLight
+          ref={lightRef}
           position={def.position}
           color={def.color}
           intensity={def.intensity}
@@ -266,6 +296,7 @@ function LightNode({ def }: { def: LightDef }) {
       )}
       {def.kind === 'spot' && (
         <spotLight
+          ref={lightRef}
           position={def.position}
           color={def.color}
           intensity={def.intensity}

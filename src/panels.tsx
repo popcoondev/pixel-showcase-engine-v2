@@ -3,7 +3,13 @@ import { fileToDataUrl, imageAspect, pickFile } from './io'
 import { resetCameraRoll } from './scene/FlyControls'
 import { LOOK_PRESETS } from './presets'
 import { EFFECT_LABELS, focalToFov, fovToFocal, useStore } from './store'
-import type { AspectRatio, EffectKind, FocusMode, LightKind, Vec3 } from './types'
+import type { AspectRatio, EffectKind, FocusMode, LightKind, LightPulseMode, Vec3 } from './types'
+
+const PULSE_MODE_LABELS: Record<LightPulseMode, string> = {
+  pulse: '柔らかく明滅',
+  blink: '素早く点滅',
+  flicker: 'ちらつき',
+}
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -582,6 +588,51 @@ export function LightPanel() {
           <button className="wide danger" onClick={() => s().removeLight(light.id)}>
             Delete Light
           </button>
+        </Section>
+      ) : null}
+      {light ? (
+        <Section title="発光ループ">
+          <ToggleRow
+            label="有効"
+            value={light.pulse?.enabled ?? false}
+            onChange={(v) => s().setLightPulse(light.id, { enabled: v })}
+          />
+          {light.pulse?.enabled && (
+            <>
+              <Row label="種類">
+                <div className="btn-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', margin: 0 }}>
+                  {(['pulse', 'blink', 'flicker'] as LightPulseMode[]).map((m) => (
+                    <button
+                      key={m}
+                      className={light.pulse?.mode === m ? 'active' : ''}
+                      onClick={() => s().setLightPulse(light.id, { mode: m })}
+                    >
+                      {PULSE_MODE_LABELS[m]}
+                    </button>
+                  ))}
+                </div>
+              </Row>
+              <SliderRow
+                label="最小の明るさ"
+                value={light.pulse.min}
+                min={0}
+                max={0.9}
+                step={0.01}
+                format={(v) => `${Math.round(v * 100)}%`}
+                onChange={(v) => s().setLightPulse(light.id, { min: v })}
+              />
+              <SliderRow
+                label="速さ"
+                value={light.pulse.speed}
+                min={0.2}
+                max={12}
+                step={0.1}
+                format={(v) => `${v.toFixed(1)}Hz`}
+                onChange={(v) => s().setLightPulse(light.id, { speed: v })}
+              />
+              <div className="empty">プレビュー(▶)/公開ページで明滅します。編集中は基準の明るさで静止。</div>
+            </>
+          )}
         </Section>
       ) : (
         <Empty text="ライト未選択。一覧かキャンバスのワイヤー球をクリックしてください。" />

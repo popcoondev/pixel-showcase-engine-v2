@@ -11,6 +11,7 @@ import type {
   EnvSettings,
   LightDef,
   LightKind,
+  LightPulse,
   MaterialSettings,
   Mode,
   SceneFile,
@@ -170,6 +171,13 @@ export const defaultMotion = (): CameraMotion => ({
   speed: 8,
 })
 
+export const defaultLightPulse = (): LightPulse => ({
+  enabled: true,
+  mode: 'pulse',
+  min: 0.15,
+  speed: 1.5,
+})
+
 const defaultCamera = (): CameraSettings => ({
   focalLength: 35,
   exposure: 1,
@@ -289,6 +297,7 @@ interface StoreState {
 
   addLight: (kind: LightKind) => void
   updateLight: (id: string, patch: Partial<LightDef>) => void
+  setLightPulse: (id: string, patch: Partial<LightPulse>) => void
   removeLight: (id: string) => void
 
   addEffect: (kind: EffectKind) => void
@@ -686,6 +695,13 @@ export const useStore = create<StoreState>()((set, get) => ({
 
   updateLight: (id, patch) =>
     set((s) => ({ lights: s.lights.map((l) => (l.id === id ? { ...l, ...patch } : l)) })),
+
+  setLightPulse: (id, patch) =>
+    set((s) => ({
+      lights: s.lights.map((l) =>
+        l.id === id ? { ...l, pulse: { ...(l.pulse ?? defaultLightPulse()), ...patch } } : l,
+      ),
+    })),
 
   removeLight: (id) =>
     set((s) => ({

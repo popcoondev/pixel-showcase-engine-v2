@@ -47,6 +47,18 @@ export interface SceneObjectDef {
 
 export type LightKind = 'directional' | 'point' | 'spot'
 
+/** 発光ループの種類: pulse=ネオンのように柔らかく明滅 / blink=素早い点滅 / flicker=不規則なちらつき */
+export type LightPulseMode = 'pulse' | 'blink' | 'flicker'
+
+export interface LightPulse {
+  enabled: boolean
+  mode: LightPulseMode
+  /** 最小強度の割合(基準強度に対する下限) 0..1 */
+  min: number
+  /** 速さ(Hz 目安) */
+  speed: number
+}
+
 export interface LightDef {
   id: string
   name: string
@@ -55,6 +67,8 @@ export interface LightDef {
   intensity: number
   position: Vec3
   castShadow: boolean
+  /** 任意: 発光ループ(明滅/点滅/ちらつき)。未設定なら静止 */
+  pulse?: LightPulse
 }
 
 export interface EnvSettings {
