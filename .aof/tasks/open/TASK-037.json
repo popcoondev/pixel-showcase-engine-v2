@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-037",
+  "title": "一般ユーザー向けエージェント連携オンボーディング(SA鍵不要化)",
+  "description": "現状の MCP 連携は SA鍵ダウンロード+設定ファイル手編集=maintainer/技術者向け。一般ユーザーには不向き。UIから発行する per-user 限定トークン/デバイスフロー、またはホスト型トークン交換などで『鍵を配らない』導線を設計する。uid 表示(連携モーダル)は実装済=入口の一部。要 Operations/Guardian 審査(新たな資格情報発行=DR候補)。",
+  "status": "open",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-18T23:42:51.235Z",
+  "updated_at": "2026-06-18T23:42:51.235Z",
+  "assigned_at": null,
+  "done_at": null,
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "maintainer 指摘(2026-06-18): uid表示だけでは一般公開に不十分、SA鍵配布が壁。優先度未定・将来。"
+}
