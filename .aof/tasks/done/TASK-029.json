@@ -2,19 +2,19 @@
   "task_id": "TASK-029",
   "title": "複数ライト/オブジェクトの位相同期(共有クロック)",
   "description": "各ループの位相を共有マスタークロックに揃え連動(交互点滅・追従)。位相オフセット指定可。Preview/Viewer 一貫。",
-  "status": "open",
+  "status": "done",
   "origin": "orchestrator",
   "orchestrator_session_id": "SESS-MQJ5JV1L-BOSC1N",
   "assigned_session_ids": [],
   "related_decision_record_id": null,
   "operating_goal_ref": null,
   "created_at": "2026-06-18T07:03:57.555Z",
-  "updated_at": "2026-06-18T07:03:57.555Z",
+  "updated_at": "2026-06-18T08:09:28.442Z",
   "assigned_at": null,
-  "done_at": null,
+  "done_at": "2026-06-18T08:09:28.442Z",
   "retired_at": null,
   "last_triaged_at": null,
   "stale_candidate_at": null,
   "retire_candidate_at": null,
-  "triage_notes": "v0.8.0 候補 / next-value-slice 由来"
+  "triage_notes": "完了: 3 motion 型に phase? 0..1 を追加。共有 clock.elapsedTime 上で位相オフセットを適用(camera/object の ph に +2π·phase、light pulseFactor は時間シフト tp=t+phase/speed で全モード反映)。各パネルに『位相(連動)』スライダー。preview 実機で同周期2ライト(phase 0/0.5)の交互点滅 マゼンタ↔シアン を E2E 確認。build/test green。"
 }
