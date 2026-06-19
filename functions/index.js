@@ -429,6 +429,111 @@ exports.removeObject = onCall({ region: 'asia-northeast1' }, async (request) => 
   return { ok: true, sceneId, removed, objectCount: next.length }
 })
 
+// ---- カメラ / ライト操作 (TASK-039 / DR-2026-009) ----
+const AI_MAX_LIGHTS = 16
+const AI_LIGHT_KINDS = ['directional', 'point', 'spot']
+const AI_LIGHT_DEFAULT_INTENSITY = { directional: 3, point: 50, spot: 80 }
+
+/** scene doc を読んで {userRef, sceneRef, today, opCount, scene} を返す共通前処理。 */
+async function aiOpenScene(uid, sceneId) {
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  const u = (await userRef.get()).data() || {}
+  const { today, opCount } = await aiCheckOpLimit(u)
+  const sceneRef = userRef.collection('showcases').doc(sceneId)
+  const snap = await sceneRef.get()
+  if (!snap.exists) throw new HttpsError('not-found', 'scene not found')
+  return { db, userRef, sceneRef, today, opCount, scene: (snap.data() || {}).scene || {} }
+}
+
+exports.setCamera = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const shots = Array.isArray(scene.shots) ? scene.shots : []
+  const shot = shots.find((s) => s && s.id === scene.activeShotId) || shots[0]
+  if (!shot) throw new HttpsError('failed-precondition', 'scene has no shot')
+
+  const eye = data.position !== undefined ? aiVec3(data.position, -100, 100, shot.position || [0, 1.5, 7]) : shot.position || [0, 1.5, 7]
+  const target = data.target !== undefined ? aiVec3(data.target, -100, 100, shot.focusTarget || [0, 1, 0]) : shot.focusTarget || [0, 1, 0]
+  shot.position = eye
+  shot.focusTarget = target
+  shot.quaternion = lookAtQuaternion(eye, target)
+  if (data.focalLength !== undefined) {
+    const f = aiClamp(data.focalLength, 10, 200, 45)
+    shot.settings = Object.assign(shot.settings || aiCameraSettings(), { focalLength: f })
+    scene.camera = Object.assign(scene.camera || aiCameraSettings(), { focalLength: f })
+  }
+
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.shots': shots, 'scene.camera': scene.camera || aiCameraSettings(), updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, position: eye, target }
+})
+
+exports.addLight = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const lights = Array.isArray(scene.lights) ? scene.lights : []
+  if (lights.length >= AI_MAX_LIGHTS) throw new HttpsError('resource-exhausted', 'light limit reached')
+
+  const kind = AI_LIGHT_KINDS.includes(data.kind) ? data.kind : 'point'
+  const color = typeof data.color === 'string' ? data.color : '#ffffff'
+  const intensity = aiClamp(data.intensity, 0, 200, AI_LIGHT_DEFAULT_INTENSITY[kind])
+  const position = aiVec3(data.position, -50, 50, [3, 4, 2])
+  const light = { id: aiId(), name: data.name && String(data.name).slice(0, 40) || kind, kind, color, intensity, position, castShadow: kind !== 'point' && !!data.castShadow }
+  lights.push(light)
+
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.lights': lights, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, lightId: light.id, lightCount: lights.length }
+})
+
+exports.updateLight = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  if (typeof data.lightId !== 'string' || !data.lightId) throw new HttpsError('invalid-argument', 'lightId required')
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const lights = Array.isArray(scene.lights) ? scene.lights : []
+  const light = lights.find((l) => l && l.id === data.lightId)
+  if (!light) throw new HttpsError('not-found', 'light not found')
+  if (typeof data.color === 'string') light.color = data.color
+  if (data.intensity !== undefined) light.intensity = aiClamp(data.intensity, 0, 200, light.intensity)
+  if (data.position !== undefined) light.position = aiVec3(data.position, -50, 50, light.position || [0, 0, 0])
+  if (data.castShadow !== undefined) light.castShadow = !!data.castShadow
+
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.lights': lights, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, lightId: data.lightId }
+})
+
+exports.removeLight = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  if (typeof data.lightId !== 'string' || !data.lightId) throw new HttpsError('invalid-argument', 'lightId required')
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const lights = Array.isArray(scene.lights) ? scene.lights : []
+  const next = lights.filter((l) => !(l && l.id === data.lightId))
+  const removed = next.length !== lights.length
+
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.lights': next, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, removed, lightCount: next.length }
+})
+
 const APP_ORIGIN = 'https://pixelshowcase-7bc44.web.app'
 const DEFAULT_DESC = 'ドット絵・GLB・画像プレートを3D空間に置いて、固定画角の展示として見せる'
 

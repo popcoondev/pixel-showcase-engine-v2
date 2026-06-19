@@ -36,6 +36,10 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
 | `placeAsset` | write | `{ sceneId, hash, position?, rotation?, scale? }` | `{ ok, sceneId, objectId, objectCount }` |
 | `updateObject` | write | `{ sceneId, objectId, position?, rotation?, scale? }` | `{ ok, sceneId, objectId, objectCount }` |
 | `removeObject` | write | `{ sceneId, objectId }` | `{ ok, sceneId, removed, objectCount }` |
+| `setCamera` | write | `{ sceneId, position?, target?, focalLength? }` | `{ ok, sceneId, position, target }` |
+| `addLight` | write | `{ sceneId, kind?, color?, intensity?, position?, castShadow? }` | `{ ok, sceneId, lightId, lightCount }` |
+| `updateLight` | write | `{ sceneId, lightId, color?, intensity?, position?, castShadow? }` | `{ ok, sceneId, lightId }` |
+| `removeLight` | write | `{ sceneId, lightId }` | `{ ok, sceneId, removed, lightCount }` |
 
 補足:
 - `placeAsset` の `hash` は `listAssets` の `Asset.hash`。`kind`/`aspect` はサーバが asset から決定。
@@ -43,6 +47,10 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
 - 入力の数値は範囲外をクランプ(position ±50 / scale 0.01–50)。
 - 1ショット生成 `createSceneFromAssets({ name?, turntable?, assetHashes? }) → { ok, sceneId, objectCount }`
   も残置。エージェントは「これで下書き → `updateObject`/`placeAsset` で微調整」も可。
+- `setCamera` は **アクティブ Shot** の位置/注視点を更新し quaternion を再計算する(焦点距離 10–200mm)。
+- `addLight` の kind=`directional`/`point`/`spot`、intensity 0–200(既定 dir3/point50/spot80)、最大16灯。
+- `placeAsset`/`compose` は配置時に **ライブラリの既定スケール(defaultScale)/色味(tint)/aspect** を適用する
+  (明示の `scale` があればそちら優先)。これらは UI の「☁ライブラリ → 設定」で human が編集する。
 
 ## 典型フロー
 

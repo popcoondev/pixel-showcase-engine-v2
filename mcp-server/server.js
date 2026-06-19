@@ -131,5 +131,52 @@ server.tool(
   async (args) => asText(await call('createSceneFromAssets', args)),
 )
 
+server.tool(
+  'set_camera',
+  'シーンのカメラ(アクティブShot)の位置/注視点/焦点距離を設定する',
+  {
+    sceneId: z.string(),
+    position: vec3.optional(),
+    target: vec3.optional(),
+    focalLength: z.number().optional(),
+  },
+  async (args) => asText(await call('setCamera', args)),
+)
+
+server.tool(
+  'add_light',
+  'シーンにライトを追加する(kind: directional/point/spot)',
+  {
+    sceneId: z.string(),
+    kind: z.enum(['directional', 'point', 'spot']).optional(),
+    color: z.string().optional(),
+    intensity: z.number().optional(),
+    position: vec3.optional(),
+    castShadow: z.boolean().optional(),
+  },
+  async (args) => asText(await call('addLight', args)),
+)
+
+server.tool(
+  'update_light',
+  '既存ライトの色/強さ/位置/影を更新する',
+  {
+    sceneId: z.string(),
+    lightId: z.string(),
+    color: z.string().optional(),
+    intensity: z.number().optional(),
+    position: vec3.optional(),
+    castShadow: z.boolean().optional(),
+  },
+  async (args) => asText(await call('updateLight', args)),
+)
+
+server.tool(
+  'remove_light',
+  'シーンから指定ライトを取り除く',
+  { sceneId: z.string(), lightId: z.string() },
+  async (args) => asText(await call('removeLight', args)),
+)
+
 await server.connect(new StdioServerTransport())
 console.error('pixel-showcase MCP server ready (uid=' + uid + ', region=' + region + ')')
