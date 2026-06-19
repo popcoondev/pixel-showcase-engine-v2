@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-040",
+  "title": "視覚フィードバック: render_scene(エージェントがシーンを画像で見る)",
+  "description": "MCP の render_scene でヘッドレス描画した PNG を AI に返す。WebGL は SwiftShader 有効化、__pse 本番公開で本番アプリに loadScene 注入→スクショ。",
+  "status": "done",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-19T10:10:58.107Z",
+  "updated_at": "2026-06-19T10:10:58.159Z",
+  "assigned_at": null,
+  "done_at": "2026-06-19T10:10:58.159Z",
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "実装+実機検証: MCP server に render_scene(getScene→署名URL解決→Playwright で APP_URL を開き loadScene→canvas スクショ→MCP image)。**真因2件を発見・修正: ①headless は WebGL 無効→args swiftshader で有効化(色ブロックの正体) ②vec3 同一スキーマ使い回しで scale/rotation の JSON Schema が {} 化→文字列送信される MCP バグ→factory 化。** __pse を本番公開(store.ts、描画注入用)。localhost レンダラで MCP動作テスト(GLB縮小済)を実描画=キャラGLBが正しく表示。Playwright optional dep + chromium DL 済。**人手: push(__pse本番反映、これでprod URLでも描画可)+ MCPクライアント再起動。** 学び: 構図調整は render→set_camera/update_object→render のループで詰める。"
+}
