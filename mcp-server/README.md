@@ -75,6 +75,23 @@ update_object({sceneId, objectId, position:[2,0.5,0]})
 
 確認・公開は人間が Web UI で(☁開く → Publish)。このサーバーは**公開しない**(作業コピーのみ)。
 
+## 視覚フィードバック(render_scene / 任意)
+
+エージェントが「見た目」を確認して調整できるよう、`render_scene` はシーンを実際に
+レンダリングした PNG を返す。ヘッドレス Chromium で本番アプリを開き、シーンを
+読み込んでキャンバスを撮る(SwiftShader で WebGL を有効化)。クラウド費用ゼロ。
+
+使うには Playwright を追加インストール:
+
+```bash
+cd mcp-server
+npm i playwright
+npx playwright install chromium
+```
+
+未インストールでも他のツールは動く(`render_scene` だけ無効)。本番アプリ以外を
+レンダラにしたい場合は `PSE_APP_URL` を設定(既定 https://pixelshowcase-7bc44.web.app)。
+
 ## 注意
 
 - サービスアカウント JSON / `.env` はコミットしない(`.gitignore` 済 / DR-2026-009 条件6)。

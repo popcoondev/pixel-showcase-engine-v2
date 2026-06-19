@@ -1038,6 +1038,7 @@ if (viewerTarget) {
   })()
 }
 
-if (import.meta.env.DEV) {
-  window.__pse = useStore
-}
+// 編集ストアをグローバル公開。dev のデバッグに加え、ヘッドレス描画(MCP の
+// render_scene が本番アプリに loadScene を注入してスクショ)に使う。
+// 露出するのはローカル編集状態のみ。クラウド書き込みは認証/Rules でゲート済み。
+window.__pse = useStore
