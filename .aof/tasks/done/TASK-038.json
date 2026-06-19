@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-038",
+  "title": "アセットのメタ拡張(既定スケール/色味/説明/タグ/aspect)",
+  "description": "ライブラリの各アセットに defaultScale/tint/description/tags を持たせ UI で設定、配置(placeAsset/compose/client)時に適用。画像 aspect を登録時に自動保存。list_assets で AI に開示。GLB が大きすぎる問題と AI のアセット理解を解決。",
+  "status": "done",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-19T02:26:00.261Z",
+  "updated_at": "2026-06-19T02:26:00.377Z",
+  "assigned_at": null,
+  "done_at": "2026-06-19T02:26:00.377Z",
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "実装着地(deploy/push 人手): cloud/assets.ts(LibraryAsset 拡張 + deriveAssetMeta で画像 aspect 導出 + updateLibraryAsset + listLibraryAssets 項目追加)。functions: listAssets が defaultScale/tint/description/tags/aspect を返す、placeAsset と composeSceneServer が defaultScale(GLBは[ds,ds,ds]/画像は h=1.6*ds)+tint(GLBは materialOverride)+aspect を適用。CloudUI ライブラリに AssetEditor(既定スケール/色味/説明/タグ)+ client place も既定適用。test 21 passed。**人手: firebase deploy --only functions / push。**"
+}

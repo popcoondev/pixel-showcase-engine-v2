@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-039",
+  "title": "カメラ/ライトの MCP 操作ツール(set_camera/add_light 等)",
+  "description": "エージェントが構図とライティングも制御できるよう、setCamera/setShot・addLight/updateLight/removeLight・setEnv 等の callable + MCP ツールを追加。DR-2026-009 の書込スコープ内(同条件: uid自損/検証/上限/公開しない)。",
+  "status": "open",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-19T02:26:00.331Z",
+  "updated_at": "2026-06-19T02:26:00.331Z",
+  "assigned_at": null,
+  "done_at": null,
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "TASK-038 の次スライス。"
+}
