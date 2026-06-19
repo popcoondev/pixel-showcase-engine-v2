@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { deleteAccount } from './cloud/account'
-import { listLibraryAssets, type LibraryAsset } from './cloud/assets'
+import { listLibraryAssets, updateLibraryAsset, type LibraryAsset } from './cloud/assets'
 import { signInWithGoogle, signOutCloud } from './cloud/auth'
 import {
   deleteCloudScene,
@@ -124,18 +124,41 @@ function LibraryModal({ onClose }: { onClose: () => void }) {
     }
   }, [])
 
+  const [editing, setEditing] = useState<string | null>(null)
+
   const place = async (a: LibraryAsset) => {
-    const s = useStore.getState()
     try {
-      s.registerAssetUrl(a.hash, a.url)
+      useStore.getState().registerAssetUrl(a.hash, a.url)
+      const ds = a.defaultScale && a.defaultScale > 0 ? a.defaultScale : 1
       if (a.kind === 'glb') {
-        s.addGlb(a.hash, a.name)
+        useStore.getState().addGlb(a.hash, a.name)
       } else {
-        const aspect = await imageAspect(a.url)
-        s.addPlane(a.hash, aspect, a.name)
+        const aspect = a.aspect ?? (await imageAspect(a.url))
+        useStore.getState().addPlane(a.hash, aspect, a.name)
       }
-      s.flash(`「${a.name}」を配置しました`)
+      // 既定スケール/色味を適用(直近に追加したオブジェクト)
+      const st = useStore.getState()
+      const obj = st.objects[st.objects.length - 1]
+      if (obj) {
+        if (ds !== 1) st.updateObject(obj.id, { scale: [obj.scale[0] * ds, obj.scale[1] * ds, obj.scale[2] * ds] })
+        if (a.tint) {
+          st.updateMaterial(obj.id, { color: a.tint })
+          if (a.kind === 'glb') st.updateObject(obj.id, { materialOverride: true })
+        }
+      }
+      useStore.getState().flash(`「${a.name}」を配置しました`)
       onClose()
+    } catch (e) {
+      setError(msgOf(e))
+    }
+  }
+
+  const saveMeta = async (hash: string, patch: { defaultScale?: number; tint?: string; description?: string; tags?: string[] }) => {
+    try {
+      await updateLibraryAsset(hash, patch)
+      setAssets((cur) => cur?.map((a) => (a.hash === hash ? { ...a, ...patch } : a)) ?? null)
+      setEditing(null)
+      useStore.getState().flash('アセット設定を保存しました')
     } catch (e) {
       setError(msgOf(e))
     }
@@ -146,7 +169,8 @@ function LibraryModal({ onClose }: { onClose: () => void }) {
       <div className="help-card cloud-modal" onClick={(e) => e.stopPropagation()}>
         <h3>アセットライブラリ</h3>
         <p className="welcome-lead">
-          このアカウントで保存したシーンのオブジェクトです。クリックで今のシーンに配置できます。
+          このアカウントで保存したオブジェクトです。「配置」で今のシーンに置く / 「設定」で既定スケール・色味・
+          説明(AIが参照)を編集できます。
         </p>
         {error && <div className="cloud-error">{error}</div>}
         {!assets && !error && <div className="empty">読み込み中…</div>}
@@ -155,12 +179,20 @@ function LibraryModal({ onClose }: { onClose: () => void }) {
         )}
         <ul className="item-list">
           {assets?.map((a) => (
-            <li key={a.hash}>
-              <span className="shot-name">{a.name}</span>
-              <span className="kind">{a.kind === 'glb' ? '3D' : '画像'}</span>
-              <button className="mini" onClick={() => place(a)}>
-                配置
-              </button>
+            <li key={a.hash} style={{ display: 'block' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="shot-name" style={{ flex: 1 }}>
+                  {a.name}
+                </span>
+                <span className="kind">{a.kind === 'glb' ? '3D' : '画像'}</span>
+                <button className="mini" onClick={() => setEditing(editing === a.hash ? null : a.hash)}>
+                  設定
+                </button>
+                <button className="mini" onClick={() => place(a)}>
+                  配置
+                </button>
+              </div>
+              {editing === a.hash && <AssetEditor asset={a} onSave={(p) => saveMeta(a.hash, p)} />}
             </li>
           ))}
         </ul>
@@ -168,6 +200,83 @@ function LibraryModal({ onClose }: { onClose: () => void }) {
           閉じる
         </button>
       </div>
+    </div>
+  )
+}
+
+/** ライブラリ1アセットの既定スケール/色味/説明/タグを編集する小フォーム */
+function AssetEditor({
+  asset,
+  onSave,
+}: {
+  asset: LibraryAsset
+  onSave: (patch: { defaultScale: number; tint: string; description: string; tags: string[] }) => void
+}) {
+  const [scale, setScale] = useState(asset.defaultScale ?? 1)
+  const [tint, setTint] = useState(asset.tint ?? '#ffffff')
+  const [desc, setDesc] = useState(asset.description ?? '')
+  const [tags, setTags] = useState((asset.tags ?? []).join(', '))
+  return (
+    <div className="asset-editor">
+      <div className="row">
+        <span className="row-label">既定スケール</span>
+        <div className="row-body">
+          <input
+            type="range"
+            min={0.05}
+            max={5}
+            step={0.05}
+            value={scale}
+            onChange={(e) => setScale(Number(e.target.value))}
+          />
+          <span className="row-value">{scale.toFixed(2)}×</span>
+        </div>
+      </div>
+      <div className="row">
+        <span className="row-label">色味</span>
+        <div className="row-body">
+          <input type="color" value={tint} onChange={(e) => setTint(e.target.value)} />
+          <span className="row-value">{tint}</span>
+        </div>
+      </div>
+      <div className="row">
+        <span className="row-label">説明(AI用)</span>
+        <div className="row-body">
+          <input
+            className="text"
+            placeholder="例: 赤い鳥居の3Dモデル"
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="row">
+        <span className="row-label">タグ</span>
+        <div className="row-body">
+          <input
+            className="text"
+            placeholder="カンマ区切り 例: 建物, 和風"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+          />
+        </div>
+      </div>
+      <button
+        className="wide"
+        onClick={() =>
+          onSave({
+            defaultScale: scale,
+            tint,
+            description: desc.trim(),
+            tags: tags
+              .split(',')
+              .map((t) => t.trim())
+              .filter(Boolean),
+          })
+        }
+      >
+        保存
+      </button>
     </div>
   )
 }

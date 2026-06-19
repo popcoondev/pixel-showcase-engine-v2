@@ -24,8 +24,20 @@ describe('deriveAssetMeta', () => {
     const assetRefs = { k1: 'assets/aaa', k2: 'assets/bbb' }
     expect(deriveAssetMeta(objects, assetRefs)).toEqual({
       aaa: { name: 'tree', kind: 'glb' },
-      bbb: { name: 'sign', kind: 'image' },
+      bbb: { name: 'sign', kind: 'image', aspect: 1 },
     })
+  })
+
+  it('画像は plane の scale から aspect(w/h)を導く', () => {
+    const objects = [
+      obj({
+        name: 'wide',
+        kind: 'plane',
+        scale: [3.2, 1.6, 1],
+        material: { textureAssetId: 'k' } as SceneObjectDef['material'],
+      }),
+    ]
+    expect(deriveAssetMeta(objects, { k: 'assets/h' }).h.aspect).toBeCloseTo(2, 5)
   })
 
   it('assetRefs に無い参照は無視する', () => {

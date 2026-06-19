@@ -119,20 +119,27 @@ function composeSceneServer(assets, opts) {
     const x = t * spacing * Math.max(1, n - 1)
     const z = -Math.abs(t) * spacing * 0.5
     const yaw = -t * 0.6
+    const ds = a.defaultScale && a.defaultScale > 0 ? a.defaultScale : 1
+    const tint = typeof a.tint === 'string' ? a.tint : null
     if (a.kind === 'glb') {
+      const material = aiMaterial()
+      if (tint) material.color = tint
       const o = {
-        id: aiId(), name: a.name, kind: 'glb', position: [x, 0, z], rotation: [0, yaw, 0], scale: [1, 1, 1],
-        material: aiMaterial(), glbAssetId: a.hash,
+        id: aiId(), name: a.name, kind: 'glb', position: [x, 0, z], rotation: [0, yaw, 0], scale: [ds, ds, ds],
+        material, glbAssetId: a.hash,
       }
+      if (tint) o.materialOverride = true
       // motion は undefined キーを作らない(Firestore は undefined を拒否=500 になる)
       if (turntable) o.motion = { enabled: true, moveX: 0, moveY: 0, moveZ: 0, spinY: 18, speed: 8, easing: 'linear' }
       objects.push(o)
     } else {
       const aspect = a.aspect && a.aspect > 0 ? a.aspect : 1
-      const h = 1.6
+      const h = 1.6 * ds
+      const material = Object.assign(aiMaterial(), { textureAssetId: a.hash })
+      if (tint) material.color = tint
       objects.push({
         id: aiId(), name: a.name, kind: 'plane', position: [x, h / 2, z], rotation: [0, yaw, 0],
-        scale: [h * aspect, h, 1], material: Object.assign(aiMaterial(), { textureAssetId: a.hash }),
+        scale: [h * aspect, h, 1], material,
       })
     }
   })
@@ -188,6 +195,8 @@ exports.createSceneFromAssets = onCall({ region: 'asia-northeast1' }, async (req
   const composerInput = assets.map((a) => ({
     hash: a.hash, kind: a.kind === 'glb' ? 'glb' : 'image', name: a.name || 'asset',
     aspect: typeof a.aspect === 'number' ? a.aspect : 1, storagePath: a.storagePath || 'assets/' + a.hash,
+    defaultScale: typeof a.defaultScale === 'number' && a.defaultScale > 0 ? a.defaultScale : null,
+    tint: typeof a.tint === 'string' ? a.tint : null,
   }))
   const { scene, assetRefs } = composeSceneServer(composerInput, { name, turntable })
 
@@ -229,7 +238,16 @@ exports.listAssets = onCall({ region: 'asia-northeast1' }, async (request) => {
   const snap = await admin.firestore().collection('users').doc(uid).collection('assets').get()
   const assets = snap.docs.map((d) => {
     const x = d.data() || {}
-    return { hash: d.id, name: x.name || '(無題)', kind: x.kind === 'glb' ? 'glb' : 'image', aspect: typeof x.aspect === 'number' ? x.aspect : null }
+    return {
+      hash: d.id,
+      name: x.name || '(無題)',
+      kind: x.kind === 'glb' ? 'glb' : 'image',
+      aspect: typeof x.aspect === 'number' ? x.aspect : null,
+      defaultScale: typeof x.defaultScale === 'number' ? x.defaultScale : null,
+      tint: typeof x.tint === 'string' ? x.tint : null,
+      description: typeof x.description === 'string' ? x.description : null,
+      tags: Array.isArray(x.tags) ? x.tags : [],
+    }
   })
   return { ok: true, assets }
 })
@@ -303,13 +321,21 @@ exports.placeAsset = onCall({ region: 'asia-northeast1' }, async (request) => {
   const r = Array.isArray(data.rotation) ? data.rotation : []
   const rotation = [aiClamp(r[0], -12.6, 12.6, 0), aiClamp(r[1], -12.6, 12.6, 0), aiClamp(r[2], -12.6, 12.6, 0)]
 
+  // ライブラリの既定スケール/色味を適用(明示指定があればそちら優先)
+  const ds = typeof asset.defaultScale === 'number' && asset.defaultScale > 0 ? asset.defaultScale : null
+  const tint = typeof asset.tint === 'string' ? asset.tint : null
   let obj
   if (kind === 'glb') {
-    const s = aiClamp(Array.isArray(data.scale) ? data.scale[0] : 1, 0.01, 50, 1)
-    obj = { id: aiId(), name: asset.name || 'asset', kind: 'glb', position, rotation, scale: [s, s, s], material: aiMaterial(), glbAssetId: hash }
+    const s = aiClamp(Array.isArray(data.scale) ? data.scale[0] : ds || 1, 0.01, 50, 1)
+    const material = aiMaterial()
+    if (tint) material.color = tint
+    obj = { id: aiId(), name: asset.name || 'asset', kind: 'glb', position, rotation, scale: [s, s, s], material, glbAssetId: hash }
+    if (tint) obj.materialOverride = true
   } else {
-    const h = aiClamp(Array.isArray(data.scale) ? data.scale[1] : 1.6, 0.05, 50, 1.6)
-    obj = { id: aiId(), name: asset.name || 'asset', kind: 'plane', position: [position[0], position[1] || h / 2, position[2]], rotation, scale: [h * aspect, h, 1], material: Object.assign(aiMaterial(), { textureAssetId: hash }) }
+    const h = aiClamp(Array.isArray(data.scale) ? data.scale[1] : 1.6 * (ds || 1), 0.05, 50, 1.6)
+    const material = Object.assign(aiMaterial(), { textureAssetId: hash })
+    if (tint) material.color = tint
+    obj = { id: aiId(), name: asset.name || 'asset', kind: 'plane', position: [position[0], position[1] || h / 2, position[2]], rotation, scale: [h * aspect, h, 1], material }
   }
   objects.push(obj)
   const assetRefs = Object.assign({}, docData.assetRefs || {})
