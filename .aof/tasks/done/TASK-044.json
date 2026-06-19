@@ -2,19 +2,19 @@
   "task_id": "TASK-044",
   "title": "AI生成アセットの MCP 取り込みフロー",
   "description": "AI(画像生成)が作った画像/GLB を、上記インポート→ライブラリ→配置まで一気通貫で扱えるようにする。プロンプト→生成→import_asset→place_asset の道具立て・例。生成自体は外部(別モデル/API)、本タスクは取り込みと配置の連結。",
-  "status": "open",
+  "status": "done",
   "origin": "human",
   "orchestrator_session_id": null,
   "assigned_session_ids": [],
   "related_decision_record_id": null,
   "operating_goal_ref": null,
   "created_at": "2026-06-19T16:53:07.777Z",
-  "updated_at": "2026-06-19T16:53:07.777Z",
+  "updated_at": "2026-06-19T17:01:01.147Z",
   "assigned_at": null,
-  "done_at": null,
+  "done_at": "2026-06-19T17:01:01.147Z",
   "retired_at": null,
   "last_triaged_at": null,
   "stale_candidate_at": null,
   "retire_candidate_at": null,
-  "triage_notes": "課題2。MCPアセットインポートに依存。"
+  "triage_notes": "TASK-043 で実現: 生成(外部モデル/API)→ import_asset(dataUrl)→ place_asset の連結が MCP だけで完結。docs/agent-api.md に『生成→取り込み→配置』を明記。生成自体は外部のため本タスクは取り込み・配置の連結=達成。"
 }
