@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-042",
+  "title": "GLB のサイズ正規化(bounding-box 基準の既定スケール)",
+  "description": "インポートGLBはモデル毎にネイティブサイズがバラバラで、配置時の手動スケール調整が必要(eliot04 は 0.05、niwatori は 0.3 等)。登録時または配置時にバウンディングボックスから適正スケールを自動算出し defaultScale に入れる。視覚フィードバック検証で痛感。",
+  "status": "open",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-19T16:47:17.859Z",
+  "updated_at": "2026-06-19T16:47:17.859Z",
+  "assigned_at": null,
+  "done_at": null,
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "TASK-038 の発展。AI/人間どちらの配置も楽になる。"
+}
