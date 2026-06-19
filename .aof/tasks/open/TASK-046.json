@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-046",
+  "title": "複数アセットの一括選択・挿入",
+  "description": "place_asset は1個ずつ。複数アセット(hash配列 + 各position/scale)をまとめて挿入できる batch ツール、または UI のライブラリで複数選択→一括配置。AI/人間どちらの量産も楽に。",
+  "status": "open",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-19T16:53:07.874Z",
+  "updated_at": "2026-06-19T16:53:07.874Z",
+  "assigned_at": null,
+  "done_at": null,
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "課題3。"
+}

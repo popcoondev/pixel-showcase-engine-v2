@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-043",
+  "title": "MCP アセットインポート(画像/GLB アップロード)",
+  "description": "現状 MCP は既存ライブラリの配置/編集のみで、新規アセットを取り込めない。エージェントが画像/GLB(dataURL or バイト)を Storage assets/{hash} にアップロード+library 登録できる import ツールを追加。これにより AI が生成した画像を MCP 経由でシーンに入れられるようになる(課題2の前提)。検証/サイズ/型/上限・content-hash 重複排除は既存 storage.ts/Rules に準拠。",
+  "status": "open",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-19T16:53:07.720Z",
+  "updated_at": "2026-06-19T16:53:07.720Z",
+  "assigned_at": null,
+  "done_at": null,
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "課題1の一部 + 課題2を実現。最重要。"
+}
