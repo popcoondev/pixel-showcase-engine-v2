@@ -2,19 +2,19 @@
   "task_id": "TASK-042",
   "title": "GLB のサイズ正規化(bounding-box 基準の既定スケール)",
   "description": "インポートGLBはモデル毎にネイティブサイズがバラバラで、配置時の手動スケール調整が必要(eliot04 は 0.05、niwatori は 0.3 等)。登録時または配置時にバウンディングボックスから適正スケールを自動算出し defaultScale に入れる。視覚フィードバック検証で痛感。",
-  "status": "open",
+  "status": "done",
   "origin": "human",
   "orchestrator_session_id": null,
   "assigned_session_ids": [],
   "related_decision_record_id": null,
   "operating_goal_ref": null,
   "created_at": "2026-06-19T16:47:17.859Z",
-  "updated_at": "2026-06-19T16:47:17.859Z",
+  "updated_at": "2026-06-19T17:05:00.778Z",
   "assigned_at": null,
-  "done_at": null,
+  "done_at": "2026-06-19T17:05:00.778Z",
   "retired_at": null,
   "last_triaged_at": null,
   "stale_candidate_at": null,
   "retire_candidate_at": null,
-  "triage_notes": "TASK-038 の発展。AI/人間どちらの配置も楽になる。"
+  "triage_notes": "実装着地(push 人手): client 側。GlbContent ロード後に Box3 で最大寸法→store.autoScaleGlb で GLB_TARGET_SIZE(1.6m)に正規化。pendingGlbNormalize Set で addGlb 直後のみ・未調整([1,1,1])のみ対象。test 23。**人手: push(hosting)。** 注: MCP/cloud 既存シーンの GLB スケールには影響しない=エディタ追加時のみ。将来: 正規化値を library defaultScale にも保存。"
 }
