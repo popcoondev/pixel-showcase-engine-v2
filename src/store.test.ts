@@ -219,6 +219,35 @@ describe('loadScene / serialize 往復', () => {
     expect(out.camera.motion).toEqual(scene.camera.motion)
   })
 
+  it('autoScaleGlb: addGlb 直後の GLB を最大寸法で正規化する (TASK-042)', () => {
+    const s = useStore.getState()
+    s.loadScene({
+      version: 2, name: 'glb', assets: { a: 'data:glb,X' }, objects: [], lights: [],
+      effects: [], env: {} as EnvSettings, camera, shots: [], activeShotId: null,
+    })
+    s.addGlb('a', 'model')
+    const id = useStore.getState().objects.at(-1)!.id
+    expect(useStore.getState().objects.at(-1)!.scale).toEqual([1, 1, 1])
+    useStore.getState().autoScaleGlb(id, 8) // 1.6 / 8 = 0.2
+    expect(useStore.getState().objects.find((o) => o.id === id)!.scale[0]).toBeCloseTo(0.2, 5)
+    // 2回目(pending から外れている)は無視
+    useStore.getState().autoScaleGlb(id, 1)
+    expect(useStore.getState().objects.find((o) => o.id === id)!.scale[0]).toBeCloseTo(0.2, 5)
+  })
+
+  it('autoScaleGlb: 手動調整済み(scale≠[1,1,1])は正規化しない', () => {
+    const s = useStore.getState()
+    s.loadScene({
+      version: 2, name: 'glb2', assets: { a: 'data:glb,X' }, objects: [], lights: [],
+      effects: [], env: {} as EnvSettings, camera, shots: [], activeShotId: null,
+    })
+    s.addGlb('a', 'model')
+    const id = useStore.getState().objects.at(-1)!.id
+    useStore.getState().updateObject(id, { scale: [2, 2, 2] })
+    useStore.getState().autoScaleGlb(id, 8)
+    expect(useStore.getState().objects.find((o) => o.id === id)!.scale).toEqual([2, 2, 2])
+  })
+
   it('旧 env トグル (sparkleEnabled) は effects に移行される', () => {
     const legacy = v1Scene({
       env: { sparkleEnabled: true } as unknown as EnvSettings,

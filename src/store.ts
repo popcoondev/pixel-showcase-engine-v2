@@ -35,6 +35,11 @@ export const runtime = {
   suppressMissed: false,
 }
 
+/** addGlb 直後の GLB id。ロード後に bounding box でスケール自動正規化する対象(TASK-042)。 */
+const pendingGlbNormalize = new Set<string>()
+/** GLB の正規化後の最大寸法(m)。インポートしたモデルをこの大きさに揃える。 */
+const GLB_TARGET_SIZE = 1.6
+
 export const SENSOR_HALF_HEIGHT = 12 // 35mm フルフレーム縦 24mm の半分
 
 export function focalToFov(mm: number): number {
@@ -301,6 +306,7 @@ interface StoreState {
   addCube: () => void
   addPlane: (textureAssetId?: string, aspect?: number, name?: string) => void
   addGlb: (assetId: string, name: string) => void
+  autoScaleGlb: (id: string, maxDim: number) => void
   updateObject: (id: string, patch: Partial<SceneObjectDef>) => void
   updateMaterial: (id: string, patch: Partial<MaterialSettings>) => void
   removeObject: (id: string) => void
@@ -656,8 +662,20 @@ export const useStore = create<StoreState>()((set, get) => ({
       material: defaultMaterial(),
       glbAssetId: assetId,
     }
+    pendingGlbNormalize.add(obj.id) // ロード後に bounding box で正規化(TASK-042)
     set((s) => ({ objects: [...s.objects, obj] }))
     get().select({ type: 'object', id: obj.id })
+  },
+
+  // GLB ロード完了時に呼ぶ。addGlb 直後で未調整(scale [1,1,1])のものだけ、
+  // 最大寸法 maxDim を GLB_TARGET_SIZE に合わせて自動スケールする。
+  autoScaleGlb: (id, maxDim) => {
+    if (!pendingGlbNormalize.has(id) || !(maxDim > 0)) return
+    pendingGlbNormalize.delete(id)
+    const obj = get().objects.find((o) => o.id === id)
+    if (!obj || obj.scale[0] !== 1 || obj.scale[1] !== 1 || obj.scale[2] !== 1) return
+    const f = Math.max(0.0001, Math.min(1000, GLB_TARGET_SIZE / maxDim))
+    get().updateObject(id, { scale: [f, f, f] })
   },
 
   updateObject: (id, patch) =>

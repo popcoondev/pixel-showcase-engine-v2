@@ -153,6 +153,10 @@ function GlbContent({ def }: { def: SceneObjectDef }) {
       .then((gltf) => {
         if (!alive) return
         enableShadows(gltf.scene)
+        // TASK-042: 追加直後の GLB を bounding box の最大寸法で正規化する
+        const size = new THREE.Vector3()
+        new THREE.Box3().setFromObject(gltf.scene).getSize(size)
+        useStore.getState().autoScaleGlb(def.id, Math.max(size.x, size.y, size.z))
         setObj(gltf.scene)
       })
       .catch(() => {
