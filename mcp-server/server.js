@@ -137,6 +137,18 @@ server.tool(
 )
 
 server.tool(
+  'import_asset',
+  '画像/GLB をライブラリに取り込む(AI 生成画像の挿入など)。dataUrl は data:<mime>;base64,<...> 形式。取り込んだ hash を place_asset に渡せる',
+  {
+    dataUrl: z.string(),
+    name: z.string().optional(),
+    kind: z.enum(['image', 'glb']).optional(),
+    aspect: z.number().optional(),
+  },
+  async (args) => asText(await call('importAsset', args)),
+)
+
+server.tool(
   'set_camera',
   'シーンのカメラ(アクティブShot)の位置/注視点/焦点距離を設定する',
   {

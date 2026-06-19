@@ -41,6 +41,7 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
 | `updateLight` | write | `{ sceneId, lightId, color?, intensity?, position?, castShadow? }` | `{ ok, sceneId, lightId }` |
 | `removeLight` | write | `{ sceneId, lightId }` | `{ ok, sceneId, removed, lightCount }` |
 | `render_scene` | read | `{ sceneId }` | PNG 画像(MCPサーバー側でヘッドレス描画。Function ではない) |
+| `importAsset` | write | `{ dataUrl, name?, kind?, aspect? }` | `{ ok, hash, kind, aspect, reused }` |
 
 補足:
 - `placeAsset` の `hash` は `listAssets` の `Asset.hash`。`kind`/`aspect` はサーバが asset から決定。
@@ -52,6 +53,9 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
 - `addLight` の kind=`directional`/`point`/`spot`、intensity 0–200(既定 dir3/point50/spot80)、最大16灯。
 - `placeAsset`/`compose` は配置時に **ライブラリの既定スケール(defaultScale)/色味(tint)/aspect** を適用する
   (明示の `scale` があればそちら優先)。これらは UI の「☁ライブラリ → 設定」で human が編集する。
+- `importAsset` は **AI 生成画像/GLB をライブラリに取り込む**(`dataUrl` = `data:<mime>;base64,<...>`)。
+  content-hash で重複排除、PNG は縦横比を自動取得、上限 ~12MB(callable のため)。返った `hash` を
+  `placeAsset` に渡せば「生成 → 取り込み → 配置」が MCP だけで完結する。
 
 ## 典型フロー
 

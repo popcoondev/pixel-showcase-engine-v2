@@ -1,5 +1,6 @@
 const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https')
 const admin = require('firebase-admin')
+const crypto = require('crypto')
 
 admin.initializeApp()
 // 動的生成シーンの保存で undefined フィールドが混じっても 500 にしない(値ごと無視)。
@@ -532,6 +533,81 @@ exports.removeLight = onCall({ region: 'asia-northeast1' }, async (request) => {
   batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
   await batch.commit()
   return { ok: true, sceneId: data.sceneId, removed, lightCount: next.length }
+})
+
+// ---- アセットのインポート (TASK-043 / DR-2026-009): AI生成画像/GLB の取り込み ----
+const AI_MAX_IMPORT_BYTES = 12 * 1024 * 1024
+
+function aiParseDataUrl(dataUrl) {
+  const m = /^data:([^;,]+)?(;base64)?,([\s\S]*)$/.exec(dataUrl || '')
+  if (!m) return null
+  const mime = m[1] || 'application/octet-stream'
+  const buf = m[2] ? Buffer.from(m[3], 'base64') : Buffer.from(decodeURIComponent(m[3]))
+  return { mime, buf }
+}
+
+/** PNG なら IHDR から縦横比を返す(AI生成画像は大抵 PNG)。それ以外は null。 */
+function aiPngAspect(buf) {
+  if (buf.length > 24 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+    const w = buf.readUInt32BE(16)
+    const h = buf.readUInt32BE(20)
+    if (w > 0 && h > 0) return w / h
+  }
+  return null
+}
+
+exports.importAsset = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const name = typeof data.name === 'string' && data.name.trim() ? data.name.trim().slice(0, 80) : 'asset'
+
+  const parsed = data.dataUrl
+    ? aiParseDataUrl(data.dataUrl)
+    : data.base64
+      ? { mime: data.contentType || 'application/octet-stream', buf: Buffer.from(data.base64, 'base64') }
+      : null
+  if (!parsed || !parsed.buf || !parsed.buf.length) {
+    throw new HttpsError('invalid-argument', 'dataUrl (data:<mime>;base64,...) または base64 が必要')
+  }
+  if (parsed.buf.length > AI_MAX_IMPORT_BYTES) {
+    throw new HttpsError('resource-exhausted', 'asset too large (max ~12MB)')
+  }
+
+  const isGlb = data.kind === 'glb' || /gltf|glb|octet-stream/i.test(parsed.mime)
+  const kind = isGlb ? 'glb' : 'image'
+  const contentType = isGlb
+    ? 'model/gltf-binary'
+    : /png|jpe?g|webp/i.test(parsed.mime)
+      ? parsed.mime.replace('jpg', 'jpeg')
+      : 'image/png'
+
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  const u = (await userRef.get()).data() || {}
+  const { today, opCount } = await aiCheckOpLimit(u)
+
+  // content-hash(storage.ts と同じ: SHA-256 先頭16byte)。同一内容は再アップロードしない。
+  const hash = crypto.createHash('sha256').update(parsed.buf).digest('hex').slice(0, 32)
+  const path = 'assets/' + hash
+  const file = admin.storage().bucket().file(path)
+  const [exists] = await file.exists()
+  if (!exists) await file.save(parsed.buf, { contentType, resumable: false })
+
+  const aspect =
+    typeof data.aspect === 'number' && data.aspect > 0
+      ? data.aspect
+      : kind === 'image'
+        ? aiPngAspect(parsed.buf)
+        : null
+  const doc = { name, kind, storagePath: path, updatedAt: admin.firestore.FieldValue.serverTimestamp() }
+  if (aspect) doc.aspect = aspect
+
+  const batch = db.batch()
+  batch.set(userRef.collection('assets').doc(hash), doc, { merge: true })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, hash, kind, aspect: aspect || null, reused: exists }
 })
 
 const APP_ORIGIN = 'https://pixelshowcase-7bc44.web.app'
