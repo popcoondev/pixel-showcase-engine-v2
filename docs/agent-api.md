@@ -51,6 +51,7 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
 | `deleteScene` | write | `{ sceneId }` | `{ ok, sceneId, deleted }` |
 | `render_scene` | read | `{ sceneId }` | PNG 画像(MCPサーバー側でヘッドレス描画。Function ではない) |
 | `importAsset` | write | `{ dataUrl, name?, kind?, aspect? }` | `{ ok, hash, kind, aspect, reused }` |
+| `import_asset_file` | write | `{ path, name?, kind? }`（MCPサーバ側でファイルを読む。Function ではない） | `importAsset` と同じ |
 
 補足:
 - `placeAsset` の `hash` は `listAssets` の `Asset.hash`。`kind`/`aspect` はサーバが asset から決定。
@@ -65,6 +66,12 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
 - `importAsset` は **AI 生成画像/GLB をライブラリに取り込む**(`dataUrl` = `data:<mime>;base64,<...>`)。
   content-hash で重複排除、PNG は縦横比を自動取得、上限 ~12MB(callable のため)。返った `hash` を
   `placeAsset` に渡せば「生成 → 取り込み → 配置」が MCP だけで完結する。
+- **base64 をツール引数で渡すと truncate する**(モデルの文脈を通るため末尾が欠ける)。大きな画像は
+  **`import_asset_file`(ローカルパス)を使う**こと。MCP サーバがファイルを読んで base64 化するので
+  巨大データがモデル文脈を通らず壊れない。AI 生成画像は一旦ファイルに保存 → `import_asset_file` が定石。
+- `importAsset` は保存前に**整合性チェック**を行う: PNG=IEND 終端 / JPEG=EOI(FFD9) / WEBP=RIFF サイズ /
+  GIF=トレーラ / GLB=ヘッダ宣言長。切断・破損は `invalid-argument`「壊れたアセット: …」で弾く
+  (黙って空テクスチャを保存して「配置したのに見えない」を防ぐ)。
 - **動きループ(v0.8.0)** は patch 適用(未指定フィールドは現状維持)。`setCameraMotion`=オービット/弧/寄り引き、
   `setObjectMotion`=各軸振幅+`spinY`(ターンテーブル 度/秒)、`setLightPulse`=明滅(`mode` pulse/blink/flicker)、
   `setLightColorCycle`=色巡回(`mode` hue/gradient、gradient は `colors` 2〜4色)。`easing`=linear/easeInOut/easeIn/easeOut、

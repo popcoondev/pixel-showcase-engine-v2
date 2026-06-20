@@ -13,6 +13,8 @@
 // 任意:
 //   PSE_REGION (既定 asia-northeast1)
 
+import { readFile } from 'node:fs/promises'
+import { basename, extname } from 'node:path'
 import admin from 'firebase-admin'
 import { initializeApp } from 'firebase/app'
 import { getAuth, signInWithCustomToken } from 'firebase/auth'
@@ -163,6 +165,40 @@ server.tool(
     aspect: z.number().optional(),
   },
   async (args) => asText(await call('importAsset', args)),
+)
+
+// 拡張子→MIME。base64 を引数で渡すと truncate するため、ファイルはこちらで読む。
+const MIME_BY_EXT = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.glb': 'model/gltf-binary',
+  '.gltf': 'model/gltf-binary',
+}
+
+server.tool(
+  'import_asset_file',
+  'ローカルのファイルパスから画像/GLB を取り込む(推奨)。base64 をモデル経由で渡さないので大きなファイルでも壊れない。AI 生成画像は一旦ファイルに保存してからこれで取り込むこと',
+  {
+    path: z.string(),
+    name: z.string().optional(),
+    kind: z.enum(['image', 'glb']).optional(),
+  },
+  async ({ path, name, kind }) => {
+    let buf
+    try {
+      buf = await readFile(path)
+    } catch (e) {
+      return asText({ __error: 'read-failed', message: 'ファイルを読めません: ' + (e?.message || String(e)) })
+    }
+    if (!buf.length) return asText({ __error: 'invalid-argument', message: 'ファイルが空です' })
+    const ext = extname(path).toLowerCase()
+    const mime = MIME_BY_EXT[ext] || (kind === 'glb' ? 'model/gltf-binary' : 'application/octet-stream')
+    const dataUrl = `data:${mime};base64,${buf.toString('base64')}`
+    return asText(await call('importAsset', { dataUrl, name: name || basename(path), kind }))
+  },
 )
 
 server.tool(

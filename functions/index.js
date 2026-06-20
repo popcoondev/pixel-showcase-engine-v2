@@ -606,6 +606,40 @@ function aiParseDataUrl(dataUrl) {
   return { mime, buf }
 }
 
+/**
+ * 取り込みバイトの整合性チェック。途中で切れた/壊れたアセットを弾く(truncation 対策)。
+ * base64 をモデル経由で渡すと末尾が欠けることがあり、ヘッダだけ読めて中身が空のまま
+ * 黙って保存されると「配置したのに見えない」になる。既知フォーマットは終端まで検証する。
+ */
+function aiAssetIntegrity(buf, kind) {
+  const n = buf.length
+  const sig = (...b) => b.every((x, i) => buf[i] === x)
+  if (kind === 'glb') {
+    if (!sig(0x67, 0x6c, 0x54, 0x46)) return { ok: false, why: 'GLB シグネチャ(glTF)がありません' }
+    if (n < 12 || buf.readUInt32LE(8) !== n)
+      return { ok: false, why: 'GLB のヘッダ宣言長とファイル長が不一致(切断の可能性)' }
+    return { ok: true }
+  }
+  if (sig(0x89, 0x50, 0x4e, 0x47)) {
+    const ok = n >= 12 && buf.subarray(n - 8).toString('hex') === '49454e44ae426082'
+    return ok ? { ok: true } : { ok: false, why: 'PNG が IEND で終わっていません(切断の可能性)' }
+  }
+  if (sig(0xff, 0xd8, 0xff)) {
+    const ok = n >= 4 && buf[n - 2] === 0xff && buf[n - 1] === 0xd9
+    return ok ? { ok: true } : { ok: false, why: 'JPEG が EOI(FFD9)で終わっていません(切断の可能性)' }
+  }
+  if (n >= 12 && buf.subarray(0, 4).toString('ascii') === 'RIFF' && buf.subarray(8, 12).toString('ascii') === 'WEBP') {
+    const ok = buf.readUInt32LE(4) === n - 8
+    return ok ? { ok: true } : { ok: false, why: 'WEBP の RIFF サイズとファイル長が不一致(切断の可能性)' }
+  }
+  if (buf.subarray(0, 3).toString('ascii') === 'GIF') {
+    const ok = buf[n - 1] === 0x3b
+    return ok ? { ok: true } : { ok: false, why: 'GIF がトレーラ(0x3B)で終わっていません(切断の可能性)' }
+  }
+  // 既知フォーマットでなければ終端検証は不能 → 通す(空でないことは呼び出し側で担保済み)
+  return { ok: true }
+}
+
 /** PNG なら IHDR から縦横比を返す(AI生成画像は大抵 PNG)。それ以外は null。 */
 function aiPngAspect(buf) {
   if (buf.length > 24 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
@@ -638,9 +672,13 @@ exports.importAsset = onCall({ region: 'asia-northeast1' }, async (request) => {
   const kind = isGlb ? 'glb' : 'image'
   const contentType = isGlb
     ? 'model/gltf-binary'
-    : /png|jpe?g|webp/i.test(parsed.mime)
+    : /png|jpe?g|webp|gif/i.test(parsed.mime)
       ? parsed.mime.replace('jpg', 'jpeg')
       : 'image/png'
+
+  // 切断/破損したアセットを黙って保存しない(base64 の truncation 対策)。
+  const integ = aiAssetIntegrity(parsed.buf, kind)
+  if (!integ.ok) throw new HttpsError('invalid-argument', '壊れたアセット: ' + integ.why)
 
   const db = admin.firestore()
   const userRef = db.collection('users').doc(uid)

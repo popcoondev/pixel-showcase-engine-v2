@@ -75,6 +75,20 @@ update_object({sceneId, objectId, position:[2,0.5,0]})
 
 確認・公開は人間が Web UI で(☁開く → Publish)。このサーバーは**公開しない**(作業コピーのみ)。
 
+### 画像の取り込み(重要)
+
+AI 生成画像などを取り込むときは **`import_asset_file({ path })` を使う**こと。`import_asset`
+の `dataUrl`(base64)は引数がモデルの文脈を通るため大きい画像で末尾が truncate し、
+**壊れた画像が黙って保存され「配置したのに見えない」**になる。`import_asset_file` は
+サーバーがファイルを直接読むので壊れない。サーバー側でも整合性(PNG=IEND / JPEG=FFD9 /
+WEBP / GIF / GLB ヘッダ長)を検証し、欠損は弾く。
+
+```
+# 画像を一旦ファイルに保存してから
+import_asset_file({ path:'/tmp/poster.png', name:'ポスター' })  // → hash
+place_asset({ sceneId, hash })
+```
+
 ## 視覚フィードバック(render_scene / 任意)
 
 エージェントが「見た目」を確認して調整できるよう、`render_scene` はシーンを実際に
