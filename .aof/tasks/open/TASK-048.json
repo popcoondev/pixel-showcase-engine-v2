@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-048",
+  "title": "render_scene が RGB(アルファ無し)画像テクスチャを表示できない",
+  "description": "視覚フィードバック検証で発見。importAsset は正常(アップロード/登録/list/place/get_scene 確認済)だが、render_scene のヘッドレス SwiftShader WebGL が RGB(3ch)テクスチャの texSubImage2D に失敗('bad image data' / 'no image data found')。RGBA(4ch、例「Now on sale」)は描画OK。実GPUブラウザでは RGB も出る想定=render プレビュー固有。対策候補: ①StdMaterial の静止テクスチャを canvas 経由(CanvasTexture=常にRGBA)で読み込む ②importAsset で RGB→RGBA 正規化(要 image lib) ③エージェントに RGBA 出力を促す。まず ① が本命(render とアプリ両対応)。要: 実アプリ(GPU)で RGB が表示されるかの確認。",
+  "status": "open",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-20T00:49:06.718Z",
+  "updated_at": "2026-06-20T00:49:06.718Z",
+  "assigned_at": null,
+  "done_at": null,
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "TASK-043 検証で発見。importAsset capability は OK、render 表示のみ。"
+}
