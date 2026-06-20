@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-049",
+  "title": "MCP publish(/s/ 公開)— 要 DR",
+  "description": null,
+  "status": "open",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-20T15:31:20.371Z",
+  "updated_at": "2026-06-20T15:31:20.371Z",
+  "assigned_at": null,
+  "done_at": null,
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "TASK-045 から分離。公開は Operations/Guardian 審査(DR)必須。作業コピー→公開昇格のゲート設計が要る。"
+}
