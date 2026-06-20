@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-047",
+  "title": "カメラ動きループに水平移動(トラック/自動パーン)を追加",
+  "description": "showcase の動きループ(CameraMotion)は現状ヨー=被写体周りのオービット回転のみで、カメラ自体の水平移動(横スライド=トラック/パーン)が無い。CameraMotion に水平移動の振幅(例 truckX, m)を追加し、Preview/Viewer で基準位置から左右に振れる自動パーンを実装。既存の yaw/pitch/dolly/easing/phase と併用・後方互換(未設定=0)。MCP とは別の編集UI機能。将来: 縦移動も。",
+  "status": "open",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-20T00:17:27.880Z",
+  "updated_at": "2026-06-20T00:17:27.880Z",
+  "assigned_at": null,
+  "done_at": null,
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "maintainer 要望 2026-06-18。動きループの拡張(v0.8.0 系譜)。MCPではなく showcase 機能。"
+}
