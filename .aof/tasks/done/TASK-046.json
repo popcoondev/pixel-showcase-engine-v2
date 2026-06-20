@@ -2,19 +2,19 @@
   "task_id": "TASK-046",
   "title": "複数アセットの一括選択・挿入",
   "description": "place_asset は1個ずつ。複数アセット(hash配列 + 各position/scale)をまとめて挿入できる batch ツール、または UI のライブラリで複数選択→一括配置。AI/人間どちらの量産も楽に。",
-  "status": "open",
+  "status": "done",
   "origin": "human",
   "orchestrator_session_id": null,
   "assigned_session_ids": [],
   "related_decision_record_id": null,
   "operating_goal_ref": null,
   "created_at": "2026-06-19T16:53:07.874Z",
-  "updated_at": "2026-06-19T16:53:07.874Z",
+  "updated_at": "2026-06-20T13:59:07.536Z",
   "assigned_at": null,
-  "done_at": null,
+  "done_at": "2026-06-20T13:59:07.536Z",
   "retired_at": null,
   "last_triaged_at": null,
   "stale_candidate_at": null,
   "retire_candidate_at": null,
-  "triage_notes": "課題3。"
+  "triage_notes": "実装着地(deploy+MCP再起動 人手): functions placeAssets(items最大50・1回のRMWで原子的配置・未所有skip・object上限/操作上限)、object構築は aiBuildPlacedObject に集約し placeAsset と共用。mcp place_assets。15 exports。docs更新。**人手: firebase deploy --only functions + MCPクライアント再起動。** UI のライブラリ複数選択→一括配置は将来(本タスクは MCP/エージェント側=量産の主目的を満たす)。"
 }
