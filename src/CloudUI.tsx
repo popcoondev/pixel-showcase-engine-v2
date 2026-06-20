@@ -107,6 +107,7 @@ export function CloudBar() {
 function LibraryModal({ onClose }: { onClose: () => void }) {
   const [assets, setAssets] = useState<LibraryAsset[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [q, setQ] = useState('')
 
   useEffect(() => {
     let alive = true
@@ -164,6 +165,14 @@ function LibraryModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  const needle = q.trim().toLowerCase()
+  const filtered =
+    assets?.filter((a) => {
+      if (!needle) return true
+      const hay = `${a.name} ${a.kind} ${a.description ?? ''} ${(a.tags ?? []).join(' ')}`.toLowerCase()
+      return hay.includes(needle)
+    }) ?? null
+
   return (
     <div className="help-overlay" onClick={onClose}>
       <div className="help-card cloud-modal" onClick={(e) => e.stopPropagation()}>
@@ -177,8 +186,21 @@ function LibraryModal({ onClose }: { onClose: () => void }) {
         {assets && assets.length === 0 && (
           <div className="empty">まだアセットがありません。GLB/画像を置いてクラウド保存すると貯まります。</div>
         )}
+        {assets && assets.length > 0 && (
+          <div className="cloud-toolbar">
+            <input
+              className="text"
+              placeholder="名前・タグ・説明で絞り込み"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <span className="cloud-count">
+              {needle ? `${filtered?.length} / ${assets.length}` : `${assets.length}`} 件
+            </span>
+          </div>
+        )}
         <ul className="item-list">
-          {assets?.map((a) => (
+          {filtered?.map((a) => (
             <li key={a.hash} style={{ display: 'block' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className="shot-name" style={{ flex: 1 }}>
@@ -195,6 +217,11 @@ function LibraryModal({ onClose }: { onClose: () => void }) {
               {editing === a.hash && <AssetEditor asset={a} onSave={(p) => saveMeta(a.hash, p)} />}
             </li>
           ))}
+          {filtered && filtered.length === 0 && assets && assets.length > 0 && (
+            <li className="empty" style={{ cursor: 'default', display: 'block' }}>
+              「{q}」に一致するアセットはありません
+            </li>
+          )}
         </ul>
         <button className="wide" onClick={onClose}>
           閉じる
@@ -281,9 +308,17 @@ function AssetEditor({
   )
 }
 
+function fmtDate(ms: number): string {
+  if (!ms) return ''
+  const d = new Date(ms)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 function CloudScenesModal({ onClose }: { onClose: () => void }) {
   const [scenes, setScenes] = useState<CloudSceneMeta[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [q, setQ] = useState('')
 
   useEffect(() => {
     let alive = true
@@ -324,6 +359,9 @@ function CloudScenesModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  const needle = q.trim().toLowerCase()
+  const filtered = scenes?.filter((sc) => !needle || sc.name.toLowerCase().includes(needle)) ?? null
+
   return (
     <div className="help-overlay" onClick={onClose}>
       <div className="help-card cloud-modal" onClick={(e) => e.stopPropagation()}>
@@ -331,10 +369,24 @@ function CloudScenesModal({ onClose }: { onClose: () => void }) {
         {error && <div className="cloud-error">{error}</div>}
         {!scenes && !error && <div className="empty">読み込み中…</div>}
         {scenes && scenes.length === 0 && <div className="empty">まだ保存されたシーンはありません。</div>}
+        {scenes && scenes.length > 0 && (
+          <div className="cloud-toolbar">
+            <input
+              className="text"
+              placeholder="シーン名で絞り込み"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <span className="cloud-count">
+              {needle ? `${filtered?.length} / ${scenes.length}` : `${scenes.length}`} 件
+            </span>
+          </div>
+        )}
         <ul className="item-list">
-          {scenes?.map((sc) => (
+          {filtered?.map((sc) => (
             <li key={sc.id}>
               <span className="shot-name">{sc.name}</span>
+              <span className="kind">{fmtDate(sc.updatedAt)}</span>
               <button className="mini" onClick={() => load(sc.id)}>
                 開く
               </button>
@@ -343,6 +395,11 @@ function CloudScenesModal({ onClose }: { onClose: () => void }) {
               </button>
             </li>
           ))}
+          {filtered && filtered.length === 0 && scenes && scenes.length > 0 && (
+            <li className="empty" style={{ cursor: 'default' }}>
+              「{q}」に一致するシーンはありません
+            </li>
+          )}
         </ul>
         <button className="wide" onClick={onClose}>
           閉じる
