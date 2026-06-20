@@ -106,6 +106,23 @@ server.tool(
 )
 
 server.tool(
+  'place_assets',
+  '複数アセットを1コールでまとめて配置する(量産向け・原子的)。items=[{hash, position?, rotation?, scale?}]、最大50',
+  {
+    sceneId: z.string(),
+    items: z.array(
+      z.object({
+        hash: z.string(),
+        position: vec3().optional(),
+        rotation: vec3().optional(),
+        scale: vec3().optional(),
+      }),
+    ),
+  },
+  async (args) => asText(await call('placeAssets', args)),
+)
+
+server.tool(
   'update_object',
   'シーン内の既存オブジェクトの position/rotation/scale を更新する',
   {

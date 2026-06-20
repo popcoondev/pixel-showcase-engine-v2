@@ -34,6 +34,7 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
 | `getScene` | read | `{ sceneId }` | `{ ok, sceneId, name, scene: Scene, assetRefs }` |
 | `createDraftScene` | write | `{ name? }` | `{ ok, sceneId }` |
 | `placeAsset` | write | `{ sceneId, hash, position?, rotation?, scale? }` | `{ ok, sceneId, objectId, objectCount }` |
+| `placeAssets` | write | `{ sceneId, items: [{hash, position?, rotation?, scale?}] }`(最大50) | `{ ok, sceneId, objectIds, placed, skipped, objectCount }` |
 | `updateObject` | write | `{ sceneId, objectId, position?, rotation?, scale? }` | `{ ok, sceneId, objectId, objectCount }` |
 | `removeObject` | write | `{ sceneId, objectId }` | `{ ok, sceneId, removed, objectCount }` |
 | `setCamera` | write | `{ sceneId, position?, target?, focalLength? }` | `{ ok, sceneId, position, target }` |

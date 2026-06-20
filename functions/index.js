@@ -284,6 +284,33 @@ exports.getScene = onCall({ region: 'asia-northeast1' }, async (request) => {
   return { ok: true, sceneId, name: d.name || '', scene: d.scene || null, assetRefs: d.assetRefs || {} }
 })
 
+/**
+ * library の asset doc と配置 spec({hash,position?,rotation?,scale?})から SceneObject を作る。
+ * 既定スケール(defaultScale)/色味(tint)/aspect を適用、明示の scale があれば優先。
+ */
+function aiBuildPlacedObject(asset, spec) {
+  const hash = spec.hash
+  const kind = asset.kind === 'glb' ? 'glb' : 'image'
+  const aspect = typeof asset.aspect === 'number' && asset.aspect > 0 ? asset.aspect : 1
+  const ds = typeof asset.defaultScale === 'number' && asset.defaultScale > 0 ? asset.defaultScale : null
+  const tint = typeof asset.tint === 'string' ? asset.tint : null
+  const position = aiVec3(spec.position, -50, 50, [0, 0, 0])
+  const r = Array.isArray(spec.rotation) ? spec.rotation : []
+  const rotation = [aiClamp(r[0], -12.6, 12.6, 0), aiClamp(r[1], -12.6, 12.6, 0), aiClamp(r[2], -12.6, 12.6, 0)]
+  if (kind === 'glb') {
+    const s = aiClamp(Array.isArray(spec.scale) ? spec.scale[0] : ds || 1, 0.01, 50, 1)
+    const material = aiMaterial()
+    if (tint) material.color = tint
+    const obj = { id: aiId(), name: asset.name || 'asset', kind: 'glb', position, rotation, scale: [s, s, s], material, glbAssetId: hash }
+    if (tint) obj.materialOverride = true
+    return obj
+  }
+  const h = aiClamp(Array.isArray(spec.scale) ? spec.scale[1] : 1.6 * (ds || 1), 0.05, 50, 1.6)
+  const material = Object.assign(aiMaterial(), { textureAssetId: hash })
+  if (tint) material.color = tint
+  return { id: aiId(), name: asset.name || 'asset', kind: 'plane', position: [position[0], position[1] || h / 2, position[2]], rotation, scale: [h * aspect, h, 1], material }
+}
+
 exports.placeAsset = onCall({ region: 'asia-northeast1' }, async (request) => {
   const uid = request.auth && request.auth.uid
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
@@ -306,8 +333,6 @@ exports.placeAsset = onCall({ region: 'asia-northeast1' }, async (request) => {
   const assetSnap = await userRef.collection('assets').doc(hash).get()
   if (!assetSnap.exists) throw new HttpsError('failed-precondition', 'asset not in your library')
   const asset = assetSnap.data() || {}
-  const kind = asset.kind === 'glb' ? 'glb' : 'image'
-  const aspect = typeof asset.aspect === 'number' && asset.aspect > 0 ? asset.aspect : 1
 
   const sceneRef = userRef.collection('showcases').doc(sceneId)
   const sceneSnap = await sceneRef.get()
@@ -317,27 +342,7 @@ exports.placeAsset = onCall({ region: 'asia-northeast1' }, async (request) => {
   const objects = Array.isArray(scene.objects) ? scene.objects : []
   if (objects.length >= AI_MAX_OBJECTS) throw new HttpsError('resource-exhausted', 'object limit reached')
 
-  // 入力の検証/クランプ(条件2)
-  const position = aiVec3(data.position, -50, 50, [0, 0, 0])
-  const r = Array.isArray(data.rotation) ? data.rotation : []
-  const rotation = [aiClamp(r[0], -12.6, 12.6, 0), aiClamp(r[1], -12.6, 12.6, 0), aiClamp(r[2], -12.6, 12.6, 0)]
-
-  // ライブラリの既定スケール/色味を適用(明示指定があればそちら優先)
-  const ds = typeof asset.defaultScale === 'number' && asset.defaultScale > 0 ? asset.defaultScale : null
-  const tint = typeof asset.tint === 'string' ? asset.tint : null
-  let obj
-  if (kind === 'glb') {
-    const s = aiClamp(Array.isArray(data.scale) ? data.scale[0] : ds || 1, 0.01, 50, 1)
-    const material = aiMaterial()
-    if (tint) material.color = tint
-    obj = { id: aiId(), name: asset.name || 'asset', kind: 'glb', position, rotation, scale: [s, s, s], material, glbAssetId: hash }
-    if (tint) obj.materialOverride = true
-  } else {
-    const h = aiClamp(Array.isArray(data.scale) ? data.scale[1] : 1.6 * (ds || 1), 0.05, 50, 1.6)
-    const material = Object.assign(aiMaterial(), { textureAssetId: hash })
-    if (tint) material.color = tint
-    obj = { id: aiId(), name: asset.name || 'asset', kind: 'plane', position: [position[0], position[1] || h / 2, position[2]], rotation, scale: [h * aspect, h, 1], material }
-  }
+  const obj = aiBuildPlacedObject(asset, data)
   objects.push(obj)
   const assetRefs = Object.assign({}, docData.assetRefs || {})
   assetRefs[hash] = asset.storagePath || 'assets/' + hash
@@ -347,6 +352,61 @@ exports.placeAsset = onCall({ region: 'asia-northeast1' }, async (request) => {
   batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
   await batch.commit()
   return { ok: true, sceneId, objectId: obj.id, objectCount: objects.length }
+})
+
+/**
+ * 複数アセットを1コールでまとめて配置する(TASK-046)。
+ * data: { sceneId, items: [{hash, position?, rotation?, scale?}] }(最大50)。
+ * read-modify-write を1回で行うため lost-update が起きにくい。未所有の hash は skip。
+ */
+exports.placeAssets = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const sceneId = data.sceneId
+  const items = Array.isArray(data.items) ? data.items : []
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  if (items.length === 0) throw new HttpsError('invalid-argument', 'items required')
+  if (items.length > 50) throw new HttpsError('resource-exhausted', 'too many items (max 50)')
+
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  const u = (await userRef.get()).data() || {}
+  const today = new Date().toISOString().slice(0, 10)
+  const opCount = u.aiOpDate === today ? u.aiOpCount || 0 : 0
+  if (opCount >= AI_DAILY_OP_LIMIT) throw new HttpsError('resource-exhausted', 'daily operation limit reached')
+
+  const sceneRef = userRef.collection('showcases').doc(sceneId)
+  const sceneSnap = await sceneRef.get()
+  if (!sceneSnap.exists) throw new HttpsError('not-found', 'scene not found')
+  const docData = sceneSnap.data() || {}
+  const scene = docData.scene || {}
+  const objects = Array.isArray(scene.objects) ? scene.objects : []
+  const assetRefs = Object.assign({}, docData.assetRefs || {})
+
+  const placed = []
+  const skipped = []
+  for (const item of items) {
+    if (!item || typeof item.hash !== 'string') continue
+    if (objects.length >= AI_MAX_OBJECTS) break
+    const assetSnap = await userRef.collection('assets').doc(item.hash).get()
+    if (!assetSnap.exists) {
+      skipped.push(item.hash)
+      continue
+    }
+    const asset = assetSnap.data() || {}
+    const obj = aiBuildPlacedObject(asset, item)
+    objects.push(obj)
+    assetRefs[item.hash] = asset.storagePath || 'assets/' + item.hash
+    placed.push(obj.id)
+  }
+  if (placed.length === 0) throw new HttpsError('failed-precondition', 'no valid assets placed')
+
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.objects': objects, assetRefs, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId, objectIds: placed, placed: placed.length, skipped, objectCount: objects.length }
 })
 
 /** 1日あたり書き込み操作上限を検査し、{today, opCount} を返す(超過時は throw)。 */
