@@ -41,6 +41,14 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
 | `addLight` | write | `{ sceneId, kind?, color?, intensity?, position?, castShadow? }` | `{ ok, sceneId, lightId, lightCount }` |
 | `updateLight` | write | `{ sceneId, lightId, color?, intensity?, position?, castShadow? }` | `{ ok, sceneId, lightId }` |
 | `removeLight` | write | `{ sceneId, lightId }` | `{ ok, sceneId, removed, lightCount }` |
+| `setCameraMotion` | write | `{ sceneId, enabled?, yawDeg?, pitchDeg?, dolly?, speed?, easing?, phase? }` | `{ ok, sceneId, motion }` |
+| `setObjectMotion` | write | `{ sceneId, objectId, enabled?, moveX?, moveY?, moveZ?, spinY?, speed?, easing?, phase? }` | `{ ok, sceneId, objectId, motion }` |
+| `setLightPulse` | write | `{ sceneId, lightId, enabled?, mode?, min?, speed?, easing?, phase? }` | `{ ok, sceneId, lightId, pulse }` |
+| `setLightColorCycle` | write | `{ sceneId, lightId, enabled?, mode?, hueRange?, colors?, speed?, phase? }` | `{ ok, sceneId, lightId, colorCycle }` |
+| `listScenes` | read | （なし） | `{ ok, scenes: [{sceneId, name, objectCount, updatedAt}] }` |
+| `renameScene` | write | `{ sceneId, name }` | `{ ok, sceneId, name }` |
+| `duplicateScene` | write | `{ sceneId, name? }` | `{ ok, sceneId, name }` |
+| `deleteScene` | write | `{ sceneId }` | `{ ok, sceneId, deleted }` |
 | `render_scene` | read | `{ sceneId }` | PNG 画像(MCPサーバー側でヘッドレス描画。Function ではない) |
 | `importAsset` | write | `{ dataUrl, name?, kind?, aspect? }` | `{ ok, hash, kind, aspect, reused }` |
 
@@ -57,6 +65,12 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
 - `importAsset` は **AI 生成画像/GLB をライブラリに取り込む**(`dataUrl` = `data:<mime>;base64,<...>`)。
   content-hash で重複排除、PNG は縦横比を自動取得、上限 ~12MB(callable のため)。返った `hash` を
   `placeAsset` に渡せば「生成 → 取り込み → 配置」が MCP だけで完結する。
+- **動きループ(v0.8.0)** は patch 適用(未指定フィールドは現状維持)。`setCameraMotion`=オービット/弧/寄り引き、
+  `setObjectMotion`=各軸振幅+`spinY`(ターンテーブル 度/秒)、`setLightPulse`=明滅(`mode` pulse/blink/flicker)、
+  `setLightColorCycle`=色巡回(`mode` hue/gradient、gradient は `colors` 2〜4色)。`easing`=linear/easeInOut/easeIn/easeOut、
+  `phase`(0-1)で別ライトと交互/連動。数値は範囲外クランプ。
+- **シーン管理**: `listScenes`(一覧)/`renameScene`/`duplicateScene`(シーン上限20を尊重)/`deleteScene`。
+  `deleteScene` は作業コピーのみ削除し、公開済みスナップショット(`showcases/`)には触れない。
 
 ## 典型フロー
 
@@ -72,6 +86,6 @@ updateObject(sceneId, objId, { position:[2,0.5,0] })
 
 ## 既知の制約
 
-- **視覚フィードバック無し**: エージェントは結果を「見られない」。`getScene` の構造から幾何で
-  推論する。将来サムネ/レンダリング返却を検討(重い・別タスク)。
-- GLB のサイズ正規化・画像 aspect のライブラリ保存は将来改善(現状 aspect 既定 1)。
+- **公開は対象外**: 作業コピーまでを MCP で扱う。公開(`showcases/` 昇格)は独自の DR が必要(別ゲート)。
+- 編集 Function は read-modify-write(未トランザクション)。同一シーンへの **同時書き込み** は lost-update の
+  可能性(TASK-041 でトランザクション化予定)。単独エージェント利用では問題にならない。

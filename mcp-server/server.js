@@ -212,6 +212,104 @@ server.tool(
   async (args) => asText(await call('removeLight', args)),
 )
 
+// --- 動きループ(v0.8.0)を設定 (TASK-045) ---
+const easing = z.enum(['linear', 'easeInOut', 'easeIn', 'easeOut'])
+
+server.tool(
+  'set_camera_motion',
+  'カメラを自動で動かす(オービット/上下の弧/寄り引き)。yawDeg=左右の弧(度0-180)、pitchDeg=上下(度0-90)、dolly=寄り引き(0-1)、speed=周期秒(1-120)。enabled で有効/無効',
+  {
+    sceneId: z.string(),
+    enabled: z.boolean().optional(),
+    yawDeg: z.number().optional(),
+    pitchDeg: z.number().optional(),
+    dolly: z.number().optional(),
+    speed: z.number().optional(),
+    easing: easing.optional(),
+    phase: z.number().optional(),
+  },
+  async (args) => asText(await call('setCameraMotion', args)),
+)
+
+server.tool(
+  'set_object_motion',
+  'オブジェクトをループで動かす。moveX/moveY/moveZ=各軸の振幅m(0-50, moveY=浮遊)、spinY=Y軸連続回転 度/秒(-720..720, ターンテーブル)、speed=オシレーション周期秒(1-120)',
+  {
+    sceneId: z.string(),
+    objectId: z.string(),
+    enabled: z.boolean().optional(),
+    moveX: z.number().optional(),
+    moveY: z.number().optional(),
+    moveZ: z.number().optional(),
+    spinY: z.number().optional(),
+    speed: z.number().optional(),
+    easing: easing.optional(),
+    phase: z.number().optional(),
+  },
+  async (args) => asText(await call('setObjectMotion', args)),
+)
+
+server.tool(
+  'set_light_pulse',
+  'ライトを明滅させる。mode=pulse(柔らか)/blink(点滅)/flicker(ちらつき)、min=最小強度の割合(0-1)、speed=速さHz目安(0.05-30)、phase=位相(0-1, 別ライトと交互/連動)',
+  {
+    sceneId: z.string(),
+    lightId: z.string(),
+    enabled: z.boolean().optional(),
+    mode: z.enum(['pulse', 'blink', 'flicker']).optional(),
+    min: z.number().optional(),
+    speed: z.number().optional(),
+    easing: easing.optional(),
+    phase: z.number().optional(),
+  },
+  async (args) => asText(await call('setLightPulse', args)),
+)
+
+server.tool(
+  'set_light_color_cycle',
+  'ライトの色を巡回させる(ネオン風)。mode=hue(基準色の色相を揺らす)/gradient(複数色を巡回)、hueRange=色相振れ幅 度(0-180)、colors=巡回色2〜4(gradient)、speed=周期秒(1-120)',
+  {
+    sceneId: z.string(),
+    lightId: z.string(),
+    enabled: z.boolean().optional(),
+    mode: z.enum(['hue', 'gradient']).optional(),
+    hueRange: z.number().optional(),
+    colors: z.array(z.string()).optional(),
+    speed: z.number().optional(),
+    phase: z.number().optional(),
+  },
+  async (args) => asText(await call('setLightColorCycle', args)),
+)
+
+// --- シーン管理 (TASK-045) ---
+server.tool(
+  'list_scenes',
+  'アカウントの作業シーン一覧(sceneId/name/objectCount/updatedAt)を更新日時の新しい順に返す',
+  {},
+  async () => asText(await call('listScenes', {})),
+)
+
+server.tool(
+  'rename_scene',
+  '作業シーンの名前を変更する',
+  { sceneId: z.string(), name: z.string() },
+  async (args) => asText(await call('renameScene', args)),
+)
+
+server.tool(
+  'duplicate_scene',
+  '作業シーンを複製する(name 省略時は「… のコピー」)。新しい sceneId を返す',
+  { sceneId: z.string(), name: z.string().optional() },
+  async (args) => asText(await call('duplicateScene', args)),
+)
+
+server.tool(
+  'delete_scene',
+  '作業シーンを削除する(公開済みスナップショットには触れない)',
+  { sceneId: z.string() },
+  async (args) => asText(await call('deleteScene', args)),
+)
+
 // --- 視覚フィードバック: シーンを実レンダリングして画像で返す (TASK-040) ---
 const APP_URL = process.env.PSE_APP_URL || 'https://pixelshowcase-7bc44.web.app'
 

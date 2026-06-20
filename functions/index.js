@@ -670,6 +670,186 @@ exports.importAsset = onCall({ region: 'asia-northeast1' }, async (request) => {
   return { ok: true, hash, kind, aspect: aspect || null, reused: exists }
 })
 
+// ---- 動きループ(v0.8.0)を MCP から設定 (TASK-045) ----
+const AI_EASINGS = ['linear', 'easeInOut', 'easeIn', 'easeOut']
+
+exports.setCameraMotion = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const cam = scene.camera || aiCameraSettings()
+  const m = Object.assign({ enabled: true, yawDeg: 0, pitchDeg: 0, dolly: 0, speed: 8 }, cam.motion || {})
+  if (data.enabled !== undefined) m.enabled = !!data.enabled
+  if (data.yawDeg !== undefined) m.yawDeg = aiClamp(data.yawDeg, 0, 180, m.yawDeg)
+  if (data.pitchDeg !== undefined) m.pitchDeg = aiClamp(data.pitchDeg, 0, 90, m.pitchDeg)
+  if (data.dolly !== undefined) m.dolly = aiClamp(data.dolly, 0, 1, m.dolly)
+  if (data.speed !== undefined) m.speed = aiClamp(data.speed, 1, 120, m.speed)
+  if (AI_EASINGS.includes(data.easing)) m.easing = data.easing
+  if (data.phase !== undefined) m.phase = aiClamp(data.phase, 0, 1, m.phase || 0)
+  cam.motion = m
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.camera': cam, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, motion: m }
+})
+
+exports.setObjectMotion = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  if (typeof data.objectId !== 'string') throw new HttpsError('invalid-argument', 'objectId required')
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const objects = Array.isArray(scene.objects) ? scene.objects : []
+  const obj = objects.find((o) => o && o.id === data.objectId)
+  if (!obj) throw new HttpsError('not-found', 'object not found')
+  const m = Object.assign({ enabled: true, moveX: 0, moveY: 0, moveZ: 0, spinY: 0, speed: 6 }, obj.motion || {})
+  if (data.enabled !== undefined) m.enabled = !!data.enabled
+  if (data.moveX !== undefined) m.moveX = aiClamp(data.moveX, 0, 50, m.moveX)
+  if (data.moveY !== undefined) m.moveY = aiClamp(data.moveY, 0, 50, m.moveY)
+  if (data.moveZ !== undefined) m.moveZ = aiClamp(data.moveZ, 0, 50, m.moveZ)
+  if (data.spinY !== undefined) m.spinY = aiClamp(data.spinY, -720, 720, m.spinY)
+  if (data.speed !== undefined) m.speed = aiClamp(data.speed, 1, 120, m.speed)
+  if (AI_EASINGS.includes(data.easing)) m.easing = data.easing
+  if (data.phase !== undefined) m.phase = aiClamp(data.phase, 0, 1, m.phase || 0)
+  obj.motion = m
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.objects': objects, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, objectId: data.objectId, motion: m }
+})
+
+exports.setLightPulse = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  if (typeof data.lightId !== 'string') throw new HttpsError('invalid-argument', 'lightId required')
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const lights = Array.isArray(scene.lights) ? scene.lights : []
+  const light = lights.find((l) => l && l.id === data.lightId)
+  if (!light) throw new HttpsError('not-found', 'light not found')
+  const p = Object.assign({ enabled: true, mode: 'pulse', min: 0.15, speed: 1.5 }, light.pulse || {})
+  if (data.enabled !== undefined) p.enabled = !!data.enabled
+  if (['pulse', 'blink', 'flicker'].includes(data.mode)) p.mode = data.mode
+  if (data.min !== undefined) p.min = aiClamp(data.min, 0, 1, p.min)
+  if (data.speed !== undefined) p.speed = aiClamp(data.speed, 0.05, 30, p.speed)
+  if (AI_EASINGS.includes(data.easing)) p.easing = data.easing
+  if (data.phase !== undefined) p.phase = aiClamp(data.phase, 0, 1, p.phase || 0)
+  light.pulse = p
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.lights': lights, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, lightId: data.lightId, pulse: p }
+})
+
+exports.setLightColorCycle = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  if (typeof data.lightId !== 'string') throw new HttpsError('invalid-argument', 'lightId required')
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const lights = Array.isArray(scene.lights) ? scene.lights : []
+  const light = lights.find((l) => l && l.id === data.lightId)
+  if (!light) throw new HttpsError('not-found', 'light not found')
+  const c = Object.assign({ enabled: true, mode: 'gradient', hueRange: 60, colors: ['#ff3df0', '#3df0ff', '#f0e63d'], speed: 4 }, light.colorCycle || {})
+  if (data.enabled !== undefined) c.enabled = !!data.enabled
+  if (['hue', 'gradient'].includes(data.mode)) c.mode = data.mode
+  if (data.hueRange !== undefined) c.hueRange = aiClamp(data.hueRange, 0, 180, c.hueRange)
+  if (Array.isArray(data.colors)) {
+    const cols = data.colors.filter((x) => typeof x === 'string').slice(0, 4)
+    if (cols.length >= 2) c.colors = cols
+  }
+  if (data.speed !== undefined) c.speed = aiClamp(data.speed, 1, 120, c.speed)
+  if (data.phase !== undefined) c.phase = aiClamp(data.phase, 0, 1, c.phase || 0)
+  light.colorCycle = c
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.lights': lights, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, lightId: data.lightId, colorCycle: c }
+})
+
+// ---- シーン管理 (TASK-045) ----
+exports.listScenes = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const snap = await admin.firestore().collection('users').doc(uid).collection('showcases').orderBy('updatedAt', 'desc').get()
+  const scenes = snap.docs.map((d) => {
+    const sc = d.get('scene') || {}
+    const ts = d.get('updatedAt')
+    return {
+      sceneId: d.id,
+      name: d.get('name') || '(無題)',
+      objectCount: Array.isArray(sc.objects) ? sc.objects.length : 0,
+      updatedAt: ts && ts.toMillis ? ts.toMillis() : 0,
+    }
+  })
+  return { ok: true, scenes }
+})
+
+exports.renameScene = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const sceneId = data.sceneId
+  const name = typeof data.name === 'string' ? data.name.trim().slice(0, 80) : ''
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  if (!name) throw new HttpsError('invalid-argument', 'name required')
+  const sceneRef = admin.firestore().collection('users').doc(uid).collection('showcases').doc(sceneId)
+  if (!(await sceneRef.get()).exists) throw new HttpsError('not-found', 'scene not found')
+  await sceneRef.update({ name, 'scene.name': name, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  return { ok: true, sceneId, name }
+})
+
+exports.duplicateScene = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const sceneId = data.sceneId
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  const u = (await userRef.get()).data() || {}
+  if ((u.sceneCount || 0) >= AI_SCENE_LIMIT) throw new HttpsError('resource-exhausted', 'scene limit reached')
+  const src = await userRef.collection('showcases').doc(sceneId).get()
+  if (!src.exists) throw new HttpsError('not-found', 'scene not found')
+  const s = src.data() || {}
+  const name = (typeof data.name === 'string' && data.name.trim() ? data.name.trim() : (s.name || 'シーン') + ' のコピー').slice(0, 80)
+  const docRef = userRef.collection('showcases').doc()
+  const batch = db.batch()
+  batch.set(docRef, {
+    name,
+    ownerUid: uid,
+    scene: Object.assign({}, s.scene, { name }),
+    assetRefs: s.assetRefs || {},
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdBy: 'duplicateScene',
+  })
+  batch.set(userRef, { sceneCount: admin.firestore.FieldValue.increment(1) }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: docRef.id, name }
+})
+
+exports.deleteScene = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const sceneId = data.sceneId
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  const sceneRef = userRef.collection('showcases').doc(sceneId)
+  if (!(await sceneRef.get()).exists) throw new HttpsError('not-found', 'scene not found')
+  const batch = db.batch()
+  batch.delete(sceneRef)
+  batch.set(userRef, { sceneCount: admin.firestore.FieldValue.increment(-1) }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId, deleted: true }
+})
+
 const APP_ORIGIN = 'https://pixelshowcase-7bc44.web.app'
 const DEFAULT_DESC = 'ドット絵・GLB・画像プレートを3D空間に置いて、固定画角の展示として見せる'
 
