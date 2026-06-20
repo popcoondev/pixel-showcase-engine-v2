@@ -317,6 +317,30 @@ server.tool(
   async (args) => asText(await call('setLightColorCycle', args)),
 )
 
+// --- 環境(地面/Grid/背景/霧 等) (TASK-051) ---
+server.tool(
+  'set_environment',
+  'シーンの環境を設定する(patch: 未指定は変更しない)。groundVisible=地面の表示/非表示、gridVisible=グリッドの表示/非表示。ほかに背景色・地面色・霧(fog)・ブルーム・周辺減光・環境光も調整できる。床/グリッドを消したいときは groundVisible:false / gridVisible:false',
+  {
+    sceneId: z.string(),
+    groundVisible: z.boolean().optional(),
+    gridVisible: z.boolean().optional(),
+    backgroundColor: z.string().optional(),
+    groundColor: z.string().optional(),
+    fogEnabled: z.boolean().optional(),
+    fogColor: z.string().optional(),
+    fogNear: z.number().optional(),
+    fogFar: z.number().optional(),
+    bloomEnabled: z.boolean().optional(),
+    bloomIntensity: z.number().optional(),
+    vignetteEnabled: z.boolean().optional(),
+    vignetteDarkness: z.number().optional(),
+    ambientColor: z.string().optional(),
+    ambientIntensity: z.number().optional(),
+  },
+  async (args) => asText(await call('setEnvironment', args)),
+)
+
 // --- シーン管理 (TASK-045) ---
 server.tool(
   'list_scenes',

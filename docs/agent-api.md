@@ -41,6 +41,7 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
 | `addLight` | write | `{ sceneId, kind?, color?, intensity?, position?, castShadow? }` | `{ ok, sceneId, lightId, lightCount }` |
 | `updateLight` | write | `{ sceneId, lightId, color?, intensity?, position?, castShadow? }` | `{ ok, sceneId, lightId }` |
 | `removeLight` | write | `{ sceneId, lightId }` | `{ ok, sceneId, removed, lightCount }` |
+| `setEnvironment` | write | `{ sceneId, groundVisible?, gridVisible?, backgroundColor?, groundColor?, fogEnabled?, fogColor?, fogNear?, fogFar?, bloomEnabled?, bloomIntensity?, vignetteEnabled?, vignetteDarkness?, ambientColor?, ambientIntensity? }` | `{ ok, sceneId, env }` |
 | `setCameraMotion` | write | `{ sceneId, enabled?, yawDeg?, pitchDeg?, dolly?, speed?, easing?, phase? }` | `{ ok, sceneId, motion }` |
 | `setObjectMotion` | write | `{ sceneId, objectId, enabled?, moveX?, moveY?, moveZ?, spinY?, speed?, easing?, phase? }` | `{ ok, sceneId, objectId, motion }` |
 | `setLightPulse` | write | `{ sceneId, lightId, enabled?, mode?, min?, speed?, easing?, phase? }` | `{ ok, sceneId, lightId, pulse }` |
@@ -61,6 +62,9 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
   も残置。エージェントは「これで下書き → `updateObject`/`placeAsset` で微調整」も可。
 - `setCamera` は **アクティブ Shot** の位置/注視点を更新し quaternion を再計算する(焦点距離 10–200mm)。
 - `addLight` の kind=`directional`/`point`/`spot`、intensity 0–200(既定 dir3/point50/spot80)、最大16灯。
+- `setEnvironment` は env の **patch**(未指定は不変)。**床/グリッドを消すには `groundVisible:false` /
+  `gridVisible:false`**。色は `#rgb`/`#rrggbb` のみ採用(不正は無視)、数値は範囲クランプ。
+  新規シーンの既定は地面 ON・グリッド OFF。UI(Scene パネル)/公開ビューも同じ env を尊重する。
 - `placeAsset`/`compose` は配置時に **ライブラリの既定スケール(defaultScale)/色味(tint)/aspect** を適用する
   (明示の `scale` があればそちら優先)。これらは UI の「☁ライブラリ → 設定」で human が編集する。
 - `importAsset` は **AI 生成画像/GLB をライブラリに取り込む**(`dataUrl` = `data:<mime>;base64,<...>`)。

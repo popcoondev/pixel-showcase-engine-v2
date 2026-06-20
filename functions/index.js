@@ -810,6 +810,42 @@ exports.setLightColorCycle = onCall({ region: 'asia-northeast1' }, async (reques
   return { ok: true, sceneId: data.sceneId, lightId: data.lightId, colorCycle: c }
 })
 
+// ---- 環境(地面/Grid/背景/霧 等)を MCP から設定 (TASK-051) ----
+function aiColor(v, def) {
+  return typeof v === 'string' && /^#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(v) ? v : def
+}
+
+exports.setEnvironment = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const env = Object.assign(aiEnv(), scene.env || {})
+  // 表示トグル
+  if (data.groundVisible !== undefined) env.groundVisible = !!data.groundVisible
+  if (data.gridVisible !== undefined) env.gridVisible = !!data.gridVisible
+  if (data.fogEnabled !== undefined) env.fogEnabled = !!data.fogEnabled
+  if (data.bloomEnabled !== undefined) env.bloomEnabled = !!data.bloomEnabled
+  if (data.vignetteEnabled !== undefined) env.vignetteEnabled = !!data.vignetteEnabled
+  // 色
+  if (data.backgroundColor !== undefined) env.backgroundColor = aiColor(data.backgroundColor, env.backgroundColor)
+  if (data.groundColor !== undefined) env.groundColor = aiColor(data.groundColor, env.groundColor)
+  if (data.fogColor !== undefined) env.fogColor = aiColor(data.fogColor, env.fogColor)
+  if (data.ambientColor !== undefined) env.ambientColor = aiColor(data.ambientColor, env.ambientColor)
+  // 数値
+  if (data.ambientIntensity !== undefined) env.ambientIntensity = aiClamp(data.ambientIntensity, 0, 3, env.ambientIntensity)
+  if (data.bloomIntensity !== undefined) env.bloomIntensity = aiClamp(data.bloomIntensity, 0, 3, env.bloomIntensity)
+  if (data.vignetteDarkness !== undefined) env.vignetteDarkness = aiClamp(data.vignetteDarkness, 0, 1, env.vignetteDarkness)
+  if (data.fogNear !== undefined) env.fogNear = aiClamp(data.fogNear, 1, 200, env.fogNear)
+  if (data.fogFar !== undefined) env.fogFar = aiClamp(data.fogFar, 5, 400, env.fogFar)
+  scene.env = env
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.env': env, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, env }
+})
+
 // ---- シーン管理 (TASK-045) ----
 exports.listScenes = onCall({ region: 'asia-northeast1' }, async (request) => {
   const uid = request.auth && request.auth.uid
