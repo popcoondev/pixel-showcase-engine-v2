@@ -18,6 +18,7 @@ import type {
   SceneFile,
   SceneObjectDef,
   SceneRoot,
+  TourSettings,
   Selection,
   Shot,
   Tab,
@@ -200,6 +201,14 @@ export const defaultRoot = (): SceneRoot => ({
   spinY: 0,
 })
 
+export const defaultTour = (): TourSettings => ({
+  enabled: false,
+  dwell: 1.6,
+  transition: 2,
+  loop: true,
+  easing: 'easeInOut',
+})
+
 const defaultCamera = (): CameraSettings => ({
   focalLength: 35,
   exposure: 1,
@@ -252,6 +261,8 @@ interface StoreState {
   activeShotId: string | null
   /** シーン全体の見せ方変換(回転/移動/スケール/ターンテーブル) */
   root: SceneRoot
+  /** 視点ツアー(複数 shot を自動で巡る) */
+  tour: TourSettings
   /** shot id -> サムネ dataURL。Scene JSON / Undo には含めない (別管理) */
   shotThumbnails: Record<string, string>
   mode: Mode
@@ -334,6 +345,7 @@ interface StoreState {
 
   setEnv: (patch: Partial<EnvSettings>) => void
   setSceneRoot: (patch: Partial<SceneRoot>) => void
+  setTour: (patch: Partial<TourSettings>) => void
   setCamera: (patch: Partial<CameraSettings>) => void
   setCameraMotion: (patch: Partial<CameraMotion>) => void
   /** HD-2D 風の look プリセットを適用する (docs/hd2d-look.md 参照) */
@@ -368,6 +380,7 @@ type DocSnapshot = Pick<
   | 'shots'
   | 'activeShotId'
   | 'root'
+  | 'tour'
 >
 
 const DOC_KEYS = [
@@ -381,6 +394,7 @@ const DOC_KEYS = [
   'shots',
   'activeShotId',
   'root',
+  'tour',
 ] as const
 
 function pickDoc(s: StoreState): DocSnapshot {
@@ -395,6 +409,7 @@ function pickDoc(s: StoreState): DocSnapshot {
     shots: s.shots,
     activeShotId: s.activeShotId,
     root: s.root,
+    tour: s.tour,
   }
 }
 
@@ -494,6 +509,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   camera: defaultCamera(),
   shots: [],
   root: defaultRoot(),
+  tour: defaultTour(),
   shotThumbnails: {},
   activeShotId: null,
   mode: 'edit',
@@ -787,6 +803,7 @@ export const useStore = create<StoreState>()((set, get) => ({
 
   setEnv: (patch) => set((s) => ({ env: { ...s.env, ...patch } })),
   setSceneRoot: (patch) => set((s) => ({ root: { ...s.root, ...patch } })),
+  setTour: (patch) => set((s) => ({ tour: { ...s.tour, ...patch } })),
   setCamera: (patch) => set((s) => ({ camera: { ...s.camera, ...patch } })),
   setCameraMotion: (patch) =>
     set((s) => ({
@@ -930,6 +947,7 @@ export const useStore = create<StoreState>()((set, get) => ({
       shots: s.shots,
       activeShotId: s.activeShotId,
       root: s.root,
+      tour: s.tour,
     }
   },
 
@@ -947,6 +965,7 @@ export const useStore = create<StoreState>()((set, get) => ({
       shots: f.shots,
       activeShotId: f.activeShotId,
       root: { ...defaultRoot(), ...f.root },
+      tour: { ...defaultTour(), ...f.tour },
       selected: null,
       mode: 'edit',
       focusTarget: null,

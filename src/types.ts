@@ -203,6 +203,20 @@ export interface SceneRoot {
   spinY?: number
 }
 
+/** 複数の Shot(視点)を自動で巡るシネマティックツアー。Preview/Viewer で再生。 */
+export interface TourSettings {
+  enabled: boolean
+  /** 巡る shot の id 列(順序)。未指定/空なら全 shot を順に巡る */
+  shotIds?: string[]
+  /** 各視点での静止時間 秒 */
+  dwell: number
+  /** 視点間の移動時間 秒 */
+  transition: number
+  /** ループ(既定 true)。false は最後の視点で停止 */
+  loop?: boolean
+  easing?: EasingKind
+}
+
 export interface SceneFile {
   /** v1: dataURL をオブジェクトに直接埋め込み / v2: assets テーブル参照 */
   version: 1 | 2
@@ -218,6 +232,8 @@ export interface SceneFile {
   activeShotId: string | null
   /** シーン全体の見せ方変換(任意。旧データは無し=恒等) */
   root?: SceneRoot
+  /** 視点ツアー(任意。旧データは無し=無効) */
+  tour?: TourSettings
 }
 
 export type Mode = 'edit' | 'camera' | 'preview'

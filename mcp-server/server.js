@@ -357,6 +357,49 @@ server.tool(
   async (args) => asText(await call('setSceneTransform', args)),
 )
 
+// --- 視点(Shot)とツアー (TASK-053) ---
+server.tool(
+  'add_shot',
+  'カメラ視点(Shot)を追加する。position=カメラ位置m、target=注視点m(省略時 原点付近)、focalLength=焦点距離mm(10-200)。シーンを別アングルから見せる視点を 2-3 個作り、set_tour で巡らせる',
+  {
+    sceneId: z.string(),
+    position: vec3(),
+    target: vec3().optional(),
+    focalLength: z.number().optional(),
+    name: z.string().optional(),
+  },
+  async (args) => asText(await call('addShot', args)),
+)
+
+server.tool(
+  'list_shots',
+  'シーンの視点(Shot)一覧(id/name/position/focusTarget/focalLength)と activeShotId を返す',
+  { sceneId: z.string() },
+  async (args) => asText(await call('listShots', args)),
+)
+
+server.tool(
+  'remove_shot',
+  'シーンから視点(Shot)を削除する',
+  { sceneId: z.string(), shotId: z.string() },
+  async (args) => asText(await call('removeShot', args)),
+)
+
+server.tool(
+  'set_tour',
+  '視点ツアー(複数 Shot を自動で巡る)を設定する。enabled で有効化、shotIds=巡る順(省略時は全 shot)、dwell=各視点の静止秒(0-30)、transition=移動秒(0.1-30)、loop=ループ(既定true)。Preview/公開で再生され、シーン全体を複数アングルで見せられる',
+  {
+    sceneId: z.string(),
+    enabled: z.boolean().optional(),
+    shotIds: z.array(z.string()).optional(),
+    dwell: z.number().optional(),
+    transition: z.number().optional(),
+    loop: z.boolean().optional(),
+    easing: easing.optional(),
+  },
+  async (args) => asText(await call('setTour', args)),
+)
+
 // --- シーン管理 (TASK-045) ---
 server.tool(
   'list_scenes',

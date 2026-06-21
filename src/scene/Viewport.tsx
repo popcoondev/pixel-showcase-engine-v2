@@ -469,6 +469,10 @@ const TMP_REL = new THREE.Vector3()
 const TMP_RIGHT = new THREE.Vector3()
 const TMP_DIR = new THREE.Vector3()
 const TMP_OFF = new THREE.Vector3()
+const TMP_PA = new THREE.Vector3()
+const TMP_PB = new THREE.Vector3()
+const TMP_QA = new THREE.Quaternion()
+const TMP_QB = new THREE.Quaternion()
 const TMP_Q = new THREE.Quaternion()
 
 function CameraRig() {
@@ -502,6 +506,45 @@ function CameraRig() {
     const s = useStore.getState()
     const framed = s.mode === 'preview' || s.viewerLocked
     if (!framed) return
+
+    // 視点ツアー: 複数 shot を dwell(静止)→ transition(補間移動)で巡る。
+    const tour = s.tour
+    if (tour && tour.enabled) {
+      const seq = (tour.shotIds && tour.shotIds.length
+        ? tour.shotIds.map((id) => s.shots.find((x) => x.id === id))
+        : s.shots
+      ).filter((x): x is NonNullable<typeof x> => !!x)
+      if (seq.length >= 2) {
+        const dwell = Math.max(0, tour.dwell ?? 1.5)
+        const trans = Math.max(0.1, tour.transition ?? 2)
+        const seg = dwell + trans
+        const N = seq.length
+        const elapsed = state.clock.elapsedTime
+        let idx: number
+        let u: number
+        if (tour.loop === false) {
+          const tt = Math.min(elapsed, (N - 1) * seg + dwell)
+          idx = Math.min(N - 1, Math.floor(tt / seg))
+          const local = tt - idx * seg
+          u = idx >= N - 1 ? 0 : local <= dwell ? 0 : (local - dwell) / trans
+        } else {
+          const tt = elapsed % (N * seg)
+          idx = Math.floor(tt / seg)
+          const local = tt - idx * seg
+          u = local <= dwell ? 0 : (local - dwell) / trans
+        }
+        const from = seq[idx]
+        const to = seq[(idx + 1) % N]
+        const uu = ease(tour.easing, Math.min(1, Math.max(0, u)))
+        TMP_PA.fromArray(from.position).lerp(TMP_PB.fromArray(to.position), uu)
+        TMP_QA.fromArray(from.quaternion).slerp(TMP_QB.fromArray(to.quaternion), uu)
+        camera.position.copy(TMP_PA)
+        camera.quaternion.copy(TMP_QA)
+        camera.up.copy(WORLD_UP)
+        return
+      }
+    }
+
     const shot = s.shots.find((x) => x.id === s.activeShotId)
     if (!shot) return
     const base = TMP_BASE.fromArray(shot.position)

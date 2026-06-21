@@ -874,6 +874,96 @@ exports.setSceneTransform = onCall({ region: 'asia-northeast1' }, async (request
   return { ok: true, sceneId: data.sceneId, root }
 })
 
+// ---- 視点(Shot)とツアー (TASK-053) ----
+const AI_MAX_SHOTS = 12
+
+exports.addShot = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const shots = Array.isArray(scene.shots) ? scene.shots : []
+  if (shots.length >= AI_MAX_SHOTS) throw new HttpsError('resource-exhausted', 'shot limit reached')
+  const eye = aiVec3(data.position, -100, 100, [0, 1.5, 8])
+  const target = aiVec3(data.target, -100, 100, [0, 1, 0])
+  const settings = aiCameraSettings()
+  if (data.focalLength !== undefined) settings.focalLength = aiClamp(data.focalLength, 10, 200, 45)
+  const shot = {
+    id: aiId(),
+    name: (typeof data.name === 'string' && data.name.trim() ? data.name.trim() : 'Shot ' + (shots.length + 1)).slice(0, 40),
+    position: eye,
+    quaternion: lookAtQuaternion(eye, target),
+    settings,
+    focusTarget: target,
+  }
+  shots.push(shot)
+  const update = { 'scene.shots': shots, updatedAt: admin.firestore.FieldValue.serverTimestamp() }
+  if (!scene.activeShotId) update['scene.activeShotId'] = shot.id
+  const batch = db.batch()
+  batch.update(sceneRef, update)
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, shotId: shot.id, shotCount: shots.length }
+})
+
+exports.listShots = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const { scene } = await aiOpenScene(uid, data.sceneId)
+  const shots = Array.isArray(scene.shots) ? scene.shots : []
+  return {
+    ok: true,
+    sceneId: data.sceneId,
+    activeShotId: scene.activeShotId || null,
+    shots: shots.map((s) => ({
+      id: s.id,
+      name: s.name || '',
+      position: s.position,
+      focusTarget: s.focusTarget || null,
+      focalLength: (s.settings && s.settings.focalLength) || null,
+    })),
+  }
+})
+
+exports.removeShot = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  if (typeof data.shotId !== 'string') throw new HttpsError('invalid-argument', 'shotId required')
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const shots = Array.isArray(scene.shots) ? scene.shots : []
+  const next = shots.filter((s) => s && s.id !== data.shotId)
+  const removed = next.length !== shots.length
+  const update = { 'scene.shots': next, updatedAt: admin.firestore.FieldValue.serverTimestamp() }
+  if (scene.activeShotId === data.shotId) update['scene.activeShotId'] = next[0] ? next[0].id : null
+  const batch = db.batch()
+  batch.update(sceneRef, update)
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, removed, shotCount: next.length }
+})
+
+exports.setTour = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const tour = Object.assign({ enabled: false, dwell: 1.6, transition: 2, loop: true, easing: 'easeInOut' }, scene.tour || {})
+  if (data.enabled !== undefined) tour.enabled = !!data.enabled
+  if (Array.isArray(data.shotIds)) tour.shotIds = data.shotIds.filter((x) => typeof x === 'string').slice(0, AI_MAX_SHOTS)
+  if (data.dwell !== undefined) tour.dwell = aiClamp(data.dwell, 0, 30, tour.dwell)
+  if (data.transition !== undefined) tour.transition = aiClamp(data.transition, 0.1, 30, tour.transition)
+  if (data.loop !== undefined) tour.loop = !!data.loop
+  if (AI_EASINGS.includes(data.easing)) tour.easing = data.easing
+  scene.tour = tour
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.tour': tour, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, tour }
+})
+
 // ---- シーン管理 (TASK-045) ----
 exports.listScenes = onCall({ region: 'asia-northeast1' }, async (request) => {
   const uid = request.auth && request.auth.uid
