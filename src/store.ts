@@ -1058,6 +1058,8 @@ function applyViewerScene(file: SceneFile, author: string | null) {
     activeShotId: shot?.id ?? null,
     camera: shot ? { ...shot.settings } : f.camera,
     focusTarget: shot?.focusTarget ?? null,
+    root: { ...defaultRoot(), ...f.root },
+    tour: { ...defaultTour(), ...f.tour },
     poseStamp: useStore.getState().poseStamp + 1,
   })
   restoringHistory = false

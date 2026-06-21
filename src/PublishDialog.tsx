@@ -43,10 +43,18 @@ function PublishDialog({ onClose }: { onClose: () => void }) {
   const [shotId, setShotId] = useState(
     () => useStore.getState().activeShotId ?? shots[0]?.id ?? '',
   )
-  // 動きループ(カメラ or オブジェクト)が有効なら、公開後に5秒MP4を書き出せる
+  // 動き(カメラ/オブジェクト/ツアー/ターンテーブル/ライト演出)が有効なら、公開後に5秒MP4を書き出せる
   const camMotion = useStore((s) => s.camera.motion)
   const objects = useStore((s) => s.objects)
-  const motionActive = !!camMotion?.enabled || objects.some((o) => o.motion?.enabled)
+  const lights = useStore((s) => s.lights)
+  const tour = useStore((s) => s.tour)
+  const root = useStore((s) => s.root)
+  const motionActive =
+    !!camMotion?.enabled ||
+    objects.some((o) => o.motion?.enabled) ||
+    (!!tour?.enabled && shots.length >= 2) ||
+    !!root?.spinY ||
+    lights.some((l) => l.pulse?.enabled || l.colorCycle?.enabled)
   const [clipBusy, setClipBusy] = useState(false)
 
   const exportClip = async () => {
