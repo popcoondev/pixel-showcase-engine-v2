@@ -1,0 +1,17 @@
+{
+  "task_format_version": 1,
+  "id": "TASK-007",
+  "title": "MULTISHOT 複数Shot管理 (固定画角の範囲で)",
+  "status": "done",
+  "phase": "done",
+  "priority_rank": 7,
+  "owner_role": "Builder",
+  "estimate": "M",
+  "council_scores": { "visionary": 3, "builder": 4, "guardian": 3 },
+  "rationale": "Shot配列と applyShot は既存。THUMB 後にサムネ付き一覧/順序変更/リネームまで強化。",
+  "guardian_gate": "Shot 管理強化(リネーム/並べ替え/1Shot=1PNG連番)までは許可。自動スライドショー/トランジション演出は『Viewer自由移動させない』に準じる非要件侵食として差し戻し。",
+  "dependencies": ["TASK-004"],
+  "done_at": "2026-06-21",
+  "completion_note": "Camera パネルに Shot 並べ替え↑↓(store.moveShot)を追加=guardian_gate の許可範囲内。あわせて視点ツアー(Tour)UI を追加(commit a8879f5)。実機検証OK。",
+  "gate_resolution": "guardian_gate は『自動スライドショー/トランジション演出は差し戻し』としていたが、human が TASK-053 を AskUserQuestion で明示選択・承認し実装/デプロイ済みのため、この人間決定が旧ゲートを supersede する。ツアーは被写体固定の authored なカメラパス(2-3視点を巡る)であり『Viewer自由移動させない』非要件には抵触しない。2026-06-21 に human が『承認で上書き・続行』を選択。"
+}
