@@ -1,0 +1,20 @@
+{
+  "task_id": "TASK-055",
+  "title": "publish/viewer 不具合: 公開URLでツアー非再生 + 5秒動画ボタン出ない",
+  "description": null,
+  "status": "done",
+  "origin": "human",
+  "orchestrator_session_id": null,
+  "assigned_session_ids": [],
+  "related_decision_record_id": null,
+  "operating_goal_ref": null,
+  "created_at": "2026-06-21T08:07:15.994Z",
+  "updated_at": "2026-06-21T08:07:41.082Z",
+  "assigned_at": null,
+  "done_at": "2026-06-21T08:07:41.082Z",
+  "retired_at": null,
+  "last_triaged_at": null,
+  "stale_candidate_at": null,
+  "retire_candidate_at": null,
+  "triage_notes": "修正・実機検証済み(commit b26a9d1): viewerLocked=true+tour で camera.x が -5↔+5 を往復(公開ビューワでツアー再生を確認)。motionActive 拡張で tour/turntable/light でも5秒MP4ボタンが出る。フロントのみ→push で Hosting 反映。"
+}
