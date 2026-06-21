@@ -45,6 +45,15 @@ async function doCloudSave() {
   }
 }
 
+// エージェント連携(MCP)は現状 SA鍵が要る maintainer 向け導線。一般公開で
+// 行き止まり導線を見せないよう、許可アカウントのみに「連携」を表示する(TASK-037 で一般化予定)。
+// uid は秘密ではない。env VITE_AGENT_LINK_UIDS(カンマ区切り)で上書き可。
+const AGENT_LINK_UIDS = ((import.meta.env.VITE_AGENT_LINK_UIDS as string | undefined) ??
+  'C9FqEOzeC8RAG9l8mxE6yGz5ltH3')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+
 /** トップバーのアカウント表示 / サインイン・アウト / 退会 */
 export function CloudAccount() {
   const cloudUser = useStore((s) => s.cloudUser)
@@ -53,19 +62,22 @@ export function CloudAccount() {
   const [linking, setLinking] = useState(false)
 
   if (cloudUser) {
+    const canLink = AGENT_LINK_UIDS.includes(cloudUser.uid)
     return (
       <span className="cloud-account">
         <span className="cloud-name">{cloudUser.name ?? 'サインイン中'}</span>
-        <button className="mini" disabled={cloudBusy} onClick={() => setLinking(true)}>
-          連携
-        </button>
+        {canLink && (
+          <button className="mini" disabled={cloudBusy} onClick={() => setLinking(true)}>
+            連携
+          </button>
+        )}
         <button className="mini" disabled={cloudBusy} onClick={() => signOutCloud()}>
           サインアウト
         </button>
         <button className="mini danger" disabled={cloudBusy} onClick={() => setDeleting(true)}>
           退会
         </button>
-        {linking && <AgentLinkModal uid={cloudUser.uid} onClose={() => setLinking(false)} />}
+        {canLink && linking && <AgentLinkModal uid={cloudUser.uid} onClose={() => setLinking(false)} />}
         {deleting && <DeleteAccountModal onClose={() => setDeleting(false)} />}
       </span>
     )
@@ -373,6 +385,7 @@ function CloudScenesModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  const canLink = AGENT_LINK_UIDS.includes(useStore.getState().cloudUser?.uid ?? '')
   const needle = q.trim().toLowerCase()
   const filtered = scenes?.filter((sc) => !needle || sc.name.toLowerCase().includes(needle)) ?? null
 
@@ -404,9 +417,11 @@ function CloudScenesModal({ onClose }: { onClose: () => void }) {
                   {sc.name}
                 </span>
                 <span className="kind">{fmtDate(sc.updatedAt)}</span>
-                <button className="mini" title="エージェント公開を承認(トークン発行)" onClick={() => approve(sc.id)}>
-                  🤖承認
-                </button>
+                {canLink && (
+                  <button className="mini" title="エージェント公開を承認(トークン発行)" onClick={() => approve(sc.id)}>
+                    🤖承認
+                  </button>
+                )}
                 <button className="mini" onClick={() => load(sc.id)}>
                   開く
                 </button>
