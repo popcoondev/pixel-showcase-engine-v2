@@ -356,6 +356,8 @@ interface StoreState {
   saveShot: () => void
   applyShot: (id: string) => void
   deleteShot: (id: string) => void
+  /** Shot の並び順を入れ替える(ツアーの巡回順)。dir=-1 上 / +1 下 */
+  moveShot: (id: string, dir: -1 | 1) => void
   /** 現在のキャンバスフレームから shot のサムネを生成 (rAF で確定フレーム取得) */
   captureShotThumbnail: (id: string) => void
   deleteSelected: () => void
@@ -923,6 +925,16 @@ export const useStore = create<StoreState>()((set, get) => ({
         activeShotId: s.activeShotId === id ? null : s.activeShotId,
         shotThumbnails,
       }
+    }),
+
+  moveShot: (id, dir) =>
+    set((s) => {
+      const i = s.shots.findIndex((x) => x.id === id)
+      const j = i + dir
+      if (i < 0 || j < 0 || j >= s.shots.length) return {}
+      const shots = s.shots.slice()
+      ;[shots[i], shots[j]] = [shots[j], shots[i]]
+      return { shots }
     }),
 
   deleteSelected: () => {

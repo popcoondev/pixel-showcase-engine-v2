@@ -302,6 +302,8 @@ export function CameraPanel() {
   const shots = useStore((s) => s.shots)
   const activeShotId = useStore((s) => s.activeShotId)
   const thumbnails = useStore((s) => s.shotThumbnails)
+  const tour = useStore((s) => s.tour)
+  const setTour = useStore((s) => s.setTour)
   const setCamera = useStore((s) => s.setCamera)
   const setCameraMotion = useStore((s) => s.setCameraMotion)
   const motion = cam.motion ?? { enabled: false, yawDeg: 12, pitchDeg: 0, dolly: 0, speed: 8 }
@@ -467,7 +469,7 @@ export function CameraPanel() {
         </button>
         {shots.length === 0 && <Empty text="まだ Shot がありません。構図を決めて R で保存します。" />}
         <ul className="item-list shot-list">
-          {shots.map((shot) => (
+          {shots.map((shot, i) => (
             <li
               key={shot.id}
               className={activeShotId === shot.id ? 'active' : ''}
@@ -481,6 +483,28 @@ export function CameraPanel() {
               <span className="shot-name">{shot.name}</span>
               <button
                 className="mini"
+                disabled={i === 0}
+                title="上へ(ツアー順)"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  s().moveShot(shot.id, -1)
+                }}
+              >
+                ↑
+              </button>
+              <button
+                className="mini"
+                disabled={i === shots.length - 1}
+                title="下へ(ツアー順)"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  s().moveShot(shot.id, 1)
+                }}
+              >
+                ↓
+              </button>
+              <button
+                className="mini"
                 onClick={(e) => {
                   e.stopPropagation()
                   s().deleteShot(shot.id)
@@ -491,6 +515,43 @@ export function CameraPanel() {
             </li>
           ))}
         </ul>
+      </Section>
+      <Section title="ツアー (Tour)">
+        <ToggleRow label="有効" value={tour.enabled} onChange={(v) => setTour({ enabled: v })} />
+        {tour.enabled && (
+          <>
+            <SliderRow
+              label="静止(各視点)"
+              value={tour.dwell}
+              min={0}
+              max={10}
+              step={0.1}
+              format={(v) => `${v.toFixed(1)}s`}
+              onChange={(v) => setTour({ dwell: v })}
+            />
+            <SliderRow
+              label="移動(視点間)"
+              value={tour.transition}
+              min={0.2}
+              max={10}
+              step={0.1}
+              format={(v) => `${v.toFixed(1)}s`}
+              onChange={(v) => setTour({ transition: v })}
+            />
+            <ToggleRow label="ループ" value={tour.loop !== false} onChange={(v) => setTour({ loop: v })} />
+            <EasingRow value={tour.easing} onChange={(v) => setTour({ easing: v })} />
+            <button className="wide" onClick={() => s().setMode('preview')}>
+              ▶ ツアーをプレビュー
+            </button>
+          </>
+        )}
+        <Empty
+          text={
+            shots.length < 2
+              ? '2つ以上の Shot を保存するとツアーで巡れます。'
+              : `${shots.length}個の Shot をリスト順に巡ります。Preview / 公開ページで再生。`
+          }
+        />
       </Section>
     </>
   )
