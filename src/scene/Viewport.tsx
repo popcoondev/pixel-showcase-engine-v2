@@ -467,6 +467,8 @@ const TMP_FWD = new THREE.Vector3()
 const TMP_PIVOT = new THREE.Vector3()
 const TMP_REL = new THREE.Vector3()
 const TMP_RIGHT = new THREE.Vector3()
+const TMP_DIR = new THREE.Vector3()
+const TMP_OFF = new THREE.Vector3()
 const TMP_Q = new THREE.Quaternion()
 
 function CameraRig() {
@@ -532,6 +534,17 @@ function CameraRig() {
     if (right.lengthSq() > 1e-6) rel.applyAxisAngle(right.normalize(), pitch)
     rel.multiplyScalar(dollyScale)
     camera.position.copy(pivot).add(rel)
+    // トラック/ペデスタル: 向きを保ったままカメラを横/縦に平行移動(被写体が画面内をスライド)。
+    const truckAmt = (motion.truck ?? 0) * sinE
+    const pedAmt = (motion.pedestal ?? 0) * cosE
+    if (truckAmt || pedAmt) {
+      TMP_DIR.copy(pivot).sub(camera.position).normalize()
+      TMP_OFF.crossVectors(TMP_DIR, WORLD_UP)
+      if (TMP_OFF.lengthSq() > 1e-6) TMP_OFF.normalize()
+      TMP_OFF.multiplyScalar(truckAmt).addScaledVector(WORLD_UP, pedAmt)
+      camera.position.add(TMP_OFF)
+      pivot.add(TMP_OFF)
+    }
     camera.up.copy(WORLD_UP)
     camera.lookAt(pivot)
   })

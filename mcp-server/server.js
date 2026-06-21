@@ -253,13 +253,15 @@ const easing = z.enum(['linear', 'easeInOut', 'easeIn', 'easeOut'])
 
 server.tool(
   'set_camera_motion',
-  'カメラを自動で動かす(オービット/上下の弧/寄り引き)。yawDeg=左右の弧(度0-180)、pitchDeg=上下(度0-90)、dolly=寄り引き(0-1)、speed=周期秒(1-120)。enabled で有効/無効',
+  'カメラを自動で動かす(オービット/弧/寄り引き/平行移動)。yawDeg=左右の弧(度0-180)、pitchDeg=上下(度0-90)、dolly=寄り引き(0-1)、truck=左右の平行移動 振幅m(0-50, 向きを保って被写体が画面内をスライド)、pedestal=上下の平行移動 m(0-50)、speed=周期秒(1-120)。enabled で有効/無効',
   {
     sceneId: z.string(),
     enabled: z.boolean().optional(),
     yawDeg: z.number().optional(),
     pitchDeg: z.number().optional(),
     dolly: z.number().optional(),
+    truck: z.number().optional(),
+    pedestal: z.number().optional(),
     speed: z.number().optional(),
     easing: easing.optional(),
     phase: z.number().optional(),

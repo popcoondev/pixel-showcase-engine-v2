@@ -722,6 +722,8 @@ exports.setCameraMotion = onCall({ region: 'asia-northeast1' }, async (request) 
   if (data.yawDeg !== undefined) m.yawDeg = aiClamp(data.yawDeg, 0, 180, m.yawDeg)
   if (data.pitchDeg !== undefined) m.pitchDeg = aiClamp(data.pitchDeg, 0, 90, m.pitchDeg)
   if (data.dolly !== undefined) m.dolly = aiClamp(data.dolly, 0, 1, m.dolly)
+  if (data.truck !== undefined) m.truck = aiClamp(data.truck, 0, 50, m.truck || 0)
+  if (data.pedestal !== undefined) m.pedestal = aiClamp(data.pedestal, 0, 50, m.pedestal || 0)
   if (data.speed !== undefined) m.speed = aiClamp(data.speed, 1, 120, m.speed)
   if (AI_EASINGS.includes(data.easing)) m.easing = data.easing
   if (data.phase !== undefined) m.phase = aiClamp(data.phase, 0, 1, m.phase || 0)

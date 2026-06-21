@@ -155,6 +155,10 @@ export interface CameraMotion {
   pitchDeg: number
   /** 前後の寄り引き 振幅 (距離に対する割合 0-1) */
   dolly: number
+  /** 左右の平行移動(トラック)振幅 m。向きは保ったまま被写体が画面内をスライド(任意) */
+  truck?: number
+  /** 上下の平行移動(ペデスタル)振幅 m(任意) */
+  pedestal?: number
   /** ループ周期 秒 */
   speed: number
   /** カメラワークのイージング(任意。旧データは linear 相当) */
