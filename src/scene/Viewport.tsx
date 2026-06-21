@@ -550,7 +550,9 @@ function CameraRig() {
     const shot = s.shots.find((x) => x.id === s.activeShotId)
     if (!shot) return
     const base = TMP_BASE.fromArray(shot.position)
-    const motion = s.viewerLocked ? shot.settings.motion : s.camera.motion
+    // Viewer は Shot に焼き込まれた motion を優先しつつ、無ければシーンの camera.motion に
+    // フォールバック(エージェントが set_camera_motion だけ設定したケースを公開でも再生)。
+    const motion = s.viewerLocked ? (shot.settings.motion ?? s.camera.motion) : s.camera.motion
     if (!motion || !motion.enabled) {
       // 動き無し: 基準ポーズに固定(toggle off で即戻る)
       camera.position.copy(base)

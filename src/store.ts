@@ -1056,7 +1056,8 @@ function applyViewerScene(file: SceneFile, author: string | null) {
     env: { ...defaultEnv(), ...f.env },
     shots: f.shots,
     activeShotId: shot?.id ?? null,
-    camera: shot ? { ...shot.settings } : f.camera,
+    // Shot に motion が焼き込まれていなければシーンの camera.motion を引き継ぐ(公開でも再生)
+    camera: shot ? { ...shot.settings, motion: shot.settings.motion ?? f.camera?.motion } : f.camera,
     focusTarget: shot?.focusTarget ?? null,
     root: { ...defaultRoot(), ...f.root },
     tour: { ...defaultTour(), ...f.tour },
