@@ -52,6 +52,8 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
 | `deleteScene` | write | `{ sceneId }` | `{ ok, sceneId, deleted }` |
 | `render_scene` | read | `{ sceneId, shotId? }` | PNG 画像(shotId でその視点から描画。MCPサーバー側でヘッドレス描画) |
 | `measure_scene` | read | `{ sceneId }` | `{ objects: {id:{name,kind,size,center}}, bounds }`(各オブジェクトの実寸 m。MCPサーバー側で計測) |
+| `publish_scene` | write | `{ sceneId, approvalToken, title?, author? }` | `{ ok, sceneId, publishId, url }` |
+| `unpublish_scene` | write | `{ sceneId }` | `{ ok, sceneId, unpublished }` |
 | `importAsset` | write | `{ dataUrl, name?, kind?, aspect? }` | `{ ok, hash, kind, aspect, reused }` |
 | `import_asset_file` | write | `{ path, name?, kind? }`（MCPサーバ側でファイルを読む。Function ではない） | `importAsset` と同じ |
 
@@ -98,7 +100,10 @@ updateObject(sceneId, objId, { position:[2,0.5,0] })
 
 ## 既知の制約
 
-- **公開は対象外**: 作業コピーまでを MCP で扱う。公開(`showcases/` 昇格)は独自の DR が必要(別ゲート)。
+- **公開(DR-2026-010)**: `publish_scene` は **人間が発行した使い捨て承認トークン必須**。トークンは
+  human がアプリの「☁開く → 🤖承認」で発行(`issuePublishToken` は App Check enforce =ブラウザのみ)。
+  エージェントはトークンを発行できず(App Check 無し)、`publishApprovals` も Firestore default-deny で
+  直書き不可。承認1回で公開実行=MCP 完結。`unpublish_scene` は承認不要(安全側)。公開上限 20/日。
 - `measure_scene` は GLB の正規化後の**実寸(ワールド境界ボックス, m)**を返す。`get_scene` の `scale` は
   GLB では正規化に対する倍率で実寸ではないため、大小判断には `measure_scene` を使う。`render_scene` の
   `shotId` は `list_shots` の id(その視点を固定表示。ツアーは一時無効化)。

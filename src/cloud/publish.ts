@@ -1,7 +1,22 @@
-import { getDb, getStorageInstance } from '../firebase'
+import { getDb, getFunctionsInstance, getStorageInstance } from '../firebase'
 import { useStore } from '../store'
 import type { SceneFile } from '../types'
 import { requireUid, resolveAssetUrls, uploadAssets } from './storage'
+
+/**
+ * エージェント公開の承認トークンを発行する (DR-2026-010)。
+ * issuePublishToken は App Check enforce = ブラウザ(人間)だけが呼べる。
+ * 返ったトークンを人間がエージェントに渡し、エージェントが publish_scene で使う。
+ */
+export async function issueAgentPublishToken(
+  sceneId: string,
+): Promise<{ token: string; expiresInSec: number }> {
+  const functions = await getFunctionsInstance()
+  const { httpsCallable } = await import('firebase/functions')
+  const res = await httpsCallable(functions, 'issuePublishToken')({ sceneId })
+  const data = res.data as { token: string; expiresInSec: number }
+  return { token: data.token, expiresInSec: data.expiresInSec }
+}
 
 /**
  * 現在のシーンを公開スナップショットとして showcases/{id} に保存し、id を返す。

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { deleteAccount } from './cloud/account'
 import { listLibraryAssets, updateLibraryAsset, type LibraryAsset } from './cloud/assets'
 import { signInWithGoogle, signOutCloud } from './cloud/auth'
+import { issueAgentPublishToken } from './cloud/publish'
 import {
   deleteCloudScene,
   listMyScenes,
@@ -319,6 +320,19 @@ function CloudScenesModal({ onClose }: { onClose: () => void }) {
   const [scenes, setScenes] = useState<CloudSceneMeta[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [q, setQ] = useState('')
+  const [token, setToken] = useState<{ sceneId: string; value: string } | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const approve = async (id: string) => {
+    setError(null)
+    try {
+      const { token: t } = await issueAgentPublishToken(id)
+      setToken({ sceneId: id, value: t })
+      setCopied(false)
+    } catch (e) {
+      setError(msgOf(e))
+    }
+  }
 
   useEffect(() => {
     let alive = true
@@ -384,15 +398,46 @@ function CloudScenesModal({ onClose }: { onClose: () => void }) {
         )}
         <ul className="item-list">
           {filtered?.map((sc) => (
-            <li key={sc.id}>
-              <span className="shot-name">{sc.name}</span>
-              <span className="kind">{fmtDate(sc.updatedAt)}</span>
-              <button className="mini" onClick={() => load(sc.id)}>
-                開く
-              </button>
-              <button className="mini danger" onClick={() => remove(sc.id)}>
-                ✕
-              </button>
+            <li key={sc.id} style={{ display: 'block' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="shot-name" style={{ flex: 1 }}>
+                  {sc.name}
+                </span>
+                <span className="kind">{fmtDate(sc.updatedAt)}</span>
+                <button className="mini" title="エージェント公開を承認(トークン発行)" onClick={() => approve(sc.id)}>
+                  🤖承認
+                </button>
+                <button className="mini" onClick={() => load(sc.id)}>
+                  開く
+                </button>
+                <button className="mini danger" onClick={() => remove(sc.id)}>
+                  ✕
+                </button>
+              </div>
+              {token?.sceneId === sc.id && (
+                <div className="asset-editor">
+                  <p className="welcome-lead" style={{ margin: '0 0 6px' }}>
+                    公開承認トークン(10分有効・1回限り)。エージェントの <code>publish_scene</code> に渡してください。
+                  </p>
+                  <div className="row-body">
+                    <input className="text" readOnly value={token.value} onFocus={(e) => e.currentTarget.select()} />
+                    <button
+                      className="mini"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(token.value).then(
+                          () => {
+                            setCopied(true)
+                            setTimeout(() => setCopied(false), 1500)
+                          },
+                          () => {},
+                        )
+                      }}
+                    >
+                      {copied ? 'コピーしました' : 'コピー'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </li>
           ))}
           {filtered && filtered.length === 0 && scenes && scenes.length > 0 && (

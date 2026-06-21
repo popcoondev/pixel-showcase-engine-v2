@@ -986,6 +986,118 @@ exports.deleteScene = onCall({ region: 'asia-northeast1' }, async (request) => {
   return { ok: true, sceneId, deleted: true }
 })
 
+// ---- エージェントからの公開(DR-2026-010 / TASK-049): 人間承認トークン付き ----
+const AI_PUBLISH_DAILY_LIMIT = 20
+const PUBLISH_TOKEN_TTL_MS = 10 * 60 * 1000
+
+// 発行は human のみ(App Check enforce)。ブラウザは App Check トークンを付与、MCP は付与しないので弾かれる。
+exports.issuePublishToken = onCall({ region: 'asia-northeast1', enforceAppCheck: true }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const sceneId = data.sceneId
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  if (!(await userRef.collection('showcases').doc(sceneId).get()).exists) {
+    throw new HttpsError('not-found', 'scene not found')
+  }
+  const token = crypto.randomBytes(24).toString('hex')
+  await userRef.collection('publishApprovals').doc(token).set({
+    sceneId,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    expiresAtMs: Date.now() + PUBLISH_TOKEN_TTL_MS,
+    consumed: false,
+  })
+  return { ok: true, token, sceneId, expiresInSec: Math.floor(PUBLISH_TOKEN_TTL_MS / 1000) }
+})
+
+// 公開実行。App Check 免除(MCP/エージェントが叩く)だが、human 発行トークン必須。
+exports.publishScene = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const sceneId = data.sceneId
+  const token = data.approvalToken
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  if (typeof token !== 'string' || !token) throw new HttpsError('invalid-argument', 'approvalToken required (human が UI で発行)')
+
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  const apprRef = userRef.collection('publishApprovals').doc(token)
+
+  // トークン消費 + 公開昇格 + カウンタを1トランザクションで(二重公開/再利用防止)
+  const result = await db.runTransaction(async (tx) => {
+    const apprSnap = await tx.get(apprRef)
+    if (!apprSnap.exists) throw new HttpsError('permission-denied', '無効な承認トークン')
+    const appr = apprSnap.data() || {}
+    if (appr.consumed) throw new HttpsError('permission-denied', '使用済みの承認トークン')
+    if (appr.sceneId !== sceneId) throw new HttpsError('permission-denied', 'トークンと sceneId が一致しません')
+    if (!(appr.expiresAtMs > Date.now())) throw new HttpsError('permission-denied', '承認トークンの期限切れ')
+
+    const userSnap = await tx.get(userRef)
+    const u = userSnap.data() || {}
+    const today = new Date().toISOString().slice(0, 10)
+    const pubCount = u.aiPubDate === today ? u.aiPubCount || 0 : 0
+    if (pubCount >= AI_PUBLISH_DAILY_LIMIT) throw new HttpsError('resource-exhausted', 'daily publish limit reached')
+
+    const sceneRef = userRef.collection('showcases').doc(sceneId)
+    const sceneSnap = await tx.get(sceneRef)
+    if (!sceneSnap.exists) throw new HttpsError('not-found', 'scene not found')
+    const sceneDoc = sceneSnap.data() || {}
+    const scene = sceneDoc.scene || {}
+    if (!Array.isArray(scene.shots) || scene.shots.length === 0) {
+      throw new HttpsError('failed-precondition', 'Shot が1つ以上必要(固定画角で見せるため)')
+    }
+
+    const name =
+      typeof data.title === 'string' && data.title.trim() ? data.title.trim().slice(0, 80) : sceneDoc.name || scene.name || '無題'
+    // 既存公開があれば同じ /s/{id} を上書き更新、無ければ新規
+    const pubRef = sceneDoc.publishedId
+      ? db.collection('showcases').doc(sceneDoc.publishedId)
+      : db.collection('showcases').doc()
+    tx.set(pubRef, {
+      ownerId: uid,
+      ownerName: typeof data.author === 'string' ? data.author.slice(0, 60) : u.displayName || null,
+      name,
+      scene,
+      assetRefs: sceneDoc.assetRefs || {},
+      thumbPath: null,
+      thumbUrl: null,
+      publishedAt: admin.firestore.FieldValue.serverTimestamp(),
+      termsAgreedAt: appr.createdAt || admin.firestore.FieldValue.serverTimestamp(),
+      publishedBy: 'agent',
+    })
+    tx.update(sceneRef, { publishedId: pubRef.id })
+    tx.update(apprRef, { consumed: true, consumedAt: admin.firestore.FieldValue.serverTimestamp() })
+    tx.set(userRef, { aiPubDate: today, aiPubCount: pubCount + 1 }, { merge: true })
+    return { publishId: pubRef.id }
+  })
+
+  return { ok: true, sceneId, publishId: result.publishId, url: APP_ORIGIN + '/s/' + result.publishId }
+})
+
+// 公開停止(自損・承認不要=安全側)。
+exports.unpublishScene = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const sceneId = data.sceneId
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  const sceneRef = userRef.collection('showcases').doc(sceneId)
+  const sceneSnap = await sceneRef.get()
+  if (!sceneSnap.exists) throw new HttpsError('not-found', 'scene not found')
+  const pubId = (sceneSnap.data() || {}).publishedId
+  if (!pubId) return { ok: true, sceneId, unpublished: false }
+  const pubRef = db.collection('showcases').doc(pubId)
+  const pubSnap = await pubRef.get()
+  if (pubSnap.exists && (pubSnap.data() || {}).ownerId === uid) await pubRef.delete()
+  await sceneRef.update({ publishedId: admin.firestore.FieldValue.delete() })
+  return { ok: true, sceneId, unpublished: true }
+})
+
 const APP_ORIGIN = 'https://pixelshowcase-7bc44.web.app'
 const DEFAULT_DESC = 'ドット絵・GLB・画像プレートを3D空間に置いて、固定画角の展示として見せる'
 

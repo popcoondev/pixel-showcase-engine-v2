@@ -429,6 +429,26 @@ server.tool(
   async (args) => asText(await call('deleteScene', args)),
 )
 
+// --- 公開 (DR-2026-010 / TASK-049): 人間承認トークン必須 ---
+server.tool(
+  'publish_scene',
+  'シーンを /s/ 公開する。approvalToken は **人間がアプリの「エージェント公開を承認」で発行**した使い捨てトークン(対象sceneId・10分有効)。エージェントは発行できない。title/author は任意。返り値の url が公開URL',
+  {
+    sceneId: z.string(),
+    approvalToken: z.string(),
+    title: z.string().optional(),
+    author: z.string().optional(),
+  },
+  async (args) => asText(await call('publishScene', args)),
+)
+
+server.tool(
+  'unpublish_scene',
+  'シーンの公開を停止する(/s/ を削除)。承認トークン不要(安全側)',
+  { sceneId: z.string() },
+  async (args) => asText(await call('unpublishScene', args)),
+)
+
 // --- 視覚フィードバック: シーンを実レンダリングして画像で返す (TASK-040) ---
 const APP_URL = process.env.PSE_APP_URL || 'https://pixelshowcase-7bc44.web.app'
 
