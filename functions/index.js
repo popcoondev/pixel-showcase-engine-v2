@@ -848,6 +848,32 @@ exports.setEnvironment = onCall({ region: 'asia-northeast1' }, async (request) =
   return { ok: true, sceneId: data.sceneId, env }
 })
 
+// ---- シーン全体の見せ方変換(回転/移動/スケール/ターンテーブル) (TASK-052) ----
+exports.setSceneTransform = onCall({ region: 'asia-northeast1' }, async (request) => {
+  const uid = request.auth && request.auth.uid
+  if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
+  const data = request.data || {}
+  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
+  const root = Object.assign({ position: [0, 0, 0], rotation: [0, 0, 0], scale: 1, spinY: 0 }, scene.root || {})
+  if (data.position !== undefined) root.position = aiVec3(data.position, -100, 100, root.position)
+  if (data.rotation !== undefined) {
+    const r = Array.isArray(data.rotation) ? data.rotation : []
+    root.rotation = [
+      aiClamp(r[0], -12.6, 12.6, root.rotation[0]),
+      aiClamp(r[1], -12.6, 12.6, root.rotation[1]),
+      aiClamp(r[2], -12.6, 12.6, root.rotation[2]),
+    ]
+  }
+  if (data.scale !== undefined) root.scale = aiClamp(data.scale, 0.05, 20, root.scale)
+  if (data.spinY !== undefined) root.spinY = aiClamp(data.spinY, -720, 720, root.spinY || 0)
+  scene.root = root
+  const batch = db.batch()
+  batch.update(sceneRef, { 'scene.root': root, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
+  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+  await batch.commit()
+  return { ok: true, sceneId: data.sceneId, root }
+})
+
 // ---- シーン管理 (TASK-045) ----
 exports.listScenes = onCall({ region: 'asia-northeast1' }, async (request) => {
   const uid = request.auth && request.auth.uid

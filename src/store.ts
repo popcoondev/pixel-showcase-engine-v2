@@ -17,6 +17,7 @@ import type {
   Mode,
   SceneFile,
   SceneObjectDef,
+  SceneRoot,
   Selection,
   Shot,
   Tab,
@@ -192,6 +193,13 @@ export const defaultLightColorCycle = (base = '#ff3df0'): LightColorCycle => ({
   speed: 4,
 })
 
+export const defaultRoot = (): SceneRoot => ({
+  position: [0, 0, 0],
+  rotation: [0, 0, 0],
+  scale: 1,
+  spinY: 0,
+})
+
 const defaultCamera = (): CameraSettings => ({
   focalLength: 35,
   exposure: 1,
@@ -242,6 +250,8 @@ interface StoreState {
   camera: CameraSettings
   shots: Shot[]
   activeShotId: string | null
+  /** シーン全体の見せ方変換(回転/移動/スケール/ターンテーブル) */
+  root: SceneRoot
   /** shot id -> サムネ dataURL。Scene JSON / Undo には含めない (別管理) */
   shotThumbnails: Record<string, string>
   mode: Mode
@@ -323,6 +333,7 @@ interface StoreState {
   removeEffect: (id: string) => void
 
   setEnv: (patch: Partial<EnvSettings>) => void
+  setSceneRoot: (patch: Partial<SceneRoot>) => void
   setCamera: (patch: Partial<CameraSettings>) => void
   setCameraMotion: (patch: Partial<CameraMotion>) => void
   /** HD-2D 風の look プリセットを適用する (docs/hd2d-look.md 参照) */
@@ -356,6 +367,7 @@ type DocSnapshot = Pick<
   | 'camera'
   | 'shots'
   | 'activeShotId'
+  | 'root'
 >
 
 const DOC_KEYS = [
@@ -368,6 +380,7 @@ const DOC_KEYS = [
   'camera',
   'shots',
   'activeShotId',
+  'root',
 ] as const
 
 function pickDoc(s: StoreState): DocSnapshot {
@@ -381,6 +394,7 @@ function pickDoc(s: StoreState): DocSnapshot {
     camera: s.camera,
     shots: s.shots,
     activeShotId: s.activeShotId,
+    root: s.root,
   }
 }
 
@@ -479,6 +493,7 @@ export const useStore = create<StoreState>()((set, get) => ({
   env: defaultEnv(),
   camera: defaultCamera(),
   shots: [],
+  root: defaultRoot(),
   shotThumbnails: {},
   activeShotId: null,
   mode: 'edit',
@@ -771,6 +786,7 @@ export const useStore = create<StoreState>()((set, get) => ({
     })),
 
   setEnv: (patch) => set((s) => ({ env: { ...s.env, ...patch } })),
+  setSceneRoot: (patch) => set((s) => ({ root: { ...s.root, ...patch } })),
   setCamera: (patch) => set((s) => ({ camera: { ...s.camera, ...patch } })),
   setCameraMotion: (patch) =>
     set((s) => ({
@@ -913,6 +929,7 @@ export const useStore = create<StoreState>()((set, get) => ({
       camera: s.camera,
       shots: s.shots,
       activeShotId: s.activeShotId,
+      root: s.root,
     }
   },
 
@@ -929,6 +946,7 @@ export const useStore = create<StoreState>()((set, get) => ({
       camera: f.camera,
       shots: f.shots,
       activeShotId: f.activeShotId,
+      root: { ...defaultRoot(), ...f.root },
       selected: null,
       mode: 'edit',
       focusTarget: null,

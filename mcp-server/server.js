@@ -343,6 +343,20 @@ server.tool(
   async (args) => asText(await call('setEnvironment', args)),
 )
 
+// --- シーン全体の見せ方変換 (TASK-052) ---
+server.tool(
+  'set_scene_transform',
+  'シーン全体(全オブジェクト)をまとめて回転/移動/スケールする演出変換。position=全体オフセットm、rotation=全体回転rad[x,y,z]、scale=等倍(0.05-20)、spinY=Y軸ターンテーブル 度/秒(Preview/公開で自動回転)。ライトは固定なので被写体だけが回る。patch(未指定は不変)',
+  {
+    sceneId: z.string(),
+    position: vec3().optional(),
+    rotation: vec3().optional(),
+    scale: z.number().optional(),
+    spinY: z.number().optional(),
+  },
+  async (args) => asText(await call('setSceneTransform', args)),
+)
+
 // --- シーン管理 (TASK-045) ---
 server.tool(
   'list_scenes',

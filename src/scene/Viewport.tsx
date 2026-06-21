@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Billboard, Grid, TransformControls } from '@react-three/drei'
 import {
@@ -662,6 +662,27 @@ function FocusMarker() {
   )
 }
 
+/** シーン全体(オブジェクト+エフェクト)を束ねる演出用ルート。ライトは固定。
+ *  静的な変換は常時、ターンテーブル回転は Preview/Viewer のみ適用する。 */
+function SceneRootGroup({ children }: { children: ReactNode }) {
+  const root = useStore((s) => s.root)
+  const ref = useRef<THREE.Group>(null)
+  useFrame((state) => {
+    const g = ref.current
+    if (!g) return
+    const s = useStore.getState()
+    const r = s.root
+    const framed = s.mode === 'preview' || s.viewerLocked
+    const spin = framed && r.spinY ? THREE.MathUtils.degToRad(r.spinY) * state.clock.elapsedTime : 0
+    g.rotation.set(r.rotation[0], r.rotation[1] + spin, r.rotation[2])
+  })
+  return (
+    <group ref={ref} position={root.position} rotation={root.rotation} scale={root.scale}>
+      {children}
+    </group>
+  )
+}
+
 function SceneContent() {
   const env = useStore((s) => s.env)
   const objects = useStore((s) => s.objects)
@@ -676,13 +697,15 @@ function SceneContent() {
       {lights.map((l) => (
         <LightNode key={l.id} def={l} />
       ))}
-      {objects.map((o) => (
-        <ObjectNode key={o.id} def={o} />
-      ))}
+      <SceneRootGroup>
+        {objects.map((o) => (
+          <ObjectNode key={o.id} def={o} />
+        ))}
+        {effects.map((e) => (
+          <EffectNode key={e.id} def={e} />
+        ))}
+      </SceneRootGroup>
       <Ground />
-      {effects.map((e) => (
-        <EffectNode key={e.id} def={e} />
-      ))}
       <FocusMarker />
       <SelectionGizmo />
       <CameraRig />

@@ -191,6 +191,18 @@ export interface Shot {
   focusTarget: Vec3 | null
 }
 
+/** シーン全体(全オブジェクト+エフェクト)に掛けるルート変換。見せ方の演出用。ライトは固定。 */
+export interface SceneRoot {
+  /** 全体オフセット m */
+  position: [number, number, number]
+  /** 全体回転 rad */
+  rotation: [number, number, number]
+  /** 全体スケール(等倍) */
+  scale: number
+  /** Y軸の連続回転(ターンテーブル)度/秒。Preview/Viewer のみ適用(任意) */
+  spinY?: number
+}
+
 export interface SceneFile {
   /** v1: dataURL をオブジェクトに直接埋め込み / v2: assets テーブル参照 */
   version: 1 | 2
@@ -204,6 +216,8 @@ export interface SceneFile {
   camera: CameraSettings
   shots: Shot[]
   activeShotId: string | null
+  /** シーン全体の見せ方変換(任意。旧データは無し=恒等) */
+  root?: SceneRoot
 }
 
 export type Mode = 'edit' | 'camera' | 'preview'
