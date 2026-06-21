@@ -2,19 +2,19 @@
   "task_id": "TASK-041",
   "title": "編集Functionの lost-update 競合をトランザクション化",
   "description": "placeAsset/updateObject/removeObject/addLight 等は scene を read→modify→write のため、同一シーンへの並行書き込みで lost-update が起きる(実例: update_object 2件同時送信で片方が巻き戻った)。逐次なら問題ないが、Firestore runTransaction で read-modify-write を原子化する。",
-  "status": "open",
+  "status": "done",
   "origin": "human",
   "orchestrator_session_id": null,
   "assigned_session_ids": [],
   "related_decision_record_id": null,
   "operating_goal_ref": null,
   "created_at": "2026-06-19T16:47:17.768Z",
-  "updated_at": "2026-06-19T16:47:17.768Z",
+  "updated_at": "2026-06-21T02:08:59.410Z",
   "assigned_at": null,
-  "done_at": null,
+  "done_at": "2026-06-21T02:08:59.410Z",
   "retired_at": null,
   "last_triaged_at": null,
   "stale_candidate_at": null,
   "retire_candidate_at": null,
-  "triage_notes": "TASK-040 検証中に発見。並行時のみ顕在。"
+  "triage_notes": "全シーン編集callable(place/placeAssets/update/removeObject・setCamera・add/update/removeLight・4 motion・setEnvironment・setSceneTransform・addShot/removeShot/setTour=16本)を共通ヘルパー aiEditScene 経由で runTransaction 化(commit 83a4a52)。読み取りは全て書き込み前(placeのasset doc読みは mutate内=write前)。新規作成/import/scene管理は increment 等で対象外。node --check + require ロード + 静的監査OK。ライブ検証はデプロイ後(既存の見せ方検証スクリプトが全経路を踏む)。"
 }
