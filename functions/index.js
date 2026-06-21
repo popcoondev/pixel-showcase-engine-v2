@@ -320,38 +320,25 @@ exports.placeAsset = onCall({ region: 'asia-northeast1' }, async (request) => {
   if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
   if (typeof hash !== 'string' || !hash) throw new HttpsError('invalid-argument', 'hash required')
 
-  const db = admin.firestore()
-  const userRef = db.collection('users').doc(uid)
-  const u = (await userRef.get()).data() || {}
+  return await aiEditScene(uid, sceneId, async ({ scene, doc, tx, userRef }) => {
+    // asset が本人 library に在ること(条件1,2)。tx 内で読む(書き込み前)
+    const assetSnap = await tx.get(userRef.collection('assets').doc(hash))
+    if (!assetSnap.exists) throw new HttpsError('failed-precondition', 'asset not in your library')
+    const asset = assetSnap.data() || {}
 
-  // 1日あたり書き込み操作上限(DR-2026-009 条件3)
-  const today = new Date().toISOString().slice(0, 10)
-  const opCount = u.aiOpDate === today ? u.aiOpCount || 0 : 0
-  if (opCount >= AI_DAILY_OP_LIMIT) throw new HttpsError('resource-exhausted', 'daily operation limit reached')
+    const objects = Array.isArray(scene.objects) ? scene.objects : []
+    if (objects.length >= AI_MAX_OBJECTS) throw new HttpsError('resource-exhausted', 'object limit reached')
 
-  // asset が本人 library に在ること(条件1,2)
-  const assetSnap = await userRef.collection('assets').doc(hash).get()
-  if (!assetSnap.exists) throw new HttpsError('failed-precondition', 'asset not in your library')
-  const asset = assetSnap.data() || {}
+    const obj = aiBuildPlacedObject(asset, data)
+    objects.push(obj)
+    const assetRefs = Object.assign({}, doc.assetRefs || {})
+    assetRefs[hash] = asset.storagePath || 'assets/' + hash
 
-  const sceneRef = userRef.collection('showcases').doc(sceneId)
-  const sceneSnap = await sceneRef.get()
-  if (!sceneSnap.exists) throw new HttpsError('not-found', 'scene not found')
-  const docData = sceneSnap.data() || {}
-  const scene = docData.scene || {}
-  const objects = Array.isArray(scene.objects) ? scene.objects : []
-  if (objects.length >= AI_MAX_OBJECTS) throw new HttpsError('resource-exhausted', 'object limit reached')
-
-  const obj = aiBuildPlacedObject(asset, data)
-  objects.push(obj)
-  const assetRefs = Object.assign({}, docData.assetRefs || {})
-  assetRefs[hash] = asset.storagePath || 'assets/' + hash
-
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.objects': objects, assetRefs, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId, objectId: obj.id, objectCount: objects.length }
+    return {
+      update: { 'scene.objects': objects, assetRefs },
+      ret: { ok: true, sceneId, objectId: obj.id, objectCount: objects.length },
+    }
+  })
 })
 
 /**
@@ -369,44 +356,33 @@ exports.placeAssets = onCall({ region: 'asia-northeast1' }, async (request) => {
   if (items.length === 0) throw new HttpsError('invalid-argument', 'items required')
   if (items.length > 50) throw new HttpsError('resource-exhausted', 'too many items (max 50)')
 
-  const db = admin.firestore()
-  const userRef = db.collection('users').doc(uid)
-  const u = (await userRef.get()).data() || {}
-  const today = new Date().toISOString().slice(0, 10)
-  const opCount = u.aiOpDate === today ? u.aiOpCount || 0 : 0
-  if (opCount >= AI_DAILY_OP_LIMIT) throw new HttpsError('resource-exhausted', 'daily operation limit reached')
+  return await aiEditScene(uid, sceneId, async ({ scene, doc, tx, userRef }) => {
+    const objects = Array.isArray(scene.objects) ? scene.objects : []
+    const assetRefs = Object.assign({}, doc.assetRefs || {})
 
-  const sceneRef = userRef.collection('showcases').doc(sceneId)
-  const sceneSnap = await sceneRef.get()
-  if (!sceneSnap.exists) throw new HttpsError('not-found', 'scene not found')
-  const docData = sceneSnap.data() || {}
-  const scene = docData.scene || {}
-  const objects = Array.isArray(scene.objects) ? scene.objects : []
-  const assetRefs = Object.assign({}, docData.assetRefs || {})
-
-  const placed = []
-  const skipped = []
-  for (const item of items) {
-    if (!item || typeof item.hash !== 'string') continue
-    if (objects.length >= AI_MAX_OBJECTS) break
-    const assetSnap = await userRef.collection('assets').doc(item.hash).get()
-    if (!assetSnap.exists) {
-      skipped.push(item.hash)
-      continue
+    const placed = []
+    const skipped = []
+    for (const item of items) {
+      if (!item || typeof item.hash !== 'string') continue
+      if (objects.length >= AI_MAX_OBJECTS) break
+      const assetSnap = await tx.get(userRef.collection('assets').doc(item.hash))
+      if (!assetSnap.exists) {
+        skipped.push(item.hash)
+        continue
+      }
+      const asset = assetSnap.data() || {}
+      const obj = aiBuildPlacedObject(asset, item)
+      objects.push(obj)
+      assetRefs[item.hash] = asset.storagePath || 'assets/' + item.hash
+      placed.push(obj.id)
     }
-    const asset = assetSnap.data() || {}
-    const obj = aiBuildPlacedObject(asset, item)
-    objects.push(obj)
-    assetRefs[item.hash] = asset.storagePath || 'assets/' + item.hash
-    placed.push(obj.id)
-  }
-  if (placed.length === 0) throw new HttpsError('failed-precondition', 'no valid assets placed')
+    if (placed.length === 0) throw new HttpsError('failed-precondition', 'no valid assets placed')
 
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.objects': objects, assetRefs, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId, objectIds: placed, placed: placed.length, skipped, objectCount: objects.length }
+    return {
+      update: { 'scene.objects': objects, assetRefs },
+      ret: { ok: true, sceneId, objectIds: placed, placed: placed.length, skipped, objectCount: objects.length },
+    }
+  })
 })
 
 /** 1日あたり書き込み操作上限を検査し、{today, opCount} を返す(超過時は throw)。 */
@@ -426,38 +402,26 @@ exports.updateObject = onCall({ region: 'asia-northeast1' }, async (request) => 
   if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
   if (typeof objectId !== 'string' || !objectId) throw new HttpsError('invalid-argument', 'objectId required')
 
-  const db = admin.firestore()
-  const userRef = db.collection('users').doc(uid)
-  const u = (await userRef.get()).data() || {}
-  const { today, opCount } = await aiCheckOpLimit(u)
+  return await aiEditScene(uid, sceneId, ({ scene }) => {
+    const objects = Array.isArray(scene.objects) ? scene.objects : []
+    const obj = objects.find((o) => o && o.id === objectId)
+    if (!obj) throw new HttpsError('not-found', 'object not found')
 
-  const sceneRef = userRef.collection('showcases').doc(sceneId)
-  const sceneSnap = await sceneRef.get()
-  if (!sceneSnap.exists) throw new HttpsError('not-found', 'scene not found')
-  const docData = sceneSnap.data() || {}
-  const scene = docData.scene || {}
-  const objects = Array.isArray(scene.objects) ? scene.objects : []
-  const obj = objects.find((o) => o && o.id === objectId)
-  if (!obj) throw new HttpsError('not-found', 'object not found')
+    // position / rotation / scale のみ更新可(kind/material/参照は不変)
+    if (data.position !== undefined) obj.position = aiVec3(data.position, -50, 50, obj.position || [0, 0, 0])
+    if (data.rotation !== undefined) {
+      const r = Array.isArray(data.rotation) ? data.rotation : []
+      const cur = obj.rotation || [0, 0, 0]
+      obj.rotation = [aiClamp(r[0], -12.6, 12.6, cur[0]), aiClamp(r[1], -12.6, 12.6, cur[1]), aiClamp(r[2], -12.6, 12.6, cur[2])]
+    }
+    if (data.scale !== undefined) {
+      const s = Array.isArray(data.scale) ? data.scale : []
+      const cur = obj.scale || [1, 1, 1]
+      obj.scale = [aiClamp(s[0], 0.01, 50, cur[0]), aiClamp(s[1], 0.01, 50, cur[1]), aiClamp(s[2], 0.01, 50, cur[2])]
+    }
 
-  // position / rotation / scale のみ更新可(kind/material/参照は不変)
-  if (data.position !== undefined) obj.position = aiVec3(data.position, -50, 50, obj.position || [0, 0, 0])
-  if (data.rotation !== undefined) {
-    const r = Array.isArray(data.rotation) ? data.rotation : []
-    const cur = obj.rotation || [0, 0, 0]
-    obj.rotation = [aiClamp(r[0], -12.6, 12.6, cur[0]), aiClamp(r[1], -12.6, 12.6, cur[1]), aiClamp(r[2], -12.6, 12.6, cur[2])]
-  }
-  if (data.scale !== undefined) {
-    const s = Array.isArray(data.scale) ? data.scale : []
-    const cur = obj.scale || [1, 1, 1]
-    obj.scale = [aiClamp(s[0], 0.01, 50, cur[0]), aiClamp(s[1], 0.01, 50, cur[1]), aiClamp(s[2], 0.01, 50, cur[2])]
-  }
-
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.objects': objects, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId, objectId, objectCount: objects.length }
+    return { update: { 'scene.objects': objects }, ret: { ok: true, sceneId, objectId, objectCount: objects.length } }
+  })
 })
 
 exports.removeObject = onCall({ region: 'asia-northeast1' }, async (request) => {
@@ -469,25 +433,12 @@ exports.removeObject = onCall({ region: 'asia-northeast1' }, async (request) => 
   if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
   if (typeof objectId !== 'string' || !objectId) throw new HttpsError('invalid-argument', 'objectId required')
 
-  const db = admin.firestore()
-  const userRef = db.collection('users').doc(uid)
-  const u = (await userRef.get()).data() || {}
-  const { today, opCount } = await aiCheckOpLimit(u)
-
-  const sceneRef = userRef.collection('showcases').doc(sceneId)
-  const sceneSnap = await sceneRef.get()
-  if (!sceneSnap.exists) throw new HttpsError('not-found', 'scene not found')
-  const docData = sceneSnap.data() || {}
-  const scene = docData.scene || {}
-  const objects = Array.isArray(scene.objects) ? scene.objects : []
-  const next = objects.filter((o) => !(o && o.id === objectId))
-  const removed = next.length !== objects.length
-
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.objects': next, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId, removed, objectCount: next.length }
+  return await aiEditScene(uid, sceneId, ({ scene }) => {
+    const objects = Array.isArray(scene.objects) ? scene.objects : []
+    const next = objects.filter((o) => !(o && o.id === objectId))
+    const removed = next.length !== objects.length
+    return { update: { 'scene.objects': next }, ret: { ok: true, sceneId, removed, objectCount: next.length } }
+  })
 })
 
 // ---- カメラ / ライト操作 (TASK-039 / DR-2026-009) ----
@@ -508,53 +459,78 @@ async function aiOpenScene(uid, sceneId) {
   return { db, userRef, sceneRef, today, opCount, scene: (snap.data() || {}).scene || {} }
 }
 
+/**
+ * シーン編集を **トランザクション** で実行(lost-update 競合対策 / TASK-041)。
+ * mutate({ scene, opCount, tx, userRef, sceneRef }) は scene を読み、
+ *   { update: { 'scene.X': ... }, ret: <返り値> } を返す(同期 or async)。
+ * tx 内なので追加の読み取りが要るとき(アセット doc 等)は **書き込み前に** tx.get できる。
+ * 競合時は Firestore が自動リトライするので mutate は副作用を持たないこと。
+ */
+async function aiEditScene(uid, sceneId, mutate) {
+  if (typeof sceneId !== 'string' || !sceneId) throw new HttpsError('invalid-argument', 'sceneId required')
+  const db = admin.firestore()
+  const userRef = db.collection('users').doc(uid)
+  const sceneRef = userRef.collection('showcases').doc(sceneId)
+  return await db.runTransaction(async (tx) => {
+    // 読み取りは書き込みより前(Firestore の制約)
+    const userSnap = await tx.get(userRef)
+    const sceneSnap = await tx.get(sceneRef)
+    if (!sceneSnap.exists) throw new HttpsError('not-found', 'scene not found')
+    const { today, opCount } = await aiCheckOpLimit(userSnap.data() || {})
+    const docData = sceneSnap.data() || {}
+    const scene = docData.scene || {}
+    const out = await mutate({ scene, doc: docData, opCount, tx, userRef, sceneRef })
+    tx.update(sceneRef, Object.assign({ updatedAt: admin.firestore.FieldValue.serverTimestamp() }, out.update))
+    tx.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
+    return out.ret
+  })
+}
+
 exports.setCamera = onCall({ region: 'asia-northeast1' }, async (request) => {
   const uid = request.auth && request.auth.uid
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const shots = Array.isArray(scene.shots) ? scene.shots : []
-  const shot = shots.find((s) => s && s.id === scene.activeShotId) || shots[0]
-  if (!shot) throw new HttpsError('failed-precondition', 'scene has no shot')
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const shots = Array.isArray(scene.shots) ? scene.shots : []
+    const shot = shots.find((s) => s && s.id === scene.activeShotId) || shots[0]
+    if (!shot) throw new HttpsError('failed-precondition', 'scene has no shot')
 
-  const eye = data.position !== undefined ? aiVec3(data.position, -100, 100, shot.position || [0, 1.5, 7]) : shot.position || [0, 1.5, 7]
-  const target = data.target !== undefined ? aiVec3(data.target, -100, 100, shot.focusTarget || [0, 1, 0]) : shot.focusTarget || [0, 1, 0]
-  shot.position = eye
-  shot.focusTarget = target
-  shot.quaternion = lookAtQuaternion(eye, target)
-  if (data.focalLength !== undefined) {
-    const f = aiClamp(data.focalLength, 10, 200, 45)
-    shot.settings = Object.assign(shot.settings || aiCameraSettings(), { focalLength: f })
-    scene.camera = Object.assign(scene.camera || aiCameraSettings(), { focalLength: f })
-  }
-
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.shots': shots, 'scene.camera': scene.camera || aiCameraSettings(), updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, position: eye, target }
+    const eye = data.position !== undefined ? aiVec3(data.position, -100, 100, shot.position || [0, 1.5, 7]) : shot.position || [0, 1.5, 7]
+    const target = data.target !== undefined ? aiVec3(data.target, -100, 100, shot.focusTarget || [0, 1, 0]) : shot.focusTarget || [0, 1, 0]
+    shot.position = eye
+    shot.focusTarget = target
+    shot.quaternion = lookAtQuaternion(eye, target)
+    if (data.focalLength !== undefined) {
+      const f = aiClamp(data.focalLength, 10, 200, 45)
+      shot.settings = Object.assign(shot.settings || aiCameraSettings(), { focalLength: f })
+      scene.camera = Object.assign(scene.camera || aiCameraSettings(), { focalLength: f })
+    }
+    return {
+      update: { 'scene.shots': shots, 'scene.camera': scene.camera || aiCameraSettings() },
+      ret: { ok: true, sceneId: data.sceneId, position: eye, target },
+    }
+  })
 })
 
 exports.addLight = onCall({ region: 'asia-northeast1' }, async (request) => {
   const uid = request.auth && request.auth.uid
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const lights = Array.isArray(scene.lights) ? scene.lights : []
-  if (lights.length >= AI_MAX_LIGHTS) throw new HttpsError('resource-exhausted', 'light limit reached')
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const lights = Array.isArray(scene.lights) ? scene.lights : []
+    if (lights.length >= AI_MAX_LIGHTS) throw new HttpsError('resource-exhausted', 'light limit reached')
 
-  const kind = AI_LIGHT_KINDS.includes(data.kind) ? data.kind : 'point'
-  const color = typeof data.color === 'string' ? data.color : '#ffffff'
-  const intensity = aiClamp(data.intensity, 0, 200, AI_LIGHT_DEFAULT_INTENSITY[kind])
-  const position = aiVec3(data.position, -50, 50, [3, 4, 2])
-  const light = { id: aiId(), name: data.name && String(data.name).slice(0, 40) || kind, kind, color, intensity, position, castShadow: kind !== 'point' && !!data.castShadow }
-  lights.push(light)
-
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.lights': lights, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, lightId: light.id, lightCount: lights.length }
+    const kind = AI_LIGHT_KINDS.includes(data.kind) ? data.kind : 'point'
+    const color = typeof data.color === 'string' ? data.color : '#ffffff'
+    const intensity = aiClamp(data.intensity, 0, 200, AI_LIGHT_DEFAULT_INTENSITY[kind])
+    const position = aiVec3(data.position, -50, 50, [3, 4, 2])
+    const light = { id: aiId(), name: data.name && String(data.name).slice(0, 40) || kind, kind, color, intensity, position, castShadow: kind !== 'point' && !!data.castShadow }
+    lights.push(light)
+    return {
+      update: { 'scene.lights': lights },
+      ret: { ok: true, sceneId: data.sceneId, lightId: light.id, lightCount: lights.length },
+    }
+  })
 })
 
 exports.updateLight = onCall({ region: 'asia-northeast1' }, async (request) => {
@@ -562,20 +538,19 @@ exports.updateLight = onCall({ region: 'asia-northeast1' }, async (request) => {
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
   if (typeof data.lightId !== 'string' || !data.lightId) throw new HttpsError('invalid-argument', 'lightId required')
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const lights = Array.isArray(scene.lights) ? scene.lights : []
-  const light = lights.find((l) => l && l.id === data.lightId)
-  if (!light) throw new HttpsError('not-found', 'light not found')
-  if (typeof data.color === 'string') light.color = data.color
-  if (data.intensity !== undefined) light.intensity = aiClamp(data.intensity, 0, 200, light.intensity)
-  if (data.position !== undefined) light.position = aiVec3(data.position, -50, 50, light.position || [0, 0, 0])
-  if (data.castShadow !== undefined) light.castShadow = !!data.castShadow
-
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.lights': lights, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, lightId: data.lightId }
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const lights = Array.isArray(scene.lights) ? scene.lights : []
+    const light = lights.find((l) => l && l.id === data.lightId)
+    if (!light) throw new HttpsError('not-found', 'light not found')
+    if (typeof data.color === 'string') light.color = data.color
+    if (data.intensity !== undefined) light.intensity = aiClamp(data.intensity, 0, 200, light.intensity)
+    if (data.position !== undefined) light.position = aiVec3(data.position, -50, 50, light.position || [0, 0, 0])
+    if (data.castShadow !== undefined) light.castShadow = !!data.castShadow
+    return {
+      update: { 'scene.lights': lights },
+      ret: { ok: true, sceneId: data.sceneId, lightId: data.lightId },
+    }
+  })
 })
 
 exports.removeLight = onCall({ region: 'asia-northeast1' }, async (request) => {
@@ -583,16 +558,15 @@ exports.removeLight = onCall({ region: 'asia-northeast1' }, async (request) => {
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
   if (typeof data.lightId !== 'string' || !data.lightId) throw new HttpsError('invalid-argument', 'lightId required')
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const lights = Array.isArray(scene.lights) ? scene.lights : []
-  const next = lights.filter((l) => !(l && l.id === data.lightId))
-  const removed = next.length !== lights.length
-
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.lights': next, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, removed, lightCount: next.length }
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const lights = Array.isArray(scene.lights) ? scene.lights : []
+    const next = lights.filter((l) => !(l && l.id === data.lightId))
+    const removed = next.length !== lights.length
+    return {
+      update: { 'scene.lights': next },
+      ret: { ok: true, sceneId: data.sceneId, removed, lightCount: next.length },
+    }
+  })
 })
 
 // ---- アセットのインポート (TASK-043 / DR-2026-009): AI生成画像/GLB の取り込み ----
@@ -715,24 +689,21 @@ exports.setCameraMotion = onCall({ region: 'asia-northeast1' }, async (request) 
   const uid = request.auth && request.auth.uid
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const cam = scene.camera || aiCameraSettings()
-  const m = Object.assign({ enabled: true, yawDeg: 0, pitchDeg: 0, dolly: 0, speed: 8 }, cam.motion || {})
-  if (data.enabled !== undefined) m.enabled = !!data.enabled
-  if (data.yawDeg !== undefined) m.yawDeg = aiClamp(data.yawDeg, 0, 180, m.yawDeg)
-  if (data.pitchDeg !== undefined) m.pitchDeg = aiClamp(data.pitchDeg, 0, 90, m.pitchDeg)
-  if (data.dolly !== undefined) m.dolly = aiClamp(data.dolly, 0, 1, m.dolly)
-  if (data.truck !== undefined) m.truck = aiClamp(data.truck, 0, 50, m.truck || 0)
-  if (data.pedestal !== undefined) m.pedestal = aiClamp(data.pedestal, 0, 50, m.pedestal || 0)
-  if (data.speed !== undefined) m.speed = aiClamp(data.speed, 1, 120, m.speed)
-  if (AI_EASINGS.includes(data.easing)) m.easing = data.easing
-  if (data.phase !== undefined) m.phase = aiClamp(data.phase, 0, 1, m.phase || 0)
-  cam.motion = m
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.camera': cam, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, motion: m }
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const cam = scene.camera || aiCameraSettings()
+    const m = Object.assign({ enabled: true, yawDeg: 0, pitchDeg: 0, dolly: 0, speed: 8 }, cam.motion || {})
+    if (data.enabled !== undefined) m.enabled = !!data.enabled
+    if (data.yawDeg !== undefined) m.yawDeg = aiClamp(data.yawDeg, 0, 180, m.yawDeg)
+    if (data.pitchDeg !== undefined) m.pitchDeg = aiClamp(data.pitchDeg, 0, 90, m.pitchDeg)
+    if (data.dolly !== undefined) m.dolly = aiClamp(data.dolly, 0, 1, m.dolly)
+    if (data.truck !== undefined) m.truck = aiClamp(data.truck, 0, 50, m.truck || 0)
+    if (data.pedestal !== undefined) m.pedestal = aiClamp(data.pedestal, 0, 50, m.pedestal || 0)
+    if (data.speed !== undefined) m.speed = aiClamp(data.speed, 1, 120, m.speed)
+    if (AI_EASINGS.includes(data.easing)) m.easing = data.easing
+    if (data.phase !== undefined) m.phase = aiClamp(data.phase, 0, 1, m.phase || 0)
+    cam.motion = m
+    return { update: { 'scene.camera': cam }, ret: { ok: true, sceneId: data.sceneId, motion: m } }
+  })
 })
 
 exports.setObjectMotion = onCall({ region: 'asia-northeast1' }, async (request) => {
@@ -740,25 +711,22 @@ exports.setObjectMotion = onCall({ region: 'asia-northeast1' }, async (request) 
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
   if (typeof data.objectId !== 'string') throw new HttpsError('invalid-argument', 'objectId required')
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const objects = Array.isArray(scene.objects) ? scene.objects : []
-  const obj = objects.find((o) => o && o.id === data.objectId)
-  if (!obj) throw new HttpsError('not-found', 'object not found')
-  const m = Object.assign({ enabled: true, moveX: 0, moveY: 0, moveZ: 0, spinY: 0, speed: 6 }, obj.motion || {})
-  if (data.enabled !== undefined) m.enabled = !!data.enabled
-  if (data.moveX !== undefined) m.moveX = aiClamp(data.moveX, 0, 50, m.moveX)
-  if (data.moveY !== undefined) m.moveY = aiClamp(data.moveY, 0, 50, m.moveY)
-  if (data.moveZ !== undefined) m.moveZ = aiClamp(data.moveZ, 0, 50, m.moveZ)
-  if (data.spinY !== undefined) m.spinY = aiClamp(data.spinY, -720, 720, m.spinY)
-  if (data.speed !== undefined) m.speed = aiClamp(data.speed, 1, 120, m.speed)
-  if (AI_EASINGS.includes(data.easing)) m.easing = data.easing
-  if (data.phase !== undefined) m.phase = aiClamp(data.phase, 0, 1, m.phase || 0)
-  obj.motion = m
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.objects': objects, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, objectId: data.objectId, motion: m }
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const objects = Array.isArray(scene.objects) ? scene.objects : []
+    const obj = objects.find((o) => o && o.id === data.objectId)
+    if (!obj) throw new HttpsError('not-found', 'object not found')
+    const m = Object.assign({ enabled: true, moveX: 0, moveY: 0, moveZ: 0, spinY: 0, speed: 6 }, obj.motion || {})
+    if (data.enabled !== undefined) m.enabled = !!data.enabled
+    if (data.moveX !== undefined) m.moveX = aiClamp(data.moveX, 0, 50, m.moveX)
+    if (data.moveY !== undefined) m.moveY = aiClamp(data.moveY, 0, 50, m.moveY)
+    if (data.moveZ !== undefined) m.moveZ = aiClamp(data.moveZ, 0, 50, m.moveZ)
+    if (data.spinY !== undefined) m.spinY = aiClamp(data.spinY, -720, 720, m.spinY)
+    if (data.speed !== undefined) m.speed = aiClamp(data.speed, 1, 120, m.speed)
+    if (AI_EASINGS.includes(data.easing)) m.easing = data.easing
+    if (data.phase !== undefined) m.phase = aiClamp(data.phase, 0, 1, m.phase || 0)
+    obj.motion = m
+    return { update: { 'scene.objects': objects }, ret: { ok: true, sceneId: data.sceneId, objectId: data.objectId, motion: m } }
+  })
 })
 
 exports.setLightPulse = onCall({ region: 'asia-northeast1' }, async (request) => {
@@ -766,23 +734,20 @@ exports.setLightPulse = onCall({ region: 'asia-northeast1' }, async (request) =>
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
   if (typeof data.lightId !== 'string') throw new HttpsError('invalid-argument', 'lightId required')
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const lights = Array.isArray(scene.lights) ? scene.lights : []
-  const light = lights.find((l) => l && l.id === data.lightId)
-  if (!light) throw new HttpsError('not-found', 'light not found')
-  const p = Object.assign({ enabled: true, mode: 'pulse', min: 0.15, speed: 1.5 }, light.pulse || {})
-  if (data.enabled !== undefined) p.enabled = !!data.enabled
-  if (['pulse', 'blink', 'flicker'].includes(data.mode)) p.mode = data.mode
-  if (data.min !== undefined) p.min = aiClamp(data.min, 0, 1, p.min)
-  if (data.speed !== undefined) p.speed = aiClamp(data.speed, 0.05, 30, p.speed)
-  if (AI_EASINGS.includes(data.easing)) p.easing = data.easing
-  if (data.phase !== undefined) p.phase = aiClamp(data.phase, 0, 1, p.phase || 0)
-  light.pulse = p
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.lights': lights, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, lightId: data.lightId, pulse: p }
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const lights = Array.isArray(scene.lights) ? scene.lights : []
+    const light = lights.find((l) => l && l.id === data.lightId)
+    if (!light) throw new HttpsError('not-found', 'light not found')
+    const p = Object.assign({ enabled: true, mode: 'pulse', min: 0.15, speed: 1.5 }, light.pulse || {})
+    if (data.enabled !== undefined) p.enabled = !!data.enabled
+    if (['pulse', 'blink', 'flicker'].includes(data.mode)) p.mode = data.mode
+    if (data.min !== undefined) p.min = aiClamp(data.min, 0, 1, p.min)
+    if (data.speed !== undefined) p.speed = aiClamp(data.speed, 0.05, 30, p.speed)
+    if (AI_EASINGS.includes(data.easing)) p.easing = data.easing
+    if (data.phase !== undefined) p.phase = aiClamp(data.phase, 0, 1, p.phase || 0)
+    light.pulse = p
+    return { update: { 'scene.lights': lights }, ret: { ok: true, sceneId: data.sceneId, lightId: data.lightId, pulse: p } }
+  })
 })
 
 exports.setLightColorCycle = onCall({ region: 'asia-northeast1' }, async (request) => {
@@ -790,26 +755,23 @@ exports.setLightColorCycle = onCall({ region: 'asia-northeast1' }, async (reques
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
   if (typeof data.lightId !== 'string') throw new HttpsError('invalid-argument', 'lightId required')
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const lights = Array.isArray(scene.lights) ? scene.lights : []
-  const light = lights.find((l) => l && l.id === data.lightId)
-  if (!light) throw new HttpsError('not-found', 'light not found')
-  const c = Object.assign({ enabled: true, mode: 'gradient', hueRange: 60, colors: ['#ff3df0', '#3df0ff', '#f0e63d'], speed: 4 }, light.colorCycle || {})
-  if (data.enabled !== undefined) c.enabled = !!data.enabled
-  if (['hue', 'gradient'].includes(data.mode)) c.mode = data.mode
-  if (data.hueRange !== undefined) c.hueRange = aiClamp(data.hueRange, 0, 180, c.hueRange)
-  if (Array.isArray(data.colors)) {
-    const cols = data.colors.filter((x) => typeof x === 'string').slice(0, 4)
-    if (cols.length >= 2) c.colors = cols
-  }
-  if (data.speed !== undefined) c.speed = aiClamp(data.speed, 1, 120, c.speed)
-  if (data.phase !== undefined) c.phase = aiClamp(data.phase, 0, 1, c.phase || 0)
-  light.colorCycle = c
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.lights': lights, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, lightId: data.lightId, colorCycle: c }
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const lights = Array.isArray(scene.lights) ? scene.lights : []
+    const light = lights.find((l) => l && l.id === data.lightId)
+    if (!light) throw new HttpsError('not-found', 'light not found')
+    const c = Object.assign({ enabled: true, mode: 'gradient', hueRange: 60, colors: ['#ff3df0', '#3df0ff', '#f0e63d'], speed: 4 }, light.colorCycle || {})
+    if (data.enabled !== undefined) c.enabled = !!data.enabled
+    if (['hue', 'gradient'].includes(data.mode)) c.mode = data.mode
+    if (data.hueRange !== undefined) c.hueRange = aiClamp(data.hueRange, 0, 180, c.hueRange)
+    if (Array.isArray(data.colors)) {
+      const cols = data.colors.filter((x) => typeof x === 'string').slice(0, 4)
+      if (cols.length >= 2) c.colors = cols
+    }
+    if (data.speed !== undefined) c.speed = aiClamp(data.speed, 1, 120, c.speed)
+    if (data.phase !== undefined) c.phase = aiClamp(data.phase, 0, 1, c.phase || 0)
+    light.colorCycle = c
+    return { update: { 'scene.lights': lights }, ret: { ok: true, sceneId: data.sceneId, lightId: data.lightId, colorCycle: c } }
+  })
 })
 
 // ---- 環境(地面/Grid/背景/霧 等)を MCP から設定 (TASK-051) ----
@@ -821,31 +783,27 @@ exports.setEnvironment = onCall({ region: 'asia-northeast1' }, async (request) =
   const uid = request.auth && request.auth.uid
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const env = Object.assign(aiEnv(), scene.env || {})
-  // 表示トグル
-  if (data.groundVisible !== undefined) env.groundVisible = !!data.groundVisible
-  if (data.gridVisible !== undefined) env.gridVisible = !!data.gridVisible
-  if (data.fogEnabled !== undefined) env.fogEnabled = !!data.fogEnabled
-  if (data.bloomEnabled !== undefined) env.bloomEnabled = !!data.bloomEnabled
-  if (data.vignetteEnabled !== undefined) env.vignetteEnabled = !!data.vignetteEnabled
-  // 色
-  if (data.backgroundColor !== undefined) env.backgroundColor = aiColor(data.backgroundColor, env.backgroundColor)
-  if (data.groundColor !== undefined) env.groundColor = aiColor(data.groundColor, env.groundColor)
-  if (data.fogColor !== undefined) env.fogColor = aiColor(data.fogColor, env.fogColor)
-  if (data.ambientColor !== undefined) env.ambientColor = aiColor(data.ambientColor, env.ambientColor)
-  // 数値
-  if (data.ambientIntensity !== undefined) env.ambientIntensity = aiClamp(data.ambientIntensity, 0, 3, env.ambientIntensity)
-  if (data.bloomIntensity !== undefined) env.bloomIntensity = aiClamp(data.bloomIntensity, 0, 3, env.bloomIntensity)
-  if (data.vignetteDarkness !== undefined) env.vignetteDarkness = aiClamp(data.vignetteDarkness, 0, 1, env.vignetteDarkness)
-  if (data.fogNear !== undefined) env.fogNear = aiClamp(data.fogNear, 1, 200, env.fogNear)
-  if (data.fogFar !== undefined) env.fogFar = aiClamp(data.fogFar, 5, 400, env.fogFar)
-  scene.env = env
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.env': env, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, env }
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const env = Object.assign(aiEnv(), scene.env || {})
+    // 表示トグル
+    if (data.groundVisible !== undefined) env.groundVisible = !!data.groundVisible
+    if (data.gridVisible !== undefined) env.gridVisible = !!data.gridVisible
+    if (data.fogEnabled !== undefined) env.fogEnabled = !!data.fogEnabled
+    if (data.bloomEnabled !== undefined) env.bloomEnabled = !!data.bloomEnabled
+    if (data.vignetteEnabled !== undefined) env.vignetteEnabled = !!data.vignetteEnabled
+    // 色
+    if (data.backgroundColor !== undefined) env.backgroundColor = aiColor(data.backgroundColor, env.backgroundColor)
+    if (data.groundColor !== undefined) env.groundColor = aiColor(data.groundColor, env.groundColor)
+    if (data.fogColor !== undefined) env.fogColor = aiColor(data.fogColor, env.fogColor)
+    if (data.ambientColor !== undefined) env.ambientColor = aiColor(data.ambientColor, env.ambientColor)
+    // 数値
+    if (data.ambientIntensity !== undefined) env.ambientIntensity = aiClamp(data.ambientIntensity, 0, 3, env.ambientIntensity)
+    if (data.bloomIntensity !== undefined) env.bloomIntensity = aiClamp(data.bloomIntensity, 0, 3, env.bloomIntensity)
+    if (data.vignetteDarkness !== undefined) env.vignetteDarkness = aiClamp(data.vignetteDarkness, 0, 1, env.vignetteDarkness)
+    if (data.fogNear !== undefined) env.fogNear = aiClamp(data.fogNear, 1, 200, env.fogNear)
+    if (data.fogFar !== undefined) env.fogFar = aiClamp(data.fogFar, 5, 400, env.fogFar)
+    return { update: { 'scene.env': env }, ret: { ok: true, sceneId: data.sceneId, env } }
+  })
 })
 
 // ---- シーン全体の見せ方変換(回転/移動/スケール/ターンテーブル) (TASK-052) ----
@@ -853,25 +811,21 @@ exports.setSceneTransform = onCall({ region: 'asia-northeast1' }, async (request
   const uid = request.auth && request.auth.uid
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const root = Object.assign({ position: [0, 0, 0], rotation: [0, 0, 0], scale: 1, spinY: 0 }, scene.root || {})
-  if (data.position !== undefined) root.position = aiVec3(data.position, -100, 100, root.position)
-  if (data.rotation !== undefined) {
-    const r = Array.isArray(data.rotation) ? data.rotation : []
-    root.rotation = [
-      aiClamp(r[0], -12.6, 12.6, root.rotation[0]),
-      aiClamp(r[1], -12.6, 12.6, root.rotation[1]),
-      aiClamp(r[2], -12.6, 12.6, root.rotation[2]),
-    ]
-  }
-  if (data.scale !== undefined) root.scale = aiClamp(data.scale, 0.05, 20, root.scale)
-  if (data.spinY !== undefined) root.spinY = aiClamp(data.spinY, -720, 720, root.spinY || 0)
-  scene.root = root
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.root': root, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, root }
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const root = Object.assign({ position: [0, 0, 0], rotation: [0, 0, 0], scale: 1, spinY: 0 }, scene.root || {})
+    if (data.position !== undefined) root.position = aiVec3(data.position, -100, 100, root.position)
+    if (data.rotation !== undefined) {
+      const r = Array.isArray(data.rotation) ? data.rotation : []
+      root.rotation = [
+        aiClamp(r[0], -12.6, 12.6, root.rotation[0]),
+        aiClamp(r[1], -12.6, 12.6, root.rotation[1]),
+        aiClamp(r[2], -12.6, 12.6, root.rotation[2]),
+      ]
+    }
+    if (data.scale !== undefined) root.scale = aiClamp(data.scale, 0.05, 20, root.scale)
+    if (data.spinY !== undefined) root.spinY = aiClamp(data.spinY, -720, 720, root.spinY || 0)
+    return { update: { 'scene.root': root }, ret: { ok: true, sceneId: data.sceneId, root } }
+  })
 })
 
 // ---- 視点(Shot)とツアー (TASK-053) ----
@@ -881,29 +835,26 @@ exports.addShot = onCall({ region: 'asia-northeast1' }, async (request) => {
   const uid = request.auth && request.auth.uid
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const shots = Array.isArray(scene.shots) ? scene.shots : []
-  if (shots.length >= AI_MAX_SHOTS) throw new HttpsError('resource-exhausted', 'shot limit reached')
-  const eye = aiVec3(data.position, -100, 100, [0, 1.5, 8])
-  const target = aiVec3(data.target, -100, 100, [0, 1, 0])
-  const settings = aiCameraSettings()
-  if (data.focalLength !== undefined) settings.focalLength = aiClamp(data.focalLength, 10, 200, 45)
-  const shot = {
-    id: aiId(),
-    name: (typeof data.name === 'string' && data.name.trim() ? data.name.trim() : 'Shot ' + (shots.length + 1)).slice(0, 40),
-    position: eye,
-    quaternion: lookAtQuaternion(eye, target),
-    settings,
-    focusTarget: target,
-  }
-  shots.push(shot)
-  const update = { 'scene.shots': shots, updatedAt: admin.firestore.FieldValue.serverTimestamp() }
-  if (!scene.activeShotId) update['scene.activeShotId'] = shot.id
-  const batch = db.batch()
-  batch.update(sceneRef, update)
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, shotId: shot.id, shotCount: shots.length }
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const shots = Array.isArray(scene.shots) ? scene.shots : []
+    if (shots.length >= AI_MAX_SHOTS) throw new HttpsError('resource-exhausted', 'shot limit reached')
+    const eye = aiVec3(data.position, -100, 100, [0, 1.5, 8])
+    const target = aiVec3(data.target, -100, 100, [0, 1, 0])
+    const settings = aiCameraSettings()
+    if (data.focalLength !== undefined) settings.focalLength = aiClamp(data.focalLength, 10, 200, 45)
+    const shot = {
+      id: aiId(),
+      name: (typeof data.name === 'string' && data.name.trim() ? data.name.trim() : 'Shot ' + (shots.length + 1)).slice(0, 40),
+      position: eye,
+      quaternion: lookAtQuaternion(eye, target),
+      settings,
+      focusTarget: target,
+    }
+    shots.push(shot)
+    const update = { 'scene.shots': shots }
+    if (!scene.activeShotId) update['scene.activeShotId'] = shot.id
+    return { update, ret: { ok: true, sceneId: data.sceneId, shotId: shot.id, shotCount: shots.length } }
+  })
 })
 
 exports.listShots = onCall({ region: 'asia-northeast1' }, async (request) => {
@@ -931,37 +882,30 @@ exports.removeShot = onCall({ region: 'asia-northeast1' }, async (request) => {
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
   if (typeof data.shotId !== 'string') throw new HttpsError('invalid-argument', 'shotId required')
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const shots = Array.isArray(scene.shots) ? scene.shots : []
-  const next = shots.filter((s) => s && s.id !== data.shotId)
-  const removed = next.length !== shots.length
-  const update = { 'scene.shots': next, updatedAt: admin.firestore.FieldValue.serverTimestamp() }
-  if (scene.activeShotId === data.shotId) update['scene.activeShotId'] = next[0] ? next[0].id : null
-  const batch = db.batch()
-  batch.update(sceneRef, update)
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, removed, shotCount: next.length }
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const shots = Array.isArray(scene.shots) ? scene.shots : []
+    const next = shots.filter((s) => s && s.id !== data.shotId)
+    const removed = next.length !== shots.length
+    const update = { 'scene.shots': next }
+    if (scene.activeShotId === data.shotId) update['scene.activeShotId'] = next[0] ? next[0].id : null
+    return { update, ret: { ok: true, sceneId: data.sceneId, removed, shotCount: next.length } }
+  })
 })
 
 exports.setTour = onCall({ region: 'asia-northeast1' }, async (request) => {
   const uid = request.auth && request.auth.uid
   if (!uid) throw new HttpsError('unauthenticated', 'sign-in required')
   const data = request.data || {}
-  const { db, userRef, sceneRef, today, opCount, scene } = await aiOpenScene(uid, data.sceneId)
-  const tour = Object.assign({ enabled: false, dwell: 1.6, transition: 2, loop: true, easing: 'easeInOut' }, scene.tour || {})
-  if (data.enabled !== undefined) tour.enabled = !!data.enabled
-  if (Array.isArray(data.shotIds)) tour.shotIds = data.shotIds.filter((x) => typeof x === 'string').slice(0, AI_MAX_SHOTS)
-  if (data.dwell !== undefined) tour.dwell = aiClamp(data.dwell, 0, 30, tour.dwell)
-  if (data.transition !== undefined) tour.transition = aiClamp(data.transition, 0.1, 30, tour.transition)
-  if (data.loop !== undefined) tour.loop = !!data.loop
-  if (AI_EASINGS.includes(data.easing)) tour.easing = data.easing
-  scene.tour = tour
-  const batch = db.batch()
-  batch.update(sceneRef, { 'scene.tour': tour, updatedAt: admin.firestore.FieldValue.serverTimestamp() })
-  batch.set(userRef, { aiOpDate: today, aiOpCount: opCount + 1 }, { merge: true })
-  await batch.commit()
-  return { ok: true, sceneId: data.sceneId, tour }
+  return await aiEditScene(uid, data.sceneId, ({ scene }) => {
+    const tour = Object.assign({ enabled: false, dwell: 1.6, transition: 2, loop: true, easing: 'easeInOut' }, scene.tour || {})
+    if (data.enabled !== undefined) tour.enabled = !!data.enabled
+    if (Array.isArray(data.shotIds)) tour.shotIds = data.shotIds.filter((x) => typeof x === 'string').slice(0, AI_MAX_SHOTS)
+    if (data.dwell !== undefined) tour.dwell = aiClamp(data.dwell, 0, 30, tour.dwell)
+    if (data.transition !== undefined) tour.transition = aiClamp(data.transition, 0.1, 30, tour.transition)
+    if (data.loop !== undefined) tour.loop = !!data.loop
+    if (AI_EASINGS.includes(data.easing)) tour.easing = data.easing
+    return { update: { 'scene.tour': tour }, ret: { ok: true, sceneId: data.sceneId, tour } }
+  })
 })
 
 // ---- シーン管理 (TASK-045) ----

@@ -98,5 +98,5 @@ updateObject(sceneId, objId, { position:[2,0.5,0] })
 ## 既知の制約
 
 - **公開は対象外**: 作業コピーまでを MCP で扱う。公開(`showcases/` 昇格)は独自の DR が必要(別ゲート)。
-- 編集 Function は read-modify-write(未トランザクション)。同一シーンへの **同時書き込み** は lost-update の
-  可能性(TASK-041 でトランザクション化予定)。単独エージェント利用では問題にならない。
+- シーン編集 Function は **Firestore トランザクション**で実行(TASK-041)。同一シーンへの同時書き込みは
+  競合時に自動リトライされ、lost-update(取りこぼし)が起きない。複数エージェント/人間同時編集でも安全。
