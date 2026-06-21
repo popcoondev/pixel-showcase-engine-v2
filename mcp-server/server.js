@@ -442,8 +442,8 @@ async function signedUrl(storagePath) {
   return url
 }
 
-/** sceneId のシーンを本番アプリでヘッドレス描画し、PNG(base64)を返す。 */
-async function renderScene(sceneId) {
+/** ヘッドレスで本番アプリにシーンを読み込み { browser, page } を返す(呼び出し側で close)。 */
+async function openScenePage(sceneId, { shotId, mode = 'preview' } = {}) {
   let chromium
   try {
     ;({ chromium } = await import('playwright'))
@@ -471,14 +471,36 @@ async function renderScene(sceneId) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
     await page.goto(APP_URL, { waitUntil: 'domcontentloaded' })
     await page.waitForFunction('!!(window.__pse && window.__pse.getState)', null, { timeout: 20000 })
-    await page.evaluate((f) => {
-      const s = window.__pse.getState()
-      s.loadScene(f)
-      const st = window.__pse.getState()
-      if (st.shots && st.shots[0]) st.applyShot(st.shots[0].id)
-      st.setMode('preview')
-    }, file)
+    await page.evaluate(
+      ({ f, shotId, mode }) => {
+        const s = window.__pse.getState()
+        s.loadScene(f)
+        const st = window.__pse.getState()
+        // shotId 指定時はその視点を固定表示(ツアーが上書きしないよう無効化)
+        if (shotId) {
+          st.setTour({ enabled: false })
+          st.applyShot(shotId)
+        } else if (st.shots && st.shots[0]) {
+          st.applyShot(st.shots[0].id)
+        }
+        st.setMode(mode)
+      },
+      { f: file, shotId: shotId || null, mode },
+    )
     await page.waitForTimeout(4500) // GLB ロード + 描画待ち
+    return { browser, page }
+  } catch (e) {
+    await browser.close()
+    return { error: (e && e.message) || String(e) }
+  }
+}
+
+/** sceneId のシーンを本番アプリでヘッドレス描画し、PNG(base64)を返す。 */
+async function renderScene(sceneId, shotId) {
+  const r = await openScenePage(sceneId, { shotId })
+  if (r.error) return { error: r.error }
+  const { browser, page } = r
+  try {
     await page.evaluate(() => document.querySelectorAll('.help-overlay').forEach((e) => e.remove()))
     const buf = await page.locator('canvas').first().screenshot({ type: 'png' })
     return { ok: true, base64: buf.toString('base64') }
@@ -487,16 +509,49 @@ async function renderScene(sceneId) {
   }
 }
 
+/** 各オブジェクトのワールド境界ボックス寸法(m)を実シーンから測って返す。 */
+async function measureScene(sceneId) {
+  // edit モードで読む: motion/ターンテーブルが静止するので寸法が安定する。
+  const r = await openScenePage(sceneId, { mode: 'edit' })
+  if (r.error) return { error: r.error }
+  const { browser, page } = r
+  try {
+    const result = await page.evaluate(() => {
+      const fn = window.__pseMeasure
+      if (typeof fn !== 'function') {
+        return { __error: 'measure-unavailable', message: 'このアプリは __pseMeasure 未対応(フロントのデプロイ反映待ちの可能性)' }
+      }
+      return fn()
+    })
+    return { ok: true, result }
+  } finally {
+    await browser.close()
+  }
+}
+
 server.tool(
   'render_scene',
-  'シーンを実際にレンダリングした画像を返す(AI が見た目を確認して調整できる)',
-  { sceneId: z.string() },
-  async ({ sceneId }) => {
-    const r = await renderScene(sceneId)
+  'シーンを実際にレンダリングした画像を返す(AI が見た目を確認して調整できる)。shotId を渡すとその視点から描画する(list_shots の id)',
+  { sceneId: z.string(), shotId: z.string().optional() },
+  async ({ sceneId, shotId }) => {
+    const r = await renderScene(sceneId, shotId)
     if (r.error) {
       return { content: [{ type: 'text', text: JSON.stringify({ __error: 'render-failed', message: r.error }) }], isError: true }
     }
     return { content: [{ type: 'image', data: r.base64, mimeType: 'image/png' }] }
+  },
+)
+
+server.tool(
+  'measure_scene',
+  '各オブジェクトの実際のサイズ(ワールド境界ボックスの幅/高さ/奥行き m)と中心、シーン全体の寸法を返す。GLB は正規化されるため scale だけでは大きさが分からない→配置の大小判断に使う',
+  { sceneId: z.string() },
+  async ({ sceneId }) => {
+    const r = await measureScene(sceneId)
+    if (r.error) {
+      return { content: [{ type: 'text', text: JSON.stringify({ __error: 'measure-failed', message: r.error }) }], isError: true }
+    }
+    return asText(r.result)
   },
 )
 

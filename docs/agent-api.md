@@ -50,7 +50,8 @@ Scene  = { version, name, objects: SceneObject[], lights, env, camera, shots, ac
 | `renameScene` | write | `{ sceneId, name }` | `{ ok, sceneId, name }` |
 | `duplicateScene` | write | `{ sceneId, name? }` | `{ ok, sceneId, name }` |
 | `deleteScene` | write | `{ sceneId }` | `{ ok, sceneId, deleted }` |
-| `render_scene` | read | `{ sceneId }` | PNG 画像(MCPサーバー側でヘッドレス描画。Function ではない) |
+| `render_scene` | read | `{ sceneId, shotId? }` | PNG 画像(shotId でその視点から描画。MCPサーバー側でヘッドレス描画) |
+| `measure_scene` | read | `{ sceneId }` | `{ objects: {id:{name,kind,size,center}}, bounds }`(各オブジェクトの実寸 m。MCPサーバー側で計測) |
 | `importAsset` | write | `{ dataUrl, name?, kind?, aspect? }` | `{ ok, hash, kind, aspect, reused }` |
 | `import_asset_file` | write | `{ path, name?, kind? }`（MCPサーバ側でファイルを読む。Function ではない） | `importAsset` と同じ |
 
@@ -98,5 +99,8 @@ updateObject(sceneId, objId, { position:[2,0.5,0] })
 ## 既知の制約
 
 - **公開は対象外**: 作業コピーまでを MCP で扱う。公開(`showcases/` 昇格)は独自の DR が必要(別ゲート)。
+- `measure_scene` は GLB の正規化後の**実寸(ワールド境界ボックス, m)**を返す。`get_scene` の `scale` は
+  GLB では正規化に対する倍率で実寸ではないため、大小判断には `measure_scene` を使う。`render_scene` の
+  `shotId` は `list_shots` の id(その視点を固定表示。ツアーは一時無効化)。
 - シーン編集 Function は **Firestore トランザクション**で実行(TASK-041)。同一シーンへの同時書き込みは
   競合時に自動リトライされ、lost-update(取りこぼし)が起きない。複数エージェント/人間同時編集でも安全。

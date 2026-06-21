@@ -216,6 +216,7 @@ function ObjectNode({ def }: { def: SceneObjectDef }) {
   return (
     <group
       ref={ref}
+      name={`pse:${def.id}`}
       position={def.position}
       rotation={def.rotation}
       scale={def.scale}
@@ -473,6 +474,7 @@ const TMP_PA = new THREE.Vector3()
 const TMP_PB = new THREE.Vector3()
 const TMP_QA = new THREE.Quaternion()
 const TMP_QB = new THREE.Quaternion()
+
 const TMP_Q = new THREE.Quaternion()
 
 function CameraRig() {
@@ -726,6 +728,47 @@ function SceneRootGroup({ children }: { children: ReactNode }) {
   )
 }
 
+/**
+ * ヘッドレス計測(MCP measure_scene 用): レンダリング済み THREE シーンを辿って
+ * 各オブジェクトのワールド境界ボックス寸法(m)を window.__pseMeasure で返す。
+ * GLB はロード時に正規化されるため scale 値だけでは実寸が分からない→実シーンから測る。
+ */
+function MeasureBridge() {
+  const { scene } = useThree()
+  useEffect(() => {
+    const round = (n: number) => Math.round(n * 1000) / 1000
+    const box = new THREE.Box3()
+    const size = new THREE.Vector3()
+    const center = new THREE.Vector3()
+    const toArr = (v: THREE.Vector3) => [round(v.x), round(v.y), round(v.z)]
+    ;(window as unknown as { __pseMeasure?: () => unknown }).__pseMeasure = () => {
+      const objects: Record<string, { name: string; kind: string; size: number[]; center: number[] }> = {}
+      const overall = new THREE.Box3()
+      for (const def of useStore.getState().objects) {
+        const o = scene.getObjectByName(`pse:${def.id}`)
+        if (!o) continue
+        box.setFromObject(o)
+        if (box.isEmpty()) continue
+        box.getSize(size)
+        box.getCenter(center)
+        objects[def.id] = { name: def.name, kind: def.kind, size: toArr(size), center: toArr(center) }
+        overall.union(box)
+      }
+      let bounds: { size: number[]; center: number[] } | null = null
+      if (!overall.isEmpty()) {
+        overall.getSize(size)
+        overall.getCenter(center)
+        bounds = { size: toArr(size), center: toArr(center) }
+      }
+      return { objects, bounds }
+    }
+    return () => {
+      delete (window as unknown as { __pseMeasure?: () => unknown }).__pseMeasure
+    }
+  }, [scene])
+  return null
+}
+
 function SceneContent() {
   const env = useStore((s) => s.env)
   const objects = useStore((s) => s.objects)
@@ -751,6 +794,7 @@ function SceneContent() {
       <Ground />
       <FocusMarker />
       <SelectionGizmo />
+      <MeasureBridge />
       <CameraRig />
       <FlyControls />
       <Effects />
