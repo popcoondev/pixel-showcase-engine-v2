@@ -5,8 +5,13 @@
 - Framework: AOF v3.5.0
 - Governance: councils / 2_of_3(対外**公開**サーフェス=Operations/Guardian の安全審査、Guardian veto 水準)
 - Builds on: DR-2026-009(エージェント編集API + MCP ゲートウェイ。**§3.4 で「公開しない」と明示**)
-- Status: **Proposed**(ポリシー選択は human 未ラチファイ)
+- Status: **Adopted**(2026-06-21 human が **C=人間承認トークン付き公開** をラチファイ)
 - Human Maintainer: popcoondev
+
+> **採用: C**。発行と公開を App Check で分離する:
+> `issuePublishToken` は **App Check enforce**(ブラウザ=人間のみ発行可、MCP は App Check 無しで弾かれる)、
+> `publishScene(token)` は App Check exempt(トークンを持つエージェントが公開実行)。トークンは
+> `users/{uid}/publishApprovals/{token}` doc(sceneId・exp≤10分・consumed)で Firestore を真実とする(署名鍵不要)。
 
 ---
 
